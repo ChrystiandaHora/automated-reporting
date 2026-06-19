@@ -1,0 +1,7 @@
+playwright
+google-genai
+python-dotenv
+fastapi
+uvicorn[standard]
+sqlalchemy
+requests

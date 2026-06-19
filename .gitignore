@@ -1,0 +1,16 @@
+.env
+scratch/
+backend/Docs/
+config_persistente.json
+__pycache__/
+*.pyc
+*.pyo
+evidencia_temp.png
+historico.csv
+.streamlit/
+.venv/
+*.db
+commits/
+.DS_Store
+dist/
+node_modules/
