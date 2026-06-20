@@ -64,12 +64,31 @@ export const useAnaliseStore = defineStore('analise', () => {
     analisando.value = true
     error.value = ''
     try {
-      analise.value = await api.analise.analisar(sha, forcar)
+      const res = await api.analise.analisar(sha, forcar)
+      if ('task_id' in res) {
+        await _aguardarTask(sha, res.task_id)
+      } else {
+        analise.value = res as any
+      }
     } catch (e: any) {
       error.value = e.response?.data?.detail ?? String(e)
       throw e
     } finally {
       analisando.value = false
+    }
+  }
+
+  async function _aguardarTask(sha: string, taskId: string) {
+    while (true) {
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      const status = await api.task.status(taskId)
+      if (status.status === 'SUCCESS') {
+        analise.value = await api.analise.obter(sha)
+        break
+      } else if (status.status === 'FAILURE') {
+        error.value = status.error ?? 'Erro inesperado na análise'
+        throw new Error(error.value)
+      }
     }
   }
 

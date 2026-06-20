@@ -1,6 +1,5 @@
 .env
 scratch/
-backend/Docs/
 config_persistente.json
 __pycache__/
 *.pyc

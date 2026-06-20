@@ -7,3 +7,7 @@ __pycache__
 commits/
 historico.csv
 scratch/
+.git
+.gitignore
+README.md
+.vscode/

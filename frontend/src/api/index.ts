@@ -63,6 +63,19 @@ export interface Config {
   status: { gemini: boolean; munka: boolean; gitlab: boolean }
 }
 
+export interface TaskResponse {
+  task_id: string
+  status: string
+}
+
+export interface TaskStatus {
+  task_id: string
+  status: 'PENDING' | 'STARTED' | 'PROGRESS' | 'SUCCESS' | 'FAILURE'
+  result?: any
+  error?: string
+  meta?: any
+}
+
 export const api = {
   commits: {
     listar: () => http.get<CommitSummary[]>('/commits').then(r => r.data),
@@ -74,9 +87,12 @@ export const api = {
   analise: {
     obter: (sha: string) => http.get<Analise>(`/commits/${sha}/analise`).then(r => r.data),
     analisar: (sha: string, forcar = false) =>
-      http.post<Analise>(`/commits/${sha}/analisar`, { forcar }).then(r => r.data),
+      http.post<Analise | TaskResponse>(`/commits/${sha}/analisar`, { forcar }).then(r => r.data),
     atualizar: (sha: string, atividades: Atividade[], complexidade_global?: string) =>
       http.put(`/commits/${sha}/atividades`, { atividades, complexidade_global }).then(r => r.data),
+  },
+  task: {
+    status: (taskId: string) => http.get<TaskStatus>(`/task/${taskId}`).then(r => r.data),
   },
   enviar: (sha: string, payload: {
     atividade_idx: number

@@ -89,7 +89,7 @@ munka/
 │   ├── database.py   # Configuração SQLite (SQLAlchemy)
 │   ├── models.py     # Modelos ORM (Commit, Analise, Historico)
 │   ├── migrate.py    # Migração de dados antigos
-│   └── Docs/         # Catálogo de serviços e regras do Gemini
+│   └── Docs/         # Base de conhecimento do Gemini (preencher manualmente)
 │
 ├── frontend/         # Vue 3 + Vite + Pinia + TypeScript
 │   ├── src/views/    # Páginas: Commits, CommitDetail, History, Config
@@ -100,6 +100,17 @@ munka/
 ├── .env              # Credenciais (não versionar)
 └── start.sh          # Script de desenvolvimento local
 ```
+
+## Base de Conhecimento (`backend/Docs/`)
+
+A pasta `backend/Docs/` contém os arquivos que o Gemini usa como contexto para classificar as atividades de faturamento. Os arquivos estão incluídos no repositório como **templates em branco** — preencha-os com o conteúdo real antes de usar a análise:
+
+| Arquivo | Conteúdo esperado |
+|---|---|
+| `regras-medicao.md` | Regras de medição, tabela HPA por complexidade e prompt de contexto |
+| `catalogo-servicos.md` | Catálogo completo de serviços com entregáveis e atividades |
+
+> Sem o conteúdo nesses arquivos, o endpoint `POST /commits/{sha}/analisar` produzirá análises vazias ou incorretas.
 
 ## Tecnologias
 

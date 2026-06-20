@@ -1,13 +1,37 @@
 services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
   backend:
     build: ./backend
     env_file: .env
     environment:
       DATABASE_URL: sqlite:////data/munka.db
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
     volumes:
       - munka_data:/data
     ports:
       - "8000:8000"
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  celery_worker:
+    build: ./backend
+    env_file: .env
+    environment:
+      DATABASE_URL: sqlite:////data/munka.db
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    volumes:
+      - munka_data:/data
+    depends_on:
+      - redis
+    command: celery -A celery_app worker --loglevel=info --concurrency=5
     restart: unless-stopped
 
   frontend:
@@ -20,3 +44,4 @@ services:
 
 volumes:
   munka_data:
+  redis_data:

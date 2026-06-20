@@ -43,7 +43,7 @@ class RelatorioFaturamento(BaseModel):
         description="Lista de atividades técnicas independentes identificadas no diff"
     )
 
-def analisar_diff(diff_content: str, prompt_path: str = "Docs/PROMPT_MEDICAO_CATALOGO (1).md", catalogo_path: str = "Docs/CATALOGO_DETALHES_SERVICOS (1).md") -> RelatorioFaturamento:
+def analisar_diff(diff_content: str, prompt_path: str = "Docs/regras-medicao.md", catalogo_path: str = "Docs/catalogo-servicos.md") -> RelatorioFaturamento:
     """Send a Git diff to Gemini and return a structured billing report.
 
     Reads the measurement rules from ``prompt_path`` and the service catalogue
