@@ -47,11 +47,30 @@
       </div>
 
       <!-- Metadados do commit -->
-      <div class="meta-bar">
-        <span><b>SHA:</b> {{ commit.id.slice(0, 12) }}</span>
-        <span><b>Data:</b> {{ commit.data }}</span>
-        <span><b>Projeto:</b> {{ commit.projeto }}</span>
-        <span><b>Autor:</b> {{ commit.autor }}</span>
+      <div class="meta-bar" :class="{ 'meta-bar-editing': editandoMeta }">
+        <template v-if="!editandoMeta">
+          <span><b>SHA:</b> {{ commit.id.slice(0, 12) }}</span>
+          <span><b>Data:</b> {{ commit.data }}</span>
+          <span><b>Projeto:</b> {{ commit.projeto }}</span>
+          <span><b>Autor:</b> {{ commit.autor }}</span>
+          <button class="btn-ghost btn-sm meta-edit-btn" @click="abrirEditarMeta" title="Editar metadados">✏</button>
+        </template>
+        <template v-else>
+          <div class="meta-edit-form">
+            <label>Data</label>
+            <input v-model="metaEditavel.data" placeholder="DD/MM/YYYY" style="width: 7.5rem" />
+            <label>Projeto</label>
+            <input v-model="metaEditavel.projeto" placeholder="grupo/repositorio" style="flex: 1; min-width: 12rem" />
+            <label>Autor</label>
+            <input v-model="metaEditavel.autor" placeholder="Nome do autor" style="flex: 1; min-width: 10rem" />
+            <label>Mensagem</label>
+            <input v-model="metaEditavel.mensagem" placeholder="Mensagem do commit" style="flex: 2; min-width: 14rem" />
+          </div>
+          <div class="meta-edit-actions">
+            <button class="btn-primary btn-sm" @click="salvarMeta" :disabled="salvandoMeta">{{ salvandoMeta ? 'Salvando...' : '✓ Salvar' }}</button>
+            <button class="btn-ghost btn-sm" @click="cancelarEditarMeta">✗ Cancelar</button>
+          </div>
+        </template>
       </div>
 
       <!-- Seção de Análise -->
@@ -202,6 +221,37 @@ let eventSource: EventSource | null = null
 const enviandoLote = ref(false)
 const loteIndices = ref<number[]>([])
 const loteAtualIdx = ref(0)
+
+const editandoMeta = ref(false)
+const salvandoMeta = ref(false)
+const metaEditavel = ref({ data: '', projeto: '', autor: '', mensagem: '' })
+
+function abrirEditarMeta() {
+  metaEditavel.value = {
+    data: commit.value.data,
+    projeto: commit.value.projeto,
+    autor: commit.value.autor,
+    mensagem: commit.value.mensagem,
+  }
+  editandoMeta.value = true
+}
+
+function cancelarEditarMeta() {
+  editandoMeta.value = false
+}
+
+async function salvarMeta() {
+  salvandoMeta.value = true
+  try {
+    await api.commits.atualizar(sha, metaEditavel.value)
+    Object.assign(commit.value, metaEditavel.value)
+    editandoMeta.value = false
+  } catch (e: any) {
+    alert(e.response?.data?.detail ?? 'Erro ao salvar metadados.')
+  } finally {
+    salvandoMeta.value = false
+  }
+}
 
 function scrollTerminal() {
   if (terminalPre.value) {
@@ -464,86 +514,126 @@ async function enviarItemDoLote() {
 <style scoped>
 .title-row { display: flex; align-items: center; gap: 0.5rem; }
 .title-row h1 { margin: 0; }
+
+/* ── Storytelling Dashboard ── */
+.story-dashboard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card-bg);
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+}
+.story-step { display: flex; align-items: center; gap: 0.75rem; flex: 1; }
+.step-icon { font-size: 1.75rem; opacity: 0.2; transition: opacity 0.2s; }
+.story-step.active .step-icon { opacity: 1; }
+.story-step.completed .step-icon { opacity: 1; }
+.step-info { display: flex; flex-direction: column; }
+.step-title { font-weight: 700; font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.story-step.active .step-title { color: var(--text); }
+.story-step.completed .step-title { color: #3fb950; }
+.step-desc { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem; }
+.story-arrow { color: var(--accent); font-weight: 900; font-size: 1.1rem; }
+
+/* ── Meta bar ── */
 .meta-bar {
-  display: flex; flex-wrap: wrap; gap: 1.25rem;
-  background: var(--card-bg); border: 1px solid var(--border);
-  border-radius: 8px; padding: 0.75rem 1rem;
+  display: flex; flex-wrap: wrap; gap: 1.25rem; align-items: center;
+  background: var(--card-bg);
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 0.75rem 1rem;
   font-size: 0.85rem; margin-bottom: 1.5rem;
 }
+.meta-bar-editing { gap: 0.75rem; }
+.meta-edit-btn { margin-left: auto; padding: 0.2rem 0.6rem; font-size: 0.8rem; }
+.meta-edit-form {
+  display: flex; flex-wrap: wrap; gap: 0.4rem 0.75rem; align-items: center; flex: 1;
+}
+.meta-edit-form input { padding: 0.3rem 0.5rem; font-size: 0.82rem; }
+.meta-edit-actions { display: flex; gap: 0.5rem; align-items: center; }
+
+/* ── Sections ── */
 .section { margin-bottom: 2rem; }
-.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.25rem;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 0.5rem;
+}
+.section-header h2 { font-size: 1.1rem; font-weight: 800; letter-spacing: -0.01em; }
 .section-actions { display: flex; gap: 0.5rem; }
+
 .complexidade-box { margin-bottom: 1.25rem; }
-.complexidade-box label { display: block; font-weight: 500; margin-bottom: 0.25rem; }
 .complexidade-box textarea { width: 100%; }
+
+/* ── Activity cards ── */
 .atividade-card {
-  background: var(--card-bg); border: 1px solid var(--border);
-  border-radius: 10px; margin-bottom: 1rem; overflow: hidden;
-  transition: border-color 0.2s, background-color 0.2s;
+  background: var(--card-bg);
+  border: 2px solid var(--border);
+  border-radius: 0;
+  margin-bottom: 1rem;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.15s, border-color 0.15s;
 }
 .atividade-card.enviada {
-  border-color: rgba(63, 185, 80, 0.4);
-  background: rgba(63, 185, 80, 0.02);
+  border-color: #3fb950;
+  box-shadow: 4px 4px 0 #3fb950;
 }
 .atividade-header {
   display: flex; align-items: center; gap: 0.75rem;
-  padding: 0.75rem 1rem; border-bottom: 1px solid var(--border);
-  background: rgba(255,255,255,0.02);
-  transition: background-color 0.2s;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid var(--border);
+  background: rgba(0,122,204,0.04);
 }
-.atividade-card.enviada .atividade-header {
-  background: rgba(63, 185, 80, 0.05);
-}
-.atividade-codigo { font-family: monospace; font-size: 0.85rem; color: var(--text-muted); flex: 1; }
+.atividade-card.enviada .atividade-header { background: rgba(63,185,80,0.04); }
+.atividade-codigo { font-family: monospace; font-size: 0.82rem; color: var(--text-muted); flex: 1; }
 .atividade-body { padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
-.atividade-body label { font-weight: 500; font-size: 0.85rem; margin-top: 0.25rem; }
 .atividade-body input, .atividade-body textarea { width: 100%; }
 .files-list { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .file-chip {
-  font-family: monospace; font-size: 0.75rem;
-  background: rgba(88,166,255,0.12); color: #58a6ff;
-  border-radius: 4px; padding: 2px 6px;
+  font-family: monospace; font-size: 0.73rem;
+  border: 1px solid var(--accent); color: var(--accent);
+  padding: 2px 6px;
 }
+
+/* ── Diff section ── */
 .diff-section summary { cursor: pointer; list-style: none; }
 .diff-section summary h2 { display: inline; }
 .diff-raw {
-  background: #0d1117; border: 1px solid var(--border); border-radius: 8px;
-  padding: 1rem; font-size: 0.8rem; overflow-x: auto; white-space: pre;
+  background: #0a0a0a;
+  border: 2px solid rgba(238,238,238,0.15);
+  padding: 1rem; font-size: 0.78rem; overflow-x: auto; white-space: pre;
   max-height: 500px; overflow-y: auto; margin-top: 0.75rem;
+  font-family: 'Courier New', monospace;
 }
-.btn-sm { padding: 0.3rem 0.75rem; font-size: 0.8rem; }
-.success { color: #3fb950; }
 
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  margin-top: 1rem;
-  margin-bottom: 1.5rem;
-  cursor: pointer;
-}
-.modal-wide {
-  width: 100%;
-  max-width: 650px;
-}
+/* ── Buttons ── */
+.btn-sm { padding: 0.3rem 0.75rem; font-size: 0.8rem; }
+
+/* ── Modal terminal ── */
+.modal-wide { width: 100%; max-width: 650px; }
 .terminal-container {
-  background: #0d1117;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  background: #0a0a0a;
+  border: 2px solid rgba(238,238,238,0.2);
   margin-top: 1rem;
   overflow: hidden;
 }
 .terminal-header {
-  background: rgba(255,255,255,0.05);
+  background: rgba(238,238,238,0.04);
   padding: 0.5rem 1rem;
-  font-size: 0.75rem;
-  font-weight: bold;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--text-muted);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgba(238,238,238,0.1);
 }
 .terminal-body {
   padding: 1rem;
@@ -556,81 +646,17 @@ async function enviarItemDoLote() {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  text-align: left;
 }
-.terminal-body div.log-line {
-  color: #c9d1d9;
-}
-.terminal-body div.error-line {
-  color: #f85149;
-}
-.terminal-body div.success-line {
-  color: #58a6ff;
-}
+.terminal-body div.log-line { color: #ccc; }
+.terminal-body div.error-line { color: #f85149; }
+.terminal-body div.success-line { color: var(--accent); }
+
 .spinner {
-  width: 12px;
-  height: 12px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  width: 12px; height: 12px;
+  border: 2px solid rgba(255,255,255,0.15);
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Storytelling Dashboard Styles */
-.story-dashboard {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1.25rem 1.5rem;
-  margin-bottom: 1.5rem;
-  gap: 1rem;
-}
-.story-step {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex: 1;
-}
-.step-icon {
-  font-size: 1.75rem;
-  opacity: 0.25;
-  transition: opacity 0.2s;
-}
-.story-step.active .step-icon {
-  opacity: 1;
-}
-.story-step.completed .step-icon {
-  opacity: 1;
-  filter: drop-shadow(0 0 4px #3fb950);
-}
-.step-info {
-  display: flex;
-  flex-direction: column;
-}
-.step-title {
-  font-weight: 600;
-  font-size: 0.95rem;
-  color: var(--text-muted);
-}
-.story-step.active .step-title {
-  color: var(--text);
-}
-.story-step.completed .step-title {
-  color: #3fb950;
-}
-.step-desc {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin-top: 0.15rem;
-}
-.story-arrow {
-  color: var(--border);
-  font-weight: bold;
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>

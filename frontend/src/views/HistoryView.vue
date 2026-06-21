@@ -75,11 +75,33 @@ function formatDate(iso: string) {
 
 <style scoped>
 .title-row { display: flex; align-items: center; gap: 0.5rem; }
-.table-wrapper { overflow-x: auto; }
+.table-wrapper {
+  overflow-x: auto;
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow);
+}
 table { width: 100%; border-collapse: collapse; }
-th { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 2px solid var(--border); font-size: 0.8rem; color: var(--text-muted); }
-td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
-.sha-link { font-family: monospace; color: var(--accent); text-decoration: none; }
+th {
+  text-align: left;
+  padding: 0.65rem 0.9rem;
+  border-bottom: 2px solid var(--accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  background: var(--card-bg);
+}
+td { padding: 0.65rem 0.9rem; border-bottom: 1px solid rgba(238,238,238,0.07); font-size: 0.85rem; }
+tr:hover td { background: rgba(0,122,204,0.05); }
+tr:last-child td { border-bottom: none; }
+.sha-link { font-family: monospace; color: var(--accent); text-decoration: none; font-size: 0.82rem; }
 .sha-link:hover { text-decoration: underline; }
-code { font-size: 0.8rem; background: rgba(88,166,255,0.1); padding: 1px 5px; border-radius: 3px; }
+code {
+  font-size: 0.78rem;
+  border: 1px solid rgba(0,122,204,0.4);
+  color: var(--accent);
+  padding: 1px 5px;
+  font-family: monospace;
+}
 </style>

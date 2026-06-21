@@ -14,6 +14,7 @@ export interface CommitSummary {
   atividades_enviadas?: number
   hpa_total?: number
   hpa_enviado?: number
+  diff_preview?: string
 }
 
 export interface Atividade {
@@ -53,7 +54,6 @@ export interface Config {
   munka_pass: string
   gitlab_token: string
   gitlab_url: string
-  gitlab_project: string
   munka_cargo: string
   munka_nivel: string
   munka_responsavel: string
@@ -61,6 +61,13 @@ export interface Config {
   munka_projeto: string
   munka_status_id: string
   status: { gemini: boolean; munka: boolean; gitlab: boolean }
+}
+
+export interface CommitUpdate {
+  data?: string
+  projeto?: string
+  autor?: string
+  mensagem?: string
 }
 
 export interface TaskResponse {
@@ -82,6 +89,8 @@ export const api = {
     obter: (sha: string) => http.get<any>(`/commits/${sha}`).then(r => r.data),
     importar: (payload: { gitlab_url?: string; token?: string; project_path?: string; commit_hash: string }) =>
       http.post<{ id: string; ja_existia: boolean }>('/commits/importar', payload).then(r => r.data),
+    atualizar: (sha: string, payload: CommitUpdate) =>
+      http.patch(`/commits/${sha}`, payload).then(r => r.data),
     deletar: (sha: string) => http.delete(`/commits/${sha}`),
   },
   analise: {

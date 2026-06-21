@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { api, type CommitSummary, type Analise, type HistoricoItem } from '../api'
+import { api, type CommitSummary, type Analise, type HistoricoItem, type CommitUpdate } from '../api'
 
 export const useCommitsStore = defineStore('commits', () => {
   const commits = ref<CommitSummary[]>([])
@@ -35,7 +35,13 @@ export const useCommitsStore = defineStore('commits', () => {
     commits.value = commits.value.filter(c => c.id !== sha)
   }
 
-  return { commits, historico, loading, error, fetchCommits, fetchHistorico, importar, deletar }
+  async function atualizarMetadados(sha: string, payload: CommitUpdate) {
+    await api.commits.atualizar(sha, payload)
+    const idx = commits.value.findIndex(c => c.id.startsWith(sha))
+    if (idx !== -1) Object.assign(commits.value[idx], payload)
+  }
+
+  return { commits, historico, loading, error, fetchCommits, fetchHistorico, importar, deletar, atualizarMetadados }
 })
 
 export const useAnaliseStore = defineStore('analise', () => {

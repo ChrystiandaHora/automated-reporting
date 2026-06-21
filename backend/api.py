@@ -44,7 +44,6 @@ def obter_config_valores() -> dict:
         "MUNKA_PASS": os.environ.get("MUNKA_PASS", ""),
         "GITLAB_TOKEN": os.environ.get("GITLAB_TOKEN", ""),
         "GITLAB_URL": os.environ.get("GITLAB_URL", ""),
-        "GITLAB_PROJECT": os.environ.get("GITLAB_PROJECT", ""),
         "MUNKA_CARGO": os.environ.get("MUNKA_CARGO", "9"),
         "MUNKA_NIVEL": os.environ.get("MUNKA_NIVEL", "3"),
         "MUNKA_RESPONSAVEL": os.environ.get("MUNKA_RESPONSAVEL", ""),
@@ -114,6 +113,12 @@ class EnviarRequest(BaseModel):
     headless: bool = True
     gitlab_url: Optional[str] = None
 
+class AtualizarCommitRequest(BaseModel):
+    data: Optional[str] = None
+    projeto: Optional[str] = None
+    autor: Optional[str] = None
+    mensagem: Optional[str] = None
+
 class ConfiguracaoRequest(BaseModel):
     gemini_api_key: Optional[str] = None
     munka_url: Optional[str] = None
@@ -121,7 +126,6 @@ class ConfiguracaoRequest(BaseModel):
     munka_pass: Optional[str] = None
     gitlab_token: Optional[str] = None
     gitlab_url: Optional[str] = None
-    gitlab_project: Optional[str] = None
     munka_cargo: Optional[str] = None
     munka_nivel: Optional[str] = None
     munka_responsavel: Optional[str] = None
@@ -291,6 +295,16 @@ def listar_commits(db: Session = Depends(get_db)):
             except Exception:
                 pass
         
+        diff_preview = ""
+        if c.diff_raw:
+            marker = "--- DIFF COMEÇA AQUI ---"
+            idx = c.diff_raw.find(marker)
+            if idx != -1:
+                raw = c.diff_raw[idx + len(marker):].strip()
+                lines = [l for l in raw.split('\n')
+                         if l.startswith(('+', '-')) and not l.startswith(('+++', '---'))][:4]
+                diff_preview = '\n'.join(lines)
+
         result.append({
             "id": c.id,
             "data": c.data,
@@ -303,6 +317,7 @@ def listar_commits(db: Session = Depends(get_db)):
             "atividades_enviadas": atividades_enviadas,
             "hpa_total": hpa_total,
             "hpa_enviado": hpa_enviado,
+            "diff_preview": diff_preview,
         })
     return result
 
@@ -327,7 +342,7 @@ def importar_commit(req: ImportarRequest, db: Session = Depends(get_db)):
     
     gitlab_url = (req.gitlab_url or "").strip() or cfg.get("GITLAB_URL")
     token = (req.token or "").strip() or cfg.get("GITLAB_TOKEN")
-    project_path = (req.project_path or "").strip() or cfg.get("GITLAB_PROJECT")
+    project_path = (req.project_path or "").strip()
 
     commit_hash = req.commit_hash.strip()
     # Tenta extrair da URL completa do GitLab: https://gitlab.exemplo.com/grupo/projeto/-/commit/ee91a8e2...
@@ -350,7 +365,7 @@ def importar_commit(req: ImportarRequest, db: Session = Depends(get_db)):
     if not gitlab_url or not token or not project_path:
         raise HTTPException(
             status_code=400,
-            detail="Configurações do GitLab (URL, Token ou Projeto) incompletas no sistema ou na requisição"
+            detail="Forneça a URL completa do commit GitLab (ex: https://gitlab.empresa.com/grupo/projeto/-/commit/abc123) ou informe o projeto manualmente"
         )
 
     # Verifica se já existe
@@ -465,6 +480,23 @@ def obter_commit(sha: str, db: Session = Depends(get_db)):
         "hpa_total": hpa_total,
         "hpa_enviado": hpa_enviado,
     }
+
+
+@app.patch("/commits/{sha}")
+def atualizar_commit(sha: str, req: AtualizarCommitRequest, db: Session = Depends(get_db)):
+    commit = db.query(models.Commit).filter(models.Commit.id.like(f"{sha}%")).first()
+    if not commit:
+        raise HTTPException(status_code=404, detail="Commit não encontrado")
+    if req.data is not None:
+        commit.data = req.data
+    if req.projeto is not None:
+        commit.projeto = req.projeto
+    if req.autor is not None:
+        commit.autor = req.autor
+    if req.mensagem is not None:
+        commit.mensagem = req.mensagem
+    db.commit()
+    return {"ok": True}
 
 
 @app.delete("/commits/{sha}", status_code=204)
@@ -816,7 +848,6 @@ def obter_config():
         "munka_pass": "***" if cfg.get("MUNKA_PASS") else "",
         "gitlab_token": "***" if cfg.get("GITLAB_TOKEN") else "",
         "gitlab_url": cfg.get("GITLAB_URL", ""),
-        "gitlab_project": cfg.get("GITLAB_PROJECT", ""),
         "munka_cargo": cfg.get("MUNKA_CARGO", "9"),
         "munka_nivel": cfg.get("MUNKA_NIVEL", "3"),
         "munka_responsavel": cfg.get("MUNKA_RESPONSAVEL", ""),
@@ -848,7 +879,6 @@ def salvar_config(req: ConfiguracaoRequest):
         "munka_pass": "MUNKA_PASS",
         "gitlab_token": "GITLAB_TOKEN",
         "gitlab_url": "GITLAB_URL",
-        "gitlab_project": "GITLAB_PROJECT",
         "munka_cargo": "MUNKA_CARGO",
         "munka_nivel": "MUNKA_NIVEL",
         "munka_responsavel": "MUNKA_RESPONSAVEL",
