@@ -1,7 +1,6 @@
 import os
 import json
 import re
-import tempfile
 from datetime import datetime
 from typing import Optional
 
@@ -44,7 +43,6 @@ def obter_config_valores() -> dict:
         "MUNKA_PASS": os.environ.get("MUNKA_PASS", ""),
         "GITLAB_TOKEN": os.environ.get("GITLAB_TOKEN", ""),
         "GITLAB_URL": os.environ.get("GITLAB_URL", ""),
-        "GITLAB_PROJECT": os.environ.get("GITLAB_PROJECT", ""),
         "MUNKA_CARGO": os.environ.get("MUNKA_CARGO", "9"),
         "MUNKA_NIVEL": os.environ.get("MUNKA_NIVEL", "3"),
         "MUNKA_RESPONSAVEL": os.environ.get("MUNKA_RESPONSAVEL", ""),
@@ -70,8 +68,10 @@ import models
 from gitlab_service import obter_metadados_commit, obter_diff_commit
 from gemini_service import analisar_diff
 from evidence_generator import gerar_html_evidencia
-from diff_renderer import generate_diff_image
 from automation import MunkaAutomation
+from celery_app import celery_app
+from celery.result import AsyncResult
+from celery_tasks import analisar_commit_task, enviar_atividade_task
 
 Base.metadata.create_all(bind=engine)
 
@@ -111,6 +111,12 @@ class EnviarRequest(BaseModel):
     headless: bool = True
     gitlab_url: Optional[str] = None
 
+class AtualizarCommitRequest(BaseModel):
+    data: Optional[str] = None
+    projeto: Optional[str] = None
+    autor: Optional[str] = None
+    mensagem: Optional[str] = None
+
 class ConfiguracaoRequest(BaseModel):
     gemini_api_key: Optional[str] = None
     munka_url: Optional[str] = None
@@ -118,13 +124,20 @@ class ConfiguracaoRequest(BaseModel):
     munka_pass: Optional[str] = None
     gitlab_token: Optional[str] = None
     gitlab_url: Optional[str] = None
-    gitlab_project: Optional[str] = None
     munka_cargo: Optional[str] = None
     munka_nivel: Optional[str] = None
     munka_responsavel: Optional[str] = None
     munka_produto: Optional[str] = None
     munka_projeto: Optional[str] = None
     munka_status_id: Optional[str] = None
+
+class FilaAnaliseRequest(BaseModel):
+    commit_ids: list[str]
+    modelo: str = "Gemini 2.5 Flash"
+
+class FilaEnvioRequest(BaseModel):
+    commit_id: str
+    atividade_idx: int
 
 
 # ─── Helpers ────────────────────────────────────────────────────────────────
@@ -288,6 +301,16 @@ def listar_commits(db: Session = Depends(get_db)):
             except Exception:
                 pass
         
+        diff_preview = ""
+        if c.diff_raw:
+            marker = "--- DIFF COMEÇA AQUI ---"
+            idx = c.diff_raw.find(marker)
+            if idx != -1:
+                raw = c.diff_raw[idx + len(marker):].strip()
+                lines = [l for l in raw.split('\n')
+                         if l.startswith(('+', '-')) and not l.startswith(('+++', '---'))][:4]
+                diff_preview = '\n'.join(lines)
+
         result.append({
             "id": c.id,
             "data": c.data,
@@ -300,6 +323,7 @@ def listar_commits(db: Session = Depends(get_db)):
             "atividades_enviadas": atividades_enviadas,
             "hpa_total": hpa_total,
             "hpa_enviado": hpa_enviado,
+            "diff_preview": diff_preview,
         })
     return result
 
@@ -324,11 +348,11 @@ def importar_commit(req: ImportarRequest, db: Session = Depends(get_db)):
     
     gitlab_url = (req.gitlab_url or "").strip() or cfg.get("GITLAB_URL")
     token = (req.token or "").strip() or cfg.get("GITLAB_TOKEN")
-    project_path = (req.project_path or "").strip() or cfg.get("GITLAB_PROJECT")
+    project_path = (req.project_path or "").strip()
 
     commit_hash = req.commit_hash.strip()
     # Tenta extrair da URL completa do GitLab: https://gitlab.exemplo.com/grupo/projeto/-/commit/ee91a8e2...
-    url_match = re.search(r'(https?://[^/]+)/(.+?)/-?/commit/([0-9a-fA-F]{7,40})', commit_hash)
+    url_match = re.search(r'(https?://[^/]+)/(.+?)/(?:-/)?commit/([0-9a-fA-F]{6,64})', commit_hash)
     if url_match:
         url_extracted = url_match.group(1)
         project_extracted = url_match.group(2)
@@ -340,14 +364,14 @@ def importar_commit(req: ImportarRequest, db: Session = Depends(get_db)):
             project_path = project_extracted
     else:
         # Fallback para extração simples de SHA caso venha algo como /commit/sha no final
-        sha_match = re.search(r'/commit/([0-9a-fA-F]{7,40})', commit_hash)
+        sha_match = re.search(r'/commit/([0-9a-fA-F]{6,64})', commit_hash)
         if sha_match:
             commit_hash = sha_match.group(1)
 
     if not gitlab_url or not token or not project_path:
         raise HTTPException(
             status_code=400,
-            detail="Configurações do GitLab (URL, Token ou Projeto) incompletas no sistema ou na requisição"
+            detail="Forneça a URL completa do commit GitLab (ex: https://gitlab.empresa.com/grupo/projeto/-/commit/abc123) ou informe o projeto manualmente"
         )
 
     # Verifica se já existe
@@ -464,6 +488,23 @@ def obter_commit(sha: str, db: Session = Depends(get_db)):
     }
 
 
+@app.patch("/commits/{sha}")
+def atualizar_commit(sha: str, req: AtualizarCommitRequest, db: Session = Depends(get_db)):
+    commit = db.query(models.Commit).filter(models.Commit.id.like(f"{sha}%")).first()
+    if not commit:
+        raise HTTPException(status_code=404, detail="Commit não encontrado")
+    if req.data is not None:
+        commit.data = req.data
+    if req.projeto is not None:
+        commit.projeto = req.projeto
+    if req.autor is not None:
+        commit.autor = req.autor
+    if req.mensagem is not None:
+        commit.mensagem = req.mensagem
+    db.commit()
+    return {"ok": True}
+
+
 @app.delete("/commits/{sha}", status_code=204)
 def deletar_commit(sha: str, db: Session = Depends(get_db)):
     """Delete a commit and its associated analysis by SHA prefix.
@@ -515,20 +556,15 @@ def obter_analise(sha: str, db: Session = Depends(get_db)):
 
 @app.post("/commits/{sha}/analisar")
 def analisar_commit(sha: str, req: AnalisarRequest, db: Session = Depends(get_db)):
-    """Run (or re-run) Gemini analysis on a commit diff.
+    """Queue (or return cached) Gemini analysis for a commit diff.
 
-    Sends the stored raw diff to the Gemini service and persists the
-    resulting activity list and global complexity score.  If an analysis
-    already exists and ``req.forcar`` is ``False``, the cached result is
-    returned immediately without calling Gemini again.
-
-    Returns:
-        A JSON object with ``commit_id``, ``complexidade_global``,
-        ``atividades`` (list of activity objects with 'enviado' status), and ``analisado_em``.
+    If a cached analysis exists and ``req.forcar`` is ``False``, returns the
+    result immediately. Otherwise queues an async Celery task and returns
+    ``{"task_id": ..., "status": "queued"}`` for the client to poll via
+    ``GET /task/{task_id}``.
 
     Raises:
         HTTPException: 404 when the commit is not found.
-        HTTPException: 500 when the Gemini analysis call fails.
     """
     commit = db.query(models.Commit).filter(models.Commit.id.like(f"{sha}%")).first()
     if not commit:
@@ -545,35 +581,27 @@ def analisar_commit(sha: str, req: AnalisarRequest, db: Session = Depends(get_db
             "analisado_em": analise_existente.analisado_em,
         }
 
-    try:
-        relatorio = analisar_diff(commit.diff_raw)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao analisar com Gemini: {e}")
+    task = analisar_commit_task.delay(commit.id, commit.diff_raw, req.forcar)
+    return {"task_id": task.id, "status": "queued"}
 
-    atividades = [a.model_dump() for a in relatorio.atividades]
 
-    if analise_existente:
-        analise_existente.complexidade_global = relatorio.complexidade_global
-        analise_existente.atividades_json = json.dumps(atividades, ensure_ascii=False)
-        analise_existente.analisado_em = datetime.now().isoformat()
-    else:
-        nova_analise = models.Analise(
-            commit_id=commit.id,
-            complexidade_global=relatorio.complexidade_global,
-            atividades_json=json.dumps(atividades, ensure_ascii=False),
-            analisado_em=datetime.now().isoformat(),
-        )
-        db.add(nova_analise)
-    db.commit()
+@app.get("/task/{task_id}")
+def get_task_status(task_id: str):
+    """Return the current state of a Celery background task.
 
-    atividades = _injetar_status_envio(commit.id, atividades, db)
-
-    return {
-        "commit_id": commit.id,
-        "complexidade_global": relatorio.complexidade_global,
-        "atividades": atividades,
-        "analisado_em": datetime.now().isoformat(),
-    }
+    Returns a JSON object with ``task_id``, ``status`` (PENDING / STARTED /
+    PROGRESS / SUCCESS / FAILURE), ``result`` (on SUCCESS), and ``error``
+    (on FAILURE).
+    """
+    result = AsyncResult(task_id, app=celery_app)
+    payload: dict = {"task_id": task_id, "status": result.state}
+    if result.state == "SUCCESS":
+        payload["result"] = result.result
+    elif result.state == "FAILURE":
+        payload["error"] = str(result.result)
+    elif result.state == "PROGRESS":
+        payload["meta"] = result.info or {}
+    return payload
 
 
 @app.put("/commits/{sha}/atividades")
@@ -645,14 +673,14 @@ def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)
     if not user or not password:
         raise HTTPException(status_code=400, detail="Credenciais MUNKA_USER/MUNKA_PASS não configuradas")
 
-    image_path = tempfile.mktemp(suffix=".png")
-    try:
-        generate_diff_image(commit.diff_raw, image_path)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao gerar imagem de evidência: {e}")
+    # Geração de imagem removida — evidencia via HTML
 
     gitlab_base = req.gitlab_url or cfg.get("GITLAB_URL", "")
-    gitlab_url_commit = f"{gitlab_base.rstrip('/')}/commit/{commit.id}" if gitlab_base else commit.id
+    if gitlab_base:
+        # Monta URL completa: base + caminho do projeto + /commit/SHA
+        gitlab_url_commit = f"{gitlab_base.rstrip('/')}/{(commit.projeto or '').strip('/')}/commit/{commit.id}"
+    else:
+        gitlab_url_commit = commit.id
 
     commit_metadata = {
         "data_inicio": f"{commit.data} 08:00",
@@ -729,11 +757,9 @@ def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)
 
 @app.get("/commits/{sha}/enviar-stream")
 def enviar_atividade_stream(sha: str, atividade_idx: int, headless: bool = True, db: Session = Depends(get_db)):
-    import queue
-    import threading
+    import time
     from fastapi.responses import StreamingResponse
 
-    # 1. Obter dados do commit e análise
     commit = db.query(models.Commit).filter(models.Commit.id.like(f"{sha}%")).first()
     if not commit:
         raise HTTPException(status_code=404, detail="Commit não encontrado")
@@ -745,129 +771,39 @@ def enviar_atividade_stream(sha: str, atividade_idx: int, headless: bool = True,
     if atividade_idx < 0 or atividade_idx >= len(atividades):
         raise HTTPException(status_code=400, detail="Índice de atividade inválido")
 
-    atividade = atividades[atividade_idx]
-
     cfg = obter_config_valores()
-    user = cfg.get("MUNKA_USER")
-    password = cfg.get("MUNKA_PASS")
-    if not user or not password:
+    if not cfg.get("MUNKA_USER") or not cfg.get("MUNKA_PASS"):
         raise HTTPException(status_code=400, detail="Credenciais MUNKA_USER/MUNKA_PASS não configuradas")
 
-    # Obter dados de faturamento padrão do .env para preenchimento se não estiverem no request (que agora vem das configs do backend)
-    cargo = cfg.get("MUNKA_CARGO", "9")
-    nivel = cfg.get("MUNKA_NIVEL", "3")
-    responsavel = cfg.get("MUNKA_RESPONSAVEL", "")
-    produto = cfg.get("MUNKA_PRODUTO", "[DESENV] MUNKA")
-    projeto = cfg.get("MUNKA_PROJETO", "MUNKA Multicontrato")
-    status_id = cfg.get("MUNKA_STATUS_ID", "17")
-
-    image_path = tempfile.mktemp(suffix=".png")
-    try:
-        generate_diff_image(commit.diff_raw, image_path)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao gerar imagem de evidência: {e}")
-
-    gitlab_base = cfg.get("GITLAB_URL", "")
-    gitlab_url_commit = f"{gitlab_base.rstrip('/')}/commit/{commit.id}" if gitlab_base else commit.id
-
-    commit_metadata = {
-        "data_inicio": f"{commit.data} 08:00",
-        "data_fim": f"{commit.data} 18:00",
-        "sha": commit.id,
-        "url": gitlab_url_commit,
-    }
-    dev_profile = {
-        "cargo": cargo,
-        "nivel": nivel,
-        "responsavel": responsavel,
-        "status_id": status_id,
-    }
-
-    prefixes_media = ("57", "58", "59", "60", "61")
-    atividade["is_media"] = str(atividade.get("codigo_id", "")).startswith(prefixes_media)
-
-    # Gera evidência HTML se não existir na atividade
-    evidencia_html = atividade.get("evidencia_html")
-    if not evidencia_html:
-        complexity = "Média" if atividade.get("is_media") else "Baixa/Única"
-        try:
-            evidencia_html = gerar_html_evidencia(
-                atividade,
-                commit_metadata,
-                commit.diff_raw,
-                system_name=projeto,
-                complexity=complexity,
-            )
-        except Exception:
-            evidencia_html = ""
-
-    log_queue = queue.Queue()
-
-    def log_callback(msg: str):
-        log_queue.put(f"LOG: {msg}")
-
-    def run_automation_thread():
-        try:
-            auto = MunkaAutomation(username=user, password=password, munka_url=cfg.get("MUNKA_URL", ""), headless=True, log_callback=log_callback)
-            
-            log_callback(f"Executando fluxo completo (Cadastro + Evidência) com status final '{status_id}'...")
-            resultado = auto.cadastrar_e_homologar_completo(
-                task_data=atividade,
-                image_path=image_path,
-                product_name=produto,
-                project_name=projeto,
-                dev_profile=dev_profile,
-                commit_metadata=commit_metadata,
-                custom_evidence_html=evidencia_html,
-            )
-
-            pulada = (resultado == "PULADA_DUPLICADA")
-            if pulada:
-                log_queue.put("SUCCESS: PULADA_DUPLICADA")
-            else:
-                # Grava no histórico local se não foi pulada por duplicidade
-                # Abre nova sessão de banco, pois estamos em outra thread
-                with SessionLocal() as local_db:
-                    hist_status = "Pendente" if status_id == "17" else "Homologada"
-                    hist = models.Historico(
-                        commit_id=commit.id,
-                        titulo=atividade.get("titulo", ""),
-                        codigo=atividade.get("codigo_id", ""),
-                        hpa=float(atividade.get("hpa", 0)),
-                        status=hist_status,
-                        enviado_em=datetime.now().isoformat(),
-                    )
-                    local_db.add(hist)
-                    local_db.commit()
-                log_queue.put("SUCCESS: ENVIADO")
-        except Exception as e:
-            log_queue.put(f"ERROR: {str(e)}")
-        finally:
-            if os.path.exists(image_path):
-                try:
-                    os.remove(image_path)
-                except Exception:
-                    pass
-            log_queue.put(None)  # sinaliza fim da fila
-
-    # Inicia automação em background thread
-    t = threading.Thread(target=run_automation_thread)
-    t.start()
+    task = enviar_atividade_task.delay(commit.id, atividade_idx, cfg)
+    task_id = task.id
 
     def sse_generator():
+        last_log_idx = 0
         while True:
-            try:
-                msg = log_queue.get(timeout=1.0)
-                if msg is None:
-                    break
-                if msg.startswith("LOG: "):
-                    yield f"event: log\ndata: {json.dumps({'message': msg[5:]}, ensure_ascii=False)}\n\n"
-                elif msg.startswith("SUCCESS: "):
-                    yield f"event: success\ndata: {json.dumps({'message': msg[9:]}, ensure_ascii=False)}\n\n"
-                elif msg.startswith("ERROR: "):
-                    yield f"event: error\ndata: {json.dumps({'message': msg[7:]}, ensure_ascii=False)}\n\n"
-            except queue.Empty:
-                yield ": keep-alive\n\n"
+            result = AsyncResult(task_id, app=celery_app)
+            state = result.state
+            meta = result.info if isinstance(result.info, dict) else {}
+
+            logs = meta.get("logs", [])
+            for log in logs[last_log_idx:]:
+                last_log_idx += 1
+                yield f"event: log\ndata: {json.dumps({'message': log}, ensure_ascii=False)}\n\n"
+
+            if state == "SUCCESS":
+                res = result.result or {}
+                resultado = res.get("resultado", "ENVIADO")
+                remaining = (res.get("logs") or [])[last_log_idx:]
+                for log in remaining:
+                    yield f"event: log\ndata: {json.dumps({'message': log}, ensure_ascii=False)}\n\n"
+                yield f"event: success\ndata: {json.dumps({'message': resultado}, ensure_ascii=False)}\n\n"
+                break
+            elif state == "FAILURE":
+                yield f"event: error\ndata: {json.dumps({'message': str(result.result)}, ensure_ascii=False)}\n\n"
+                break
+
+            time.sleep(0.5)
+            yield ": keep-alive\n\n"
 
     return StreamingResponse(sse_generator(), media_type="text/event-stream")
 
@@ -918,7 +854,6 @@ def obter_config():
         "munka_pass": "***" if cfg.get("MUNKA_PASS") else "",
         "gitlab_token": "***" if cfg.get("GITLAB_TOKEN") else "",
         "gitlab_url": cfg.get("GITLAB_URL", ""),
-        "gitlab_project": cfg.get("GITLAB_PROJECT", ""),
         "munka_cargo": cfg.get("MUNKA_CARGO", "9"),
         "munka_nivel": cfg.get("MUNKA_NIVEL", "3"),
         "munka_responsavel": cfg.get("MUNKA_RESPONSAVEL", ""),
@@ -950,7 +885,6 @@ def salvar_config(req: ConfiguracaoRequest):
         "munka_pass": "MUNKA_PASS",
         "gitlab_token": "GITLAB_TOKEN",
         "gitlab_url": "GITLAB_URL",
-        "gitlab_project": "GITLAB_PROJECT",
         "munka_cargo": "MUNKA_CARGO",
         "munka_nivel": "MUNKA_NIVEL",
         "munka_responsavel": "MUNKA_RESPONSAVEL",
@@ -967,6 +901,140 @@ def salvar_config(req: ConfiguracaoRequest):
             else:
                 _update_env(env_key, value)
     return {"ok": True}
+
+
+# ─── Endpoints: Fila de Tarefas ─────────────────────────────────────────────
+
+@app.post("/fila/analise", status_code=201)
+def enfileirar_analise(req: FilaAnaliseRequest, db: Session = Depends(get_db)):
+    jobs_enfileirados = []
+    for commit_id in req.commit_ids:
+        commit = db.query(models.Commit).filter(models.Commit.id.like(f"{commit_id}%")).first()
+        if not commit:
+            continue
+        
+        job = models.Fila(
+            tipo="analise",
+            commit_id=commit.id,
+            modelo=req.modelo,
+            status="pending",
+            criado_em=datetime.now().isoformat()
+        )
+        db.add(job)
+        db.flush()
+
+        task = analisar_commit_task.delay(
+            commit.id,
+            commit.diff_raw,
+            True,  # força re-análise
+            req.modelo,
+            job.id
+        )
+        job.task_id = task.id
+        jobs_enfileirados.append(job.id)
+    
+    db.commit()
+    return {"ok": True, "job_ids": jobs_enfileirados}
+
+
+@app.post("/fila/envio", status_code=201)
+def enfileirar_envio(req: FilaEnvioRequest, db: Session = Depends(get_db)):
+    # 1. Limite de concorrência local de 5 envios simultâneos
+    running_jobs = db.query(models.Fila).filter(
+        models.Fila.tipo == "envio",
+        models.Fila.status == "running"
+    ).count()
+    if running_jobs >= 5:
+        raise HTTPException(
+            status_code=429,
+            detail="Fila de envios cheia. Máximo de 5 envios simultâneos permitidos."
+        )
+
+    commit = db.query(models.Commit).filter(models.Commit.id.like(f"{req.commit_id}%")).first()
+    if not commit:
+        raise HTTPException(status_code=404, detail="Commit não encontrado")
+    
+    analise = db.query(models.Analise).filter_by(commit_id=commit.id).first()
+    if not analise:
+        raise HTTPException(status_code=404, detail="Análise do commit não encontrada")
+
+    atividades = json.loads(analise.atividades_json)
+    if req.atividade_idx < 0 or req.atividade_idx >= len(atividades):
+        raise HTTPException(status_code=400, detail="Índice de atividade inválido")
+
+    job = models.Fila(
+        tipo="envio",
+        commit_id=commit.id,
+        atividade_idx=req.atividade_idx,
+        status="pending",
+        criado_em=datetime.now().isoformat()
+    )
+    db.add(job)
+    db.flush()
+
+    cfg = obter_config_valores()
+    if not cfg.get("MUNKA_USER") or not cfg.get("MUNKA_PASS"):
+        raise HTTPException(status_code=400, detail="Credenciais MUNKA_USER/MUNKA_PASS não configuradas")
+
+    task = enviar_atividade_task.delay(commit.id, req.atividade_idx, cfg, job.id)
+    job.task_id = task.id
+    db.commit()
+
+    return {"ok": True, "job_id": job.id}
+
+
+@app.get("/fila")
+def listar_fila(db: Session = Depends(get_db)):
+    jobs = db.query(models.Fila).order_by(models.Fila.criado_em.desc()).all()
+    resultado = []
+    for j in jobs:
+        commit = db.query(models.Commit).filter_by(id=j.commit_id).first()
+        mensagem = commit.mensagem if commit else "(sem commit)"
+        
+        titulo_atividade = None
+        if j.tipo == "envio" and commit:
+            analise = db.query(models.Analise).filter_by(commit_id=commit.id).first()
+            if analise:
+                try:
+                    atividades = json.loads(analise.atividades_json)
+                    if j.atividade_idx is not None and 0 <= j.atividade_idx < len(atividades):
+                        titulo_atividade = atividades[j.atividade_idx].get("titulo")
+                except:
+                    pass
+
+        resultado.append({
+            "id": j.id,
+            "tipo": j.tipo,
+            "commit_id": j.commit_id,
+            "atividade_idx": j.atividade_idx,
+            "modelo": j.modelo,
+            "status": j.status,
+            "task_id": j.task_id,
+            "resultado": json.loads(j.resultado) if j.resultado else None,
+            "criado_em": j.criado_em,
+            "concluido_em": j.concluido_em,
+            "commit_mensagem": mensagem,
+            "titulo_atividade": titulo_atividade
+        })
+    return resultado
+
+
+@app.delete("/fila/{job_id}", status_code=204)
+def remover_job_fila(job_id: int, db: Session = Depends(get_db)):
+    job = db.query(models.Fila).filter_by(id=job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job não encontrado")
+    
+    if job.status not in ("pending", "done", "error"):
+        if job.task_id:
+            try:
+                celery_app.control.revoke(job.task_id, terminate=True)
+            except:
+                pass
+            
+    db.delete(job)
+    db.commit()
+
 
 
 

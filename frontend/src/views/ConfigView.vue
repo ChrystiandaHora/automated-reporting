@@ -14,9 +14,15 @@
 
     <template v-else>
       <div class="status-bar">
-        <span :class="cfg.status.gemini ? 'dot-green' : 'dot-red'"></span> Gemini API
-        <span :class="cfg.status.munka ? 'dot-green' : 'dot-red'"></span> Munka
-        <span :class="cfg.status.gitlab ? 'dot-green' : 'dot-red'"></span> GitLab
+        <span class="status-badge" :class="cfg.status.gemini ? 'status-ok' : 'status-err'">
+          {{ cfg.status.gemini ? '● GEMINI OK' : '✗ GEMINI' }}
+        </span>
+        <span class="status-badge" :class="cfg.status.munka ? 'status-ok' : 'status-err'">
+          {{ cfg.status.munka ? '● MUNKA OK' : '✗ MUNKA' }}
+        </span>
+        <span class="status-badge" :class="cfg.status.gitlab ? 'status-ok' : 'status-err'">
+          {{ cfg.status.gitlab ? '● GITLAB OK' : '✗ GITLAB' }}
+        </span>
       </div>
 
       <div class="config-grid">
@@ -71,8 +77,6 @@
           <input v-model="form.gitlab_url" placeholder="https://gitlab.suaorganizacao.com" />
           <label>Token</label>
           <input v-model="form.gitlab_token" type="password" placeholder="Insira para atualizar" autocomplete="off" />
-          <label>Projeto padrão</label>
-          <input v-model="form.gitlab_project" placeholder="Ex: grupo/projeto" />
         </div>
       </div>
 
@@ -101,7 +105,7 @@ const ok = ref(false)
 
 const cfg = ref<Config>({
   gemini_api_key: '', munka_user: '', munka_pass: '',
-  gitlab_token: '', gitlab_url: '', gitlab_project: '',
+  gitlab_token: '', gitlab_url: '',
   munka_cargo: '9', munka_nivel: '3', munka_responsavel: '',
   munka_produto: '[DESENV] MUNKA', munka_projeto: 'MUNKA Multicontrato', munka_status_id: '17',
   status: { gemini: false, munka: false, gitlab: false },
@@ -109,7 +113,7 @@ const cfg = ref<Config>({
 
 const form = ref({
   gemini_api_key: '', munka_user: '', munka_pass: '',
-  gitlab_token: '', gitlab_url: '', gitlab_project: '',
+  gitlab_token: '', gitlab_url: '',
   munka_cargo: '9', munka_nivel: '3', munka_responsavel: '',
   munka_produto: '[DESENV] MUNKA', munka_projeto: 'MUNKA Multicontrato', munka_status_id: '17',
 })
@@ -119,7 +123,6 @@ onMounted(async () => {
     cfg.value = await api.config.obter()
     form.value.munka_user = cfg.value.munka_user
     form.value.gitlab_url = cfg.value.gitlab_url
-    form.value.gitlab_project = cfg.value.gitlab_project
     form.value.munka_cargo = cfg.value.munka_cargo || '9'
     form.value.munka_nivel = cfg.value.munka_nivel || '3'
     form.value.munka_responsavel = cfg.value.munka_responsavel || ''
@@ -159,17 +162,40 @@ async function salvar() {
 
 <style scoped>
 .title-row { display: flex; align-items: center; gap: 0.5rem; }
-.status-bar { display: flex; gap: 1.25rem; align-items: center; margin-bottom: 1.5rem; font-size: 0.85rem; }
-.dot-green, .dot-red { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-.dot-green { background: #3fb950; }
-.dot-red { background: #f85149; }
-.config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
-.config-section {
-  background: var(--card-bg); border: 1px solid var(--border);
-  border-radius: 10px; padding: 1.25rem;
-  display: flex; flex-direction: column; gap: 0.5rem;
+
+.status-bar { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1.75rem; flex-wrap: wrap; }
+.status-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 2px;
+  border: 1px solid;
 }
-.config-section h3 { margin: 0 0 0.5rem; font-size: 1rem; color: var(--accent); }
-.config-section label { font-size: 0.85rem; font-weight: 500; }
-.success { color: #3fb950; margin-top: 1rem; }
+.status-ok  { border-color: #3fb950; color: #3fb950; }
+.status-err { border-color: #f85149; color: #f85149; }
+
+.config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+
+.config-section {
+  background: var(--card-bg);
+  border: 2px solid var(--border);
+  border-radius: 0;
+  box-shadow: var(--shadow);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.config-section h3 {
+  margin: 0 0 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid rgba(0,122,204,0.3);
+  padding-bottom: 0.5rem;
+}
+.success { color: #3fb950; margin-top: 1rem; font-weight: 600; }
 </style>

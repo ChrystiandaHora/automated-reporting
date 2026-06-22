@@ -14,6 +14,7 @@ export interface CommitSummary {
   atividades_enviadas?: number
   hpa_total?: number
   hpa_enviado?: number
+  diff_preview?: string
 }
 
 export interface Atividade {
@@ -53,7 +54,6 @@ export interface Config {
   munka_pass: string
   gitlab_token: string
   gitlab_url: string
-  gitlab_project: string
   munka_cargo: string
   munka_nivel: string
   munka_responsavel: string
@@ -63,20 +63,60 @@ export interface Config {
   status: { gemini: boolean; munka: boolean; gitlab: boolean }
 }
 
+export interface CommitUpdate {
+  data?: string
+  projeto?: string
+  autor?: string
+  mensagem?: string
+}
+
+export interface TaskResponse {
+  task_id: string
+  status: string
+}
+
+export interface TaskStatus {
+  task_id: string
+  status: 'PENDING' | 'STARTED' | 'PROGRESS' | 'SUCCESS' | 'FAILURE'
+  result?: any
+  error?: string
+  meta?: any
+}
+
+export interface FilaItem {
+  id: number
+  tipo: 'analise' | 'envio'
+  commit_id: string
+  atividade_idx?: number
+  modelo?: string
+  status: 'pending' | 'running' | 'done' | 'error'
+  task_id?: string
+  resultado?: any
+  criado_em: string
+  concluido_em?: string
+  commit_mensagem: string
+  titulo_atividade?: string
+}
+
 export const api = {
   commits: {
     listar: () => http.get<CommitSummary[]>('/commits').then(r => r.data),
     obter: (sha: string) => http.get<any>(`/commits/${sha}`).then(r => r.data),
     importar: (payload: { gitlab_url?: string; token?: string; project_path?: string; commit_hash: string }) =>
       http.post<{ id: string; ja_existia: boolean }>('/commits/importar', payload).then(r => r.data),
+    atualizar: (sha: string, payload: CommitUpdate) =>
+      http.patch(`/commits/${sha}`, payload).then(r => r.data),
     deletar: (sha: string) => http.delete(`/commits/${sha}`),
   },
   analise: {
     obter: (sha: string) => http.get<Analise>(`/commits/${sha}/analise`).then(r => r.data),
     analisar: (sha: string, forcar = false) =>
-      http.post<Analise>(`/commits/${sha}/analisar`, { forcar }).then(r => r.data),
+      http.post<Analise | TaskResponse>(`/commits/${sha}/analisar`, { forcar }).then(r => r.data),
     atualizar: (sha: string, atividades: Atividade[], complexidade_global?: string) =>
       http.put(`/commits/${sha}/atividades`, { atividades, complexidade_global }).then(r => r.data),
+  },
+  task: {
+    status: (taskId: string) => http.get<TaskStatus>(`/task/${taskId}`).then(r => r.data),
   },
   enviar: (sha: string, payload: {
     atividade_idx: number
@@ -96,4 +136,13 @@ export const api = {
     obter: () => http.get<Config>('/config').then(r => r.data),
     salvar: (payload: Partial<Config>) => http.post('/config', payload).then(r => r.data),
   },
+  fila: {
+    listar: () => http.get<FilaItem[]>('/fila').then(r => r.data),
+    enfileirarAnalise: (payload: { commit_ids: string[]; modelo: string }) =>
+      http.post<{ ok: boolean; job_ids: number[] }>('/fila/analise', payload).then(r => r.data),
+    enfileirarEnvio: (payload: { commit_id: string; atividade_idx: number }) =>
+      http.post<{ ok: boolean; job_id: number }>('/fila/envio', payload).then(r => r.data),
+    remover: (id: number) => http.delete(`/fila/${id}`).then(r => r.data),
+  },
 }
+

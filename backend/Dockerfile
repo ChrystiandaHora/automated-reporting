@@ -35,7 +35,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Instala Chromium para o Playwright
-RUN playwright install chromium && playwright install-deps chromium
+RUN playwright install chromium
 
 # Copia o código do backend
 COPY . .

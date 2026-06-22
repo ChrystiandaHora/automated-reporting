@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { api, type CommitSummary, type Analise, type HistoricoItem } from '../api'
+import { api, type CommitSummary, type Analise, type HistoricoItem, type CommitUpdate } from '../api'
 
 export const useCommitsStore = defineStore('commits', () => {
   const commits = ref<CommitSummary[]>([])
@@ -35,7 +35,13 @@ export const useCommitsStore = defineStore('commits', () => {
     commits.value = commits.value.filter(c => c.id !== sha)
   }
 
-  return { commits, historico, loading, error, fetchCommits, fetchHistorico, importar, deletar }
+  async function atualizarMetadados(sha: string, payload: CommitUpdate) {
+    await api.commits.atualizar(sha, payload)
+    const idx = commits.value.findIndex(c => c.id.startsWith(sha))
+    if (idx !== -1) Object.assign(commits.value[idx], payload)
+  }
+
+  return { commits, historico, loading, error, fetchCommits, fetchHistorico, importar, deletar, atualizarMetadados }
 })
 
 export const useAnaliseStore = defineStore('analise', () => {
@@ -45,10 +51,12 @@ export const useAnaliseStore = defineStore('analise', () => {
   const enviando = ref<Record<number, boolean>>({})
   const error = ref('')
 
-  async function fetchAnalise(sha: string) {
-    loading.value = true
+  async function fetchAnalise(sha: string, quiet = false) {
+    if (!quiet) {
+      loading.value = true
+      analise.value = null
+    }
     error.value = ''
-    analise.value = null
     try {
       analise.value = await api.analise.obter(sha)
     } catch (e: any) {
@@ -56,7 +64,9 @@ export const useAnaliseStore = defineStore('analise', () => {
         error.value = e.response?.data?.detail ?? String(e)
       }
     } finally {
-      loading.value = false
+      if (!quiet) {
+        loading.value = false
+      }
     }
   }
 
@@ -64,12 +74,31 @@ export const useAnaliseStore = defineStore('analise', () => {
     analisando.value = true
     error.value = ''
     try {
-      analise.value = await api.analise.analisar(sha, forcar)
+      const res = await api.analise.analisar(sha, forcar)
+      if ('task_id' in res) {
+        await _aguardarTask(sha, res.task_id)
+      } else {
+        analise.value = res as any
+      }
     } catch (e: any) {
       error.value = e.response?.data?.detail ?? String(e)
       throw e
     } finally {
       analisando.value = false
+    }
+  }
+
+  async function _aguardarTask(sha: string, taskId: string) {
+    while (true) {
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      const status = await api.task.status(taskId)
+      if (status.status === 'SUCCESS') {
+        analise.value = await api.analise.obter(sha)
+        break
+      } else if (status.status === 'FAILURE') {
+        error.value = status.error ?? 'Erro inesperado na análise'
+        throw new Error(error.value)
+      }
     }
   }
 

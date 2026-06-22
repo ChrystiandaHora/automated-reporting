@@ -36,20 +36,23 @@ const open = ref(false)
 .help-btn {
   width: 22px;
   height: 22px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: rgba(88, 166, 255, 0.1);
+  border-radius: 2px;
+  border: 2px solid var(--border);
+  background: transparent;
   color: var(--accent);
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.72rem;
+  font-weight: 800;
   cursor: pointer;
   line-height: 1;
-  transition: background 0.15s, border-color 0.15s;
+  box-shadow: 2px 2px 0 var(--accent);
+  transition: transform 0.1s, box-shadow 0.1s, background 0.1s;
   flex-shrink: 0;
 }
 .help-btn:hover {
-  background: rgba(88, 166, 255, 0.22);
-  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+  transform: translateY(-1px) translateX(-1px);
+  box-shadow: 3px 3px 0 var(--accent);
 }
 
 .help-modal {
@@ -65,20 +68,22 @@ const open = ref(false)
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1rem;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 0.75rem;
 }
-.help-modal-header h2 { font-size: 1.1rem; }
+.help-modal-header h2 { font-size: 1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
 
 .close-btn {
-  background: none;
-  border: none;
+  background: transparent;
+  border: 2px solid var(--border);
   color: var(--text-muted);
-  font-size: 1rem;
+  font-size: 0.85rem;
   cursor: pointer;
-  padding: 0.25rem;
-  border-radius: 4px;
-  transition: color 0.15s;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0;
+  transition: background 0.1s, color 0.1s;
 }
-.close-btn:hover { color: var(--text); }
+.close-btn:hover { background: #f85149; color: #fff; border-color: #f85149; }
 
 .help-modal-body {
   overflow-y: auto;
@@ -88,9 +93,12 @@ const open = ref(false)
 }
 
 .help-item h3 {
-  font-size: 0.9rem;
+  font-size: 0.72rem;
+  font-weight: 800;
   color: var(--accent);
-  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.3rem;
 }
 .help-item p {
   font-size: 0.85rem;
