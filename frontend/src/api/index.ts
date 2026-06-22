@@ -83,6 +83,21 @@ export interface TaskStatus {
   meta?: any
 }
 
+export interface FilaItem {
+  id: number
+  tipo: 'analise' | 'envio'
+  commit_id: string
+  atividade_idx?: number
+  modelo?: string
+  status: 'pending' | 'running' | 'done' | 'error'
+  task_id?: string
+  resultado?: any
+  criado_em: string
+  concluido_em?: string
+  commit_mensagem: string
+  titulo_atividade?: string
+}
+
 export const api = {
   commits: {
     listar: () => http.get<CommitSummary[]>('/commits').then(r => r.data),
@@ -121,4 +136,13 @@ export const api = {
     obter: () => http.get<Config>('/config').then(r => r.data),
     salvar: (payload: Partial<Config>) => http.post('/config', payload).then(r => r.data),
   },
+  fila: {
+    listar: () => http.get<FilaItem[]>('/fila').then(r => r.data),
+    enfileirarAnalise: (payload: { commit_ids: string[]; modelo: string }) =>
+      http.post<{ ok: boolean; job_ids: number[] }>('/fila/analise', payload).then(r => r.data),
+    enfileirarEnvio: (payload: { commit_id: string; atividade_idx: number }) =>
+      http.post<{ ok: boolean; job_id: number }>('/fila/envio', payload).then(r => r.data),
+    remover: (id: number) => http.delete(`/fila/${id}`).then(r => r.data),
+  },
 }
+

@@ -79,3 +79,37 @@ class Historico(Base):
     hpa = Column(Float)
     status = Column(String)
     enviado_em = Column(String)
+
+
+class Fila(Base):
+    """Representa a fila de tarefas assíncronas (análise de commits e envios ao Munka).
+
+    Permite que o usuário enfileire execuções de análise via Gemini ou
+    cadastros via Playwright sem travar a interface.
+
+    Attributes:
+        id: Identificador autoincremental, chave primária.
+        tipo: Tipo da tarefa na fila ("analise" ou "envio").
+        commit_id: SHA do commit associado.
+        atividade_idx: Índice da atividade no JSON da análise (apenas para tipo "envio").
+        modelo: Nome/ID do modelo Gemini usado (apenas para tipo "analise").
+        status: Status da tarefa ("pending", "running", "done", "error").
+        task_id: ID do job gerado no Celery (se já disparado).
+        resultado: Conteúdo de retorno em JSON ou logs/erros finais da tarefa.
+        criado_em: Timestamp ISO da criação do job na fila.
+        concluido_em: Timestamp ISO da conclusão do job na fila.
+    """
+
+    __tablename__ = "fila"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tipo = Column(String)
+    commit_id = Column(String, ForeignKey("commits.id"))
+    atividade_idx = Column(Integer, nullable=True)
+    modelo = Column(String, nullable=True)
+    status = Column(String)  # pending, running, done, error
+    task_id = Column(String, nullable=True)
+    resultado = Column(Text, nullable=True)
+    criado_em = Column(String)
+    concluido_em = Column(String, nullable=True)
+

@@ -43,7 +43,15 @@ class RelatorioFaturamento(BaseModel):
         description="Lista de atividades técnicas independentes identificadas no diff"
     )
 
-def analisar_diff(diff_content: str, prompt_path: str = "Docs/regras-medicao.md", catalogo_path: str = "Docs/catalogo-servicos.md") -> RelatorioFaturamento:
+MAP_MODELOS = {
+    "Gemini 2.5 Flash": "gemini-2.5-flash",
+    "Gemini 3.5 Flash": "gemini-3.5-flash",
+    "Gemini 2.5 Flash Lite": "gemini-2.5-flash-lite",
+    "Gemini 3 Flash": "gemini-3-flash",
+    "Gemini 3.1 Flash Lite": "gemini-3.1-flash-lite",
+}
+
+def analisar_diff(diff_content: str, prompt_path: str = "Docs/regras-medicao.md", catalogo_path: str = "Docs/catalogo-servicos.md", modelo: str = "Gemini 2.5 Flash") -> RelatorioFaturamento:
     """Send a Git diff to Gemini and return a structured billing report.
 
     Reads the measurement rules from ``prompt_path`` and the service catalogue
@@ -51,38 +59,7 @@ def analisar_diff(diff_content: str, prompt_path: str = "Docs/regras-medicao.md"
     the Gemini API using structured JSON output (``response_schema=RelatorioFaturamento``
     and ``temperature=0.1``).
 
-    Model fallback order: ``gemini-2.5-flash`` → ``gemini-2.0-flash`` →
-    ``gemini-3.5-flash`` → ``gemini-2.5-pro``. A model is skipped only when the
-    error message contains one of the following keywords: ``503``, ``429``,
-    ``overloaded``, ``demand``, ``quota``, ``exhausted``, or ``limit``. Any other
-    error (e.g. invalid API key, schema mismatch) propagates immediately without
-    trying the next model.
-
-    Args:
-        diff_content: Raw Git diff text to be analysed.
-        prompt_path: Path to the Markdown file containing the measurement and
-            billing rules used as contextual instructions for the model.
-        catalogo_path: Path to the Markdown file containing the full service
-            catalogue used to classify activities and assign billing codes.
-
-    Returns:
-        A ``RelatorioFaturamento`` instance with two fields:
-
-        - ``complexidade_global`` (str): One-or-two-paragraph narrative
-          summarising the technical complexity of the overall change set,
-          written in first-person singular.
-        - ``atividades`` (List[Atividade]): Each ``Atividade`` contains:
-          ``etapa`` (one of "Deleção", "Inclusão", "Alteração/Correção"),
-          ``titulo``, ``descricao``, ``categoria``, ``codigo_id``,
-          ``hpa`` (estimated hours as int), ``arquivos`` (list of affected
-          file paths), and ``justificativa``.
-
-    Raises:
-        ValueError: If the ``GEMINI_API_KEY`` environment variable is not set.
-        FileNotFoundError: If ``prompt_path`` or ``catalogo_path`` cannot be
-            opened.
-        Exception: Re-raises the last error encountered when all models in the
-            fallback list are exhausted due to quota/overload conditions.
+    Model fallback order starts with the requested model, then tries standard models.
     """
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
@@ -115,11 +92,19 @@ def analisar_diff(diff_content: str, prompt_path: str = "Docs/regras-medicao.md"
     )
 
     # Executa a geração de conteúdo com fallback para contornar erros de 503 (alta demanda)
-    modelos_para_tentar = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-3.5-flash", "gemini-2.5-pro"]
+    model_id = MAP_MODELOS.get(modelo, modelo) or "gemini-2.5-flash"
+    
+    # Lista de fallbacks padrão
+    fallbacks = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-3.5-flash", "gemini-2.5-pro"]
+    modelos_para_tentar = [model_id] + [f for f in fallbacks if f != model_id]
+    
+    # Limpa duplicatas mantendo a ordem
+    modelos_para_tentar = list(dict.fromkeys(modelos_para_tentar))
     ultimo_erro = None
 
     for nome_modelo in modelos_para_tentar:
         try:
+
             response = client.models.generate_content(
                 model=nome_modelo,
                 contents=[

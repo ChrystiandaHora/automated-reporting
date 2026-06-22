@@ -78,11 +78,14 @@
         <div class="section-header">
           <h2>Análise Gemini</h2>
           <div class="section-actions">
-            <button class="btn-ghost" :disabled="analiseStore.analisando || enviandoAtividade" @click="analisar(false)">
-              {{ analiseStore.analisando ? 'Analisando...' : analiseStore.analise ? 'Re-analisar' : 'Analisar com Gemini' }}
-            </button>
+            <router-link :to="`/analisar?commit=${sha}`" class="btn-ghost" style="text-decoration: none; display: inline-block;">
+              {{ analiseStore.analise ? 'Re-analisar com AI' : 'Analisar com AI' }}
+            </router-link>
             <button v-if="analiseStore.analise" class="btn-ghost" :disabled="analiseStore.analisando || enviandoAtividade" @click="salvar">Salvar edições</button>
-            <button v-if="analiseStore.analise" class="btn-primary" :disabled="analiseStore.analisando || enviandoAtividade" @click="enviarTodasLote">
+            <button v-if="analiseStore.analise" class="btn-primary" :disabled="analiseStore.analisando || enviandoAtividade || selecionadas.length === 0" @click="enviarSelecionadas">
+              Enviar Selecionadas ({{ selecionadas.length }})
+            </button>
+            <button v-if="analiseStore.analise" class="btn-primary" :disabled="analiseStore.analisando || enviandoAtividade" @click="enviarTodasFila">
               Enviar Todas ao Munka
             </button>
           </div>
@@ -106,6 +109,13 @@
             :class="{ 'enviada': atv.enviado }"
           >
             <div class="atividade-header">
+              <input 
+                type="checkbox" 
+                :value="idx" 
+                v-model="selecionadas" 
+                style="width: auto; margin-right: 0.5rem;"
+                :disabled="atv.enviado"
+              />
               <span class="badge badge-blue">{{ atv.etapa }}</span>
               <span class="atividade-codigo">{{ atv.codigo_id }} · {{ atv.hpa }}h</span>
               <span v-if="atv.enviado" class="badge badge-green" style="margin-left: auto; margin-right: 1rem;">✔ Enviada</span>
@@ -113,10 +123,10 @@
               <button
                 class="btn-sm"
                 :class="atv.enviado ? 'btn-ghost' : 'btn-primary'"
-                :disabled="!!analiseStore.enviando[idx]"
-                @click="openEnviar(idx)"
+                :disabled="!!enviandoIndividual[idx]"
+                @click="enviarUma(idx)"
               >
-                {{ analiseStore.enviando[idx] ? 'Enviando...' : (atv.enviado ? 'Re-enviar ao Munka' : 'Enviar ao Munka') }}
+                {{ enviandoIndividual[idx] ? 'Enfileirando...' : (atv.enviado ? 'Re-enviar' : 'Enviar ao Munka') }}
               </button>
             </div>
 
@@ -142,7 +152,7 @@
         </template>
 
         <div v-else class="empty">
-          Nenhuma análise disponível. Clique em "Analisar com Gemini".
+          Nenhuma análise disponível. Clique em "Analisar com AI".
         </div>
       </div>
 
@@ -152,75 +162,36 @@
         <pre class="diff-raw">{{ commit.diff_raw }}</pre>
       </details>
     </template>
-
-    <!-- Modal de envio -->
-    <div v-if="showEnviar !== null" class="modal-overlay" @click.self="!enviandoAtividade ? fecharModal() : null">
-      <div class="modal modal-wide">
-        <h2>{{ enviandoLote ? 'Enviar Lote de Atividades ao Munka' : 'Enviar Atividade ao Munka' }}</h2>
-        
-        <template v-if="!enviandoAtividade && !enviarMsg && !enviandoLote">
-          <div class="modal-actions">
-            <button class="btn-ghost" @click="fecharModal">Cancelar</button>
-            <button class="btn-primary" @click="enviarComLogs">Confirmar Envio</button>
-          </div>
-        </template>
-
-        <template v-else>
-          <div class="terminal-container">
-            <div class="terminal-header">
-              <span>Terminal de Execução (Playwright)</span>
-              <span v-if="enviandoAtividade" class="spinner"></span>
-            </div>
-            <pre ref="terminalPre" class="terminal-body"><div v-for="(log, idx) in sseLogs" :key="idx" :class="log.type">{{ log.message }}</div></pre>
-          </div>
-          <p v-if="enviarMsg" :class="enviarOk ? 'success' : 'error'" style="margin-top: 1rem; font-weight: 500;">{{ enviarMsg }}</p>
-          <div class="modal-actions" style="margin-top: 1.25rem;">
-            <button class="btn-ghost" :disabled="enviandoAtividade" @click="fecharModal">Fechar</button>
-          </div>
-        </template>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAnaliseStore } from '../stores/commits'
+import { useFilaStore } from '../stores/fila'
 import { api } from '../api'
 import HelpModal from '../components/HelpModal.vue'
 
 const helpItems = [
-  { title: 'Analisar com Gemini', text: 'Envia o diff completo do commit para o Google Gemini AI, que cruza as alterações de código com o Catálogo de Serviços e identifica automaticamente as atividades cobráveis, seus códigos, HPA e justificativas técnicas.' },
-  { title: 'O que são Atividades', text: 'Cada atividade representa uma entrega técnica independente identificada no commit: uma inclusão, alteração ou deleção. Um único commit pode gerar múltiplas atividades com códigos e HPAs diferentes.' },
-  { title: 'HPA (Horas Previstas)', text: 'Horas Previstas para Execução da Atividade — valor definido pelo catálogo de serviços para cada tipo de entrega técnica. Pode ser editado manualmente antes do envio.' },
-  { title: 'Editar atividades', text: 'Todos os campos (título, descrição, justificativa, código, HPA) são editáveis. Clique em "Salvar edições" para persistir as alterações no banco antes de enviar ao Munka.' },
-  { title: 'Enviar ao Munka', text: 'Dispara uma automação Playwright que abre o portal Munka, preenche o formulário, gera e anexa a evidência HTML com o diff, e muda o status para Homologação automaticamente.' },
-  { title: 'Re-analisar', text: 'Reabre o diff no Gemini e sobrescreve a análise atual. Use quando a análise automática identificou atividades incorretas ou perdeu alguma entrega do commit.' },
+  { title: 'Analisar com AI', text: 'Permite selecionar um modelo específico do Gemini para processar as alterações de código e identificar as atividades cobráveis conforme o Catálogo de Serviços.' },
+  { title: 'O que são Atividades', text: 'Cada atividade representa uma entrega técnica independente identificada no commit: uma inclusão, alteração ou deleção.' },
+  { title: 'HPA (Horas Previstas)', text: 'Horas Previstas para Execução da Atividade — valor definido pelo catálogo de serviços para cada tipo de entrega técnica.' },
+  { title: 'Fila de Envios', text: 'Ao clicar para enviar, as atividades entram em uma fila assíncrona. Você pode sair desta página e acompanhar o progresso em tempo real pela aba Fila.' }
 ]
 
 const route = useRoute()
+const router = useRouter()
 const sha = route.params.sha as string
 
 const commit = ref<any>(null)
 const loadingCommit = ref(true)
 const analiseStore = useAnaliseStore()
+const filaStore = useFilaStore()
 
-const showEnviar = ref<number | null>(null)
-const enviarMsg = ref('')
-const enviarOk = ref(false)
-const enviarForm = ref({
-  gitlab_url: '',
-})
-
+const selecionadas = ref<number[]>([])
+const enviandoIndividual = ref<Record<number, boolean>>({})
 const enviandoAtividade = ref(false)
-const sseLogs = ref<{ type: string; message: string }[]>([])
-const terminalPre = ref<HTMLPreElement | null>(null)
-let eventSource: EventSource | null = null
-
-const enviandoLote = ref(false)
-const loteIndices = ref<number[]>([])
-const loteAtualIdx = ref(0)
 
 const editandoMeta = ref(false)
 const salvandoMeta = ref(false)
@@ -253,30 +224,6 @@ async function salvarMeta() {
   }
 }
 
-function scrollTerminal() {
-  if (terminalPre.value) {
-    setTimeout(() => {
-      if (terminalPre.value) {
-        terminalPre.value.scrollTop = terminalPre.value.scrollHeight
-      }
-    }, 50)
-  }
-}
-
-function fecharModal() {
-  if (eventSource) {
-    eventSource.close()
-    eventSource = null
-  }
-  showEnviar.value = null
-  enviandoAtividade.value = false
-  enviandoLote.value = false
-  loteIndices.value = []
-  loteAtualIdx.value = 0
-  enviarMsg.value = ''
-  sseLogs.value = []
-}
-
 onMounted(async () => {
   try {
     commit.value = await api.commits.obter(sha)
@@ -284,19 +231,7 @@ onMounted(async () => {
     loadingCommit.value = false
   }
   await analiseStore.fetchAnalise(sha)
-
-  try {
-    const config = await api.config.obter()
-    enviarForm.value.gitlab_url = config.gitlab_url
-  } catch {}
 })
-
-async function analisar(forcar: boolean) {
-  await analiseStore.analisar(sha, forcar)
-  try {
-    commit.value = await api.commits.obter(sha)
-  } catch {}
-}
 
 async function salvar() {
   await analiseStore.salvarAtividades(sha)
@@ -306,210 +241,92 @@ async function salvar() {
   alert('Salvo com sucesso!')
 }
 
-function openEnviar(idx: number) {
-  showEnviar.value = idx
-  enviarMsg.value = ''
-  enviandoAtividade.value = false
-  sseLogs.value = []
-}
-
-async function enviarComLogs() {
-  if (showEnviar.value === null) return
-  enviandoAtividade.value = true
-  enviarMsg.value = ''
-  sseLogs.value = [{ type: 'log-line', message: 'Iniciando conexão com o servidor de logs...' }]
-  scrollTerminal()
-
-  const idx = showEnviar.value
-  // Cria conexão SSE nativa do navegador
-  const url = `/api/commits/${sha}/enviar-stream?atividade_idx=${idx}&headless=true`
-  eventSource = new EventSource(url)
-
-  eventSource.addEventListener('log', (event: any) => {
-    try {
-      const data = JSON.parse(event.data)
-      sseLogs.value.push({ type: 'log-line', message: data.message })
-      scrollTerminal()
-    } catch (err) {}
-  })
-
-  eventSource.addEventListener('success', (event: any) => {
-    try {
-      const data = JSON.parse(event.data)
-      enviarOk.value = true
-      if (data.message === 'PULADA_DUPLICADA') {
-        enviarMsg.value = 'Atividade já cadastrada no Munka (Duplicidade detectada).'
-        sseLogs.value.push({ type: 'success-line', message: '✔ Automação concluída: Tarefa pulada por duplicidade.' })
-      } else {
-        enviarMsg.value = 'Atividade enviada com sucesso!'
-        sseLogs.value.push({ type: 'success-line', message: '✔ Automação concluída com sucesso!' })
-      }
-      scrollTerminal()
-      // Recarrega análise/histórico
-      analiseStore.fetchAnalise(sha)
-      // Recarrega metadados do commit para atualizar contadores
-      api.commits.obter(sha).then(res => {
-        commit.value = res
-      }).catch(() => {})
-    } catch (err) {}
-    fecharEventSource()
-  })
-
-  eventSource.addEventListener('error', (event: any) => {
-    try {
-      const data = JSON.parse(event.data)
-      enviarOk.value = false
-      enviarMsg.value = data.message || 'Erro inesperado no servidor.'
-      sseLogs.value.push({ type: 'error-line', message: `❌ ERRO: ${enviarMsg.value}` })
-      scrollTerminal()
-    } catch (err) {
-      if (enviandoAtividade.value) {
-        enviarOk.value = false
-        enviarMsg.value = 'Conexão com o servidor de stream de logs perdida.'
-        sseLogs.value.push({ type: 'error-line', message: '❌ ERRO: Conexão interrompida.' })
-      }
-    }
-    fecharEventSource()
-  })
-
-  function fecharEventSource() {
-    if (eventSource) {
-      eventSource.close()
-      eventSource = null
-    }
-    enviandoAtividade.value = false
+async function enviarUma(idx: number) {
+  enviandoIndividual.value[idx] = true
+  try {
+    // Salva as edições do formulário local antes de enfileirar
+    await analiseStore.salvarAtividades(sha)
+    await filaStore.enfileirarEnvio(sha, idx)
+    // Recarrega contadores
+    commit.value = await api.commits.obter(sha)
+  } catch (err) {
+    console.error(err)
+  } finally {
+    enviandoIndividual.value[idx] = false
   }
 }
 
-async function enviarTodasLote() {
-  if (!analiseStore.analise || !analiseStore.analise.atividades.length) return
+async function enviarSelecionadas() {
+  if (selecionadas.value.length === 0) return
+  enviandoAtividade.value = true
   
-  // 1. Salvar edições automaticamente antes de enviar
   try {
     await analiseStore.salvarAtividades(sha)
-    const res = await api.commits.obter(sha)
-    commit.value = res
+    
+    let sucessos = 0
+    for (const idx of selecionadas.value) {
+      try {
+        await filaStore.enfileirarEnvio(sha, idx)
+        sucessos++
+      } catch (err) {
+        console.error(err)
+      }
+    }
+
+    if (sucessos > 0) {
+      selecionadas.value = []
+      router.push('/fila')
+    }
   } catch (err) {
-    console.error('Erro ao salvar antes de enviar em lote:', err)
+    console.error(err)
+  } finally {
+    enviandoAtividade.value = false
   }
-
-  // 2. Identificar quais enviar (prioridade para pendentes, senão todas)
-  const todasAtividades = analiseStore.analise.atividades
-  let targets = todasAtividades.map((atv, i) => ({ atv, idx: i })).filter(item => !item.atv.enviado)
-  
-  if (targets.length === 0) {
-    const confirmar = confirm("Todas as atividades já estão marcadas como enviadas. Deseja re-enviar todas mesmo assim?")
-    if (!confirmar) return
-    targets = todasAtividades.map((atv, i) => ({ atv, idx: i }))
-  }
-
-  loteIndices.value = targets.map(t => t.idx)
-  loteAtualIdx.value = 0
-  enviandoLote.value = true
-  showEnviar.value = targets[0].idx // abre o modal
-
-  // Inicia o processo de envio do primeiro item
-  enviarItemDoLote()
 }
 
-async function enviarItemDoLote() {
-  if (!enviandoLote.value) return
-
-  if (loteAtualIdx.value >= loteIndices.value.length) {
-    // Fim do lote
-    enviandoAtividade.value = false
-    enviandoLote.value = false
-    enviarOk.value = true
-    enviarMsg.value = 'Todas as atividades selecionadas foram processadas!'
-    sseLogs.value.push({ type: 'success-line', message: '✔ Lote concluído com sucesso!' })
-    scrollTerminal()
-    return
-  }
-
-  const idx = loteIndices.value[loteAtualIdx.value]
-  showEnviar.value = idx
+async function enviarTodasFila() {
+  if (!analiseStore.analise || !analiseStore.analise.atividades.length) return
   enviandoAtividade.value = true
-  enviarMsg.value = ''
   
-  const atividadeTitulo = analiseStore.analise!.atividades[idx].titulo
-  sseLogs.value.push({ 
-    type: 'log-line', 
-    message: `=== Processando atividade [${loteAtualIdx.value + 1}/${loteIndices.value.length}]: "${atividadeTitulo}" ===` 
-  })
-  scrollTerminal()
-
-  // Seta estado de enviando no store para refletir visualmente no card
-  analiseStore.enviando = { ...analiseStore.enviando, [idx]: true }
-
-  const url = `/api/commits/${sha}/enviar-stream?atividade_idx=${idx}&headless=true`
-  eventSource = new EventSource(url)
-
-  eventSource.addEventListener('log', (event: any) => {
-    try {
-      const data = JSON.parse(event.data)
-      sseLogs.value.push({ type: 'log-line', message: data.message })
-      scrollTerminal()
-    } catch (err) {}
-  })
-
-  eventSource.addEventListener('success', (event: any) => {
-    try {
-      const data = JSON.parse(event.data)
-      if (data.message === 'PULADA_DUPLICADA') {
-        sseLogs.value.push({ type: 'success-line', message: `✔ Atividade [${loteAtualIdx.value + 1}]: Pulada por duplicidade.` })
-      } else {
-        sseLogs.value.push({ type: 'success-line', message: `✔ Atividade [${loteAtualIdx.value + 1}]: Enviada com sucesso.` })
-      }
-      scrollTerminal()
-      
-      analiseStore.analise!.atividades[idx].enviado = true
-      analiseStore.fetchAnalise(sha, true)
-      api.commits.obter(sha).then(res => {
-        commit.value = res
-      }).catch(() => {})
-    } catch (err) {}
-
-    limparEstadoItem(idx)
+  try {
+    await analiseStore.salvarAtividades(sha)
     
-    // Avança para o próximo item
-    loteAtualIdx.value++
-    enviarItemDoLote()
-  })
+    const indices = analiseStore.analise.atividades
+      .map((atv, i) => ({ atv, idx: i }))
+      .filter(item => !item.atv.enviado)
+      .map(item => item.idx)
 
-  eventSource.addEventListener('error', (event: any) => {
-    try {
-      const data = JSON.parse(event.data)
-      const msg = data.message || 'Erro inesperado no servidor.'
-      sseLogs.value.push({ type: 'error-line', message: `❌ ERRO na atividade [${loteAtualIdx.value + 1}]: ${msg}` })
-      scrollTerminal()
-    } catch (err) {
-      if (enviandoAtividade.value) {
-        sseLogs.value.push({ type: 'error-line', message: '❌ ERRO: Conexão interrompida.' })
-        scrollTerminal()
+    let targets = indices
+    if (targets.length === 0) {
+      const confirmar = confirm("Todas as atividades já estão marcadas como enviadas. Deseja re-enviar todas mesmo assim?")
+      if (!confirmar) {
+        enviandoAtividade.value = false
+        return
+      }
+      targets = analiseStore.analise.atividades.map((_, i) => i)
+    }
+
+    let sucessos = 0
+    for (const idx of targets) {
+      try {
+        await filaStore.enfileirarEnvio(sha, idx)
+        sucessos++
+      } catch (err) {
+        console.error(err)
       }
     }
 
-    limparEstadoItem(idx)
-    
-    sseLogs.value.push({ type: 'log-line', message: 'Continuando com a próxima atividade...' })
-    scrollTerminal()
-
-    // Avança para o próximo item
-    loteAtualIdx.value++
-    enviarItemDoLote()
-  })
-
-  function limparEstadoItem(itemIdx: number) {
-    if (eventSource) {
-      eventSource.close()
-      eventSource = null
+    if (sucessos > 0) {
+      router.push('/fila')
     }
-    const next = { ...analiseStore.enviando }
-    delete next[itemIdx]
-    analiseStore.enviando = next
+  } catch (err) {
+    console.error(err)
+  } finally {
+    enviandoAtividade.value = false
   }
 }
 </script>
+
 
 <style scoped>
 .title-row { display: flex; align-items: center; gap: 0.5rem; }

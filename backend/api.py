@@ -131,6 +131,14 @@ class ConfiguracaoRequest(BaseModel):
     munka_projeto: Optional[str] = None
     munka_status_id: Optional[str] = None
 
+class FilaAnaliseRequest(BaseModel):
+    commit_ids: list[str]
+    modelo: str = "Gemini 2.5 Flash"
+
+class FilaEnvioRequest(BaseModel):
+    commit_id: str
+    atividade_idx: int
+
 
 # ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -893,6 +901,140 @@ def salvar_config(req: ConfiguracaoRequest):
             else:
                 _update_env(env_key, value)
     return {"ok": True}
+
+
+# ─── Endpoints: Fila de Tarefas ─────────────────────────────────────────────
+
+@app.post("/fila/analise", status_code=201)
+def enfileirar_analise(req: FilaAnaliseRequest, db: Session = Depends(get_db)):
+    jobs_enfileirados = []
+    for commit_id in req.commit_ids:
+        commit = db.query(models.Commit).filter(models.Commit.id.like(f"{commit_id}%")).first()
+        if not commit:
+            continue
+        
+        job = models.Fila(
+            tipo="analise",
+            commit_id=commit.id,
+            modelo=req.modelo,
+            status="pending",
+            criado_em=datetime.now().isoformat()
+        )
+        db.add(job)
+        db.flush()
+
+        task = analisar_commit_task.delay(
+            commit.id,
+            commit.diff_raw,
+            True,  # força re-análise
+            req.modelo,
+            job.id
+        )
+        job.task_id = task.id
+        jobs_enfileirados.append(job.id)
+    
+    db.commit()
+    return {"ok": True, "job_ids": jobs_enfileirados}
+
+
+@app.post("/fila/envio", status_code=201)
+def enfileirar_envio(req: FilaEnvioRequest, db: Session = Depends(get_db)):
+    # 1. Limite de concorrência local de 5 envios simultâneos
+    running_jobs = db.query(models.Fila).filter(
+        models.Fila.tipo == "envio",
+        models.Fila.status == "running"
+    ).count()
+    if running_jobs >= 5:
+        raise HTTPException(
+            status_code=429,
+            detail="Fila de envios cheia. Máximo de 5 envios simultâneos permitidos."
+        )
+
+    commit = db.query(models.Commit).filter(models.Commit.id.like(f"{req.commit_id}%")).first()
+    if not commit:
+        raise HTTPException(status_code=404, detail="Commit não encontrado")
+    
+    analise = db.query(models.Analise).filter_by(commit_id=commit.id).first()
+    if not analise:
+        raise HTTPException(status_code=404, detail="Análise do commit não encontrada")
+
+    atividades = json.loads(analise.atividades_json)
+    if req.atividade_idx < 0 or req.atividade_idx >= len(atividades):
+        raise HTTPException(status_code=400, detail="Índice de atividade inválido")
+
+    job = models.Fila(
+        tipo="envio",
+        commit_id=commit.id,
+        atividade_idx=req.atividade_idx,
+        status="pending",
+        criado_em=datetime.now().isoformat()
+    )
+    db.add(job)
+    db.flush()
+
+    cfg = obter_config_valores()
+    if not cfg.get("MUNKA_USER") or not cfg.get("MUNKA_PASS"):
+        raise HTTPException(status_code=400, detail="Credenciais MUNKA_USER/MUNKA_PASS não configuradas")
+
+    task = enviar_atividade_task.delay(commit.id, req.atividade_idx, cfg, job.id)
+    job.task_id = task.id
+    db.commit()
+
+    return {"ok": True, "job_id": job.id}
+
+
+@app.get("/fila")
+def listar_fila(db: Session = Depends(get_db)):
+    jobs = db.query(models.Fila).order_by(models.Fila.criado_em.desc()).all()
+    resultado = []
+    for j in jobs:
+        commit = db.query(models.Commit).filter_by(id=j.commit_id).first()
+        mensagem = commit.mensagem if commit else "(sem commit)"
+        
+        titulo_atividade = None
+        if j.tipo == "envio" and commit:
+            analise = db.query(models.Analise).filter_by(commit_id=commit.id).first()
+            if analise:
+                try:
+                    atividades = json.loads(analise.atividades_json)
+                    if j.atividade_idx is not None and 0 <= j.atividade_idx < len(atividades):
+                        titulo_atividade = atividades[j.atividade_idx].get("titulo")
+                except:
+                    pass
+
+        resultado.append({
+            "id": j.id,
+            "tipo": j.tipo,
+            "commit_id": j.commit_id,
+            "atividade_idx": j.atividade_idx,
+            "modelo": j.modelo,
+            "status": j.status,
+            "task_id": j.task_id,
+            "resultado": json.loads(j.resultado) if j.resultado else None,
+            "criado_em": j.criado_em,
+            "concluido_em": j.concluido_em,
+            "commit_mensagem": mensagem,
+            "titulo_atividade": titulo_atividade
+        })
+    return resultado
+
+
+@app.delete("/fila/{job_id}", status_code=204)
+def remover_job_fila(job_id: int, db: Session = Depends(get_db)):
+    job = db.query(models.Fila).filter_by(id=job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job não encontrado")
+    
+    if job.status not in ("pending", "done", "error"):
+        if job.task_id:
+            try:
+                celery_app.control.revoke(job.task_id, terminate=True)
+            except:
+                pass
+            
+    db.delete(job)
+    db.commit()
+
 
 
 

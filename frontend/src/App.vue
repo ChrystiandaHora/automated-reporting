@@ -1,9 +1,26 @@
+<script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue'
+import { useFilaStore } from './stores/fila'
+import ToastManager from './components/ToastManager.vue'
+
+const filaStore = useFilaStore()
+
+onMounted(() => {
+  filaStore.startPolling()
+})
+
+onUnmounted(() => {
+  filaStore.stopPolling()
+})
+</script>
+
 <template>
   <div class="app">
     <header class="topbar">
       <span class="brand">MUNKA</span>
       <nav class="nav">
         <router-link to="/commits">Commits</router-link>
+        <router-link to="/fila">Fila</router-link>
         <router-link to="/historico">Histórico</router-link>
         <router-link to="/config">Configuração</router-link>
       </nav>
@@ -11,8 +28,10 @@
     <main class="content">
       <router-view />
     </main>
+    <ToastManager />
   </div>
 </template>
+
 
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

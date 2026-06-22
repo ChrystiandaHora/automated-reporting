@@ -11,12 +11,16 @@
     <!-- Modal de importação -->
     <div v-if="showImport" class="modal-overlay" @click.self="showImport = false">
       <div class="modal">
-        <h2>Importar Commit do GitLab</h2>
-        <label>URL Completa ou SHA do Commit</label>
-        <input v-model="form.commit_hash" placeholder="Ex: 082630b1 ou https://gitlab.../commit/..." />
+        <h2>Importar Commits do GitLab (Lote)</h2>
+        <label>URLs Completas ou SHAs dos Commits (um por linha)</label>
+        <textarea 
+          v-model="form.commit_hashes" 
+          placeholder="Ex:&#10;082630b1&#10;https://gitlab.../commit/abc123" 
+          rows="6"
+        ></textarea>
         <div class="modal-actions">
           <button class="btn-ghost" @click="showImport = false">Cancelar</button>
-          <button class="btn-primary" :disabled="importing || !form.commit_hash.trim()" @click="importar">
+          <button class="btn-primary" :disabled="importing || !form.commit_hashes.trim()" @click="importar">
             {{ importing ? 'Importando...' : 'Importar' }}
           </button>
         </div>
@@ -72,17 +76,12 @@
         </div>
 
         <div class="card-footer">
-          <div v-if="commit.analisado && (commit.atividades_total || 0) > 0" class="progress-wrap">
-            <div class="progress-track">
-              <div
-                class="progress-fill"
-                :style="{ width: ((commit.atividades_enviadas || 0) / (commit.atividades_total || 1) * 100) + '%' }"
-                :class="{ 'completed': commit.atividades_enviadas === commit.atividades_total }"
-              ></div>
-            </div>
-            <span class="progress-pct">
-              {{ Math.round((commit.atividades_enviadas || 0) / (commit.atividades_total || 1) * 100) }}%
-            </span>
+          <div v-if="commit.analisado && (commit.atividades_total || 0) > 0" class="progress-track">
+            <div
+              class="progress-fill"
+              :style="{ width: ((commit.atividades_enviadas || 0) / (commit.atividades_total || 1) * 100) + '%' }"
+              :class="{ 'completed': commit.atividades_enviadas === commit.atividades_total }"
+            ></div>
           </div>
           <div class="commit-meta">
             <span>{{ commit.data }}</span>
@@ -103,16 +102,17 @@ import { useCommitsStore } from '../stores/commits'
 import HelpModal from '../components/HelpModal.vue'
 
 const helpItems = [
-  { title: 'Importar Commit', text: 'Clique em "+ Importar Commit" e informe a URL completa do commit no GitLab ou apenas o hash curto (ex: abc123). O sistema baixa automaticamente os metadados e o diff.' },
+  { title: 'Importar Commit', text: 'Clique em "+ Importar Commit" e informe um ou mais SHAs ou URLs completos do GitLab (um por linha) para importação.' },
   { title: 'PRIVATE-TOKEN do GitLab', text: 'Token de acesso pessoal do GitLab. Gere em: GitLab → Preferências → Tokens de Acesso → Escopo "read_repository". Salve na página de Configuração.' },
   { title: 'Status dos commits', text: '"Analisado" (verde) indica que o Gemini processou o diff e gerou atividades de faturamento. "Pendente" (cinza) significa que o commit foi importado mas ainda não foi analisado.' },
+  { title: 'Resiliência', text: 'Utilizamos Redis Lock para garantir envios sequenciais ao Munka e aumentamos o timeout do Playwright para 90s para evitar erros de navegação em conexões lentas.' },
 ]
 
 const store = useCommitsStore()
 const showImport = ref(false)
 const importing = ref(false)
 const importError = ref('')
-const form = ref({ commit_hash: '' })
+const form = ref({ commit_hashes: '' })
 
 onMounted(async () => {
   await store.fetchCommits()
@@ -121,18 +121,39 @@ onMounted(async () => {
 async function importar() {
   importing.value = true
   importError.value = ''
-  try {
-    const res = await store.importar(form.value.commit_hash)
-    showImport.value = false
-    form.value.commit_hash = ''
-    if (res.ja_existia) alert('Este commit já estava importado.')
-  } catch (e: any) {
-    importError.value = e.response?.data?.detail ?? String(e)
-  } finally {
+  
+  const hashes = form.value.commit_hashes
+    .split('\n')
+    .map(h => h.trim())
+    .filter(h => h.length > 0)
+    
+  if (hashes.length === 0) {
+    importError.value = 'Informe pelo menos um SHA ou URL de commit.'
     importing.value = false
+    return
   }
+
+  let sucessos = 0
+  let falhas = 0
+
+  for (const hash of hashes) {
+    try {
+      await store.importar(hash)
+      sucessos++
+    } catch (e: any) {
+      falhas++
+      console.error(`Erro ao importar commit ${hash}:`, e)
+    }
+  }
+
+  showImport.value = false
+  form.value.commit_hashes = ''
+  importing.value = false
+  
+  alert(`Importação concluída! Sucessos: ${sucessos}, Falhas: ${falhas}`)
 }
 </script>
+
 
 <style scoped>
 .title-row { display: flex; align-items: center; gap: 0.5rem; }

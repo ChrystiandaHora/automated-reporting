@@ -474,6 +474,7 @@ class MunkaAutomation:
             browser = p.chromium.launch(headless=self.headless, args=["--disable-gpu", "--disable-software-rasterizer"])
             context = browser.new_context(viewport={"width": 1280, "height": 800})
             page = context.new_page()
+            page.set_default_navigation_timeout(90000)
 
             # 1. Login
             self._login(page)
@@ -686,6 +687,7 @@ class MunkaAutomation:
             browser = p.chromium.launch(headless=self.headless, args=["--disable-gpu", "--disable-software-rasterizer"])
             context = browser.new_context(viewport={"width": 1280, "height": 800})
             page = context.new_page()
+            page.set_default_navigation_timeout(90000)
 
             # 1. Login
             self._login(page)
@@ -900,6 +902,7 @@ class MunkaAutomation:
             browser = p.chromium.launch(headless=self.headless, args=["--disable-gpu", "--disable-software-rasterizer"])
             context = browser.new_context(viewport={"width": 1280, "height": 800})
             page = context.new_page()
+            page.set_default_navigation_timeout(90000)
 
             # 1. Login
             self._login(page)
