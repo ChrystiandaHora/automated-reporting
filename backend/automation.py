@@ -268,14 +268,37 @@ class MunkaAutomation:
                 except Exception:
                     pass
 
-        page.wait_for_timeout(300)
+        # Aguarda um pouco mais para o Select2 AJAX processar a seleção
+        page.wait_for_timeout(600)
 
-        # 7. Validação defensiva: verifica se o valor foi realmente selecionado
+        # 7. Validação defensiva: verifica texto exibido no container Select2
+        #    (mais confiável que .val() para campos AJAX que populam via JSON)
+        displayed_text = page.evaluate(
+            f"() => (document.querySelector('#s2id_{field_id} .select2-chosen') || {{}}).textContent || ''"
+        )
+        import re as _re
+        _norm = lambda s: _re.sub(r'\s+', ' ', s.lower().replace('[', '').replace(']', '')).strip()
+        if _norm(search_term_clean) and _norm(search_term_clean) in _norm(displayed_text):
+            self._log(f"Campo '{field_id}' confirmado pelo texto exibido: '{displayed_text.strip()}'")
+            return
+
+        # Fallback: tenta .val() do jQuery (campos não-AJAX)
         selected_val = page.evaluate(f"() => $('#{field_id}').val()")
+        # .val() pode retornar array (multiple select) — normaliza para string
+        if isinstance(selected_val, list):
+            selected_val = selected_val[0] if selected_val else ""
         if not selected_val or selected_val == "" or selected_val == "__None":
-            # Tenta um último fallback em caso de lag: aguarda mais 1 segundo e checa de novo
+            # Segundo fallback: aguarda 1 segundo e verifica tanto .val() quanto texto exibido
             page.wait_for_timeout(1000)
+            displayed_text2 = page.evaluate(
+                f"() => (document.querySelector('#s2id_{field_id} .select2-chosen') || {{}}).textContent || ''"
+            )
+            if _norm(search_term_clean) and _norm(search_term_clean) in _norm(displayed_text2):
+                self._log(f"Campo '{field_id}' confirmado (fallback delay) pelo texto: '{displayed_text2.strip()}'")
+                return
             selected_val = page.evaluate(f"() => $('#{field_id}').val()")
+            if isinstance(selected_val, list):
+                selected_val = selected_val[0] if selected_val else ""
             if not selected_val or selected_val == "" or selected_val == "__None":
                 resultados_busca = []
                 try:
@@ -656,10 +679,7 @@ class MunkaAutomation:
                 "sha": "sem_sha",
             }
 
-        if not os.path.exists(image_path):
-            raise FileNotFoundError(
-                f"Imagem de evidência não encontrada em: {image_path}"
-            )
+        # Evidencia Anexo removido — image_path não é mais utilizado
 
         self._log(f"Iniciando anexo de evidências para a tarefa: '{task_title}'...")
         with sync_playwright() as p:
@@ -693,6 +713,21 @@ class MunkaAutomation:
             self._log("Clicando no botão 'Editar'...")
             edit_btn.click()
             page.wait_for_selector("form, #nome", state="visible", timeout=15000)
+
+            # Mudar status final para o configurado ANTES de preencher a execução
+            self._log(f"Definindo status final para: '{status_id}'...")
+            page.locator("#status").wait_for(state="attached", timeout=5000)
+            select2_script = f"""() => {{
+                var $status = $('#status');
+                if ($status.length) {{
+                    $status.val('{status_id}').trigger('change');
+                    if (typeof $status.select2 === 'function') {{
+                        $status.select2('val', '{status_id}');
+                    }}
+                }}
+            }}"""
+            page.evaluate(select2_script)
+            page.wait_for_timeout(200)
 
             # 4. Preencher o bloco Execução
             self._log("Verificando se o painel 'Execução' está aberto...")
@@ -746,36 +781,9 @@ class MunkaAutomation:
             self._log(f"Preenchendo Commit SHA/URL: '{commit_val}'...")
             page.locator("#evidencia_commit_sha").fill(commit_val)
 
-            # Evidencia Anexo (Upload de arquivo)
-            self._log(f"Fazendo upload do anexo: '{os.path.basename(image_path)}'...")
-            page.locator("#evidencia_anexo").wait_for(state="attached", timeout=5000)
-            page.locator("#evidencia_anexo").set_input_files(image_path)
-            # Aguarda o browser processar o arquivo antes de avançar
-            try:
-                page.wait_for_function(
-                    "() => document.querySelector('#evidencia_anexo')?.files?.length > 0",
-                    timeout=5000
-                )
-            except Exception:
-                pass
-            page.wait_for_timeout(100)
+            # Evidencia Anexo removido conforme solicitado
 
-            # 5. Mudar status para o status selecionado pelo usuário usando lógica Select2 robusta
-            self._log(f"Definindo status final para: '{status_id}'...")
-            page.locator("#status").wait_for(state="attached", timeout=5000)
-            select2_script = f"""() => {{
-                var $status = $('#status');
-                if ($status.length) {{
-                    $status.val('{status_id}').trigger('change');
-                    if (typeof $status.select2 === 'function') {{
-                        $status.select2('val', '{status_id}');
-                    }}
-                }}
-            }}"""
-            page.evaluate(select2_script)
-            page.wait_for_timeout(150)
-
-            # 6. Salvar edição (garantindo fechamento de overlays do Select2)
+            # Salvar edição (garantindo fechamento de overlays do Select2)
             page.keyboard.press("Escape")
             page.evaluate("() => { if (typeof $ !== 'undefined') { $('.my_select2, select').select2('close'); } }")
             page.wait_for_timeout(100)
@@ -884,8 +892,7 @@ class MunkaAutomation:
             }
         status_id = dev_profile.get("status_id", "17")
 
-        if not os.path.exists(image_path):
-            raise FileNotFoundError(f"Imagem de evidência não encontrada em: {image_path}")
+        # Evidencia Anexo removido — image_path não é mais utilizado
 
         self._log("Iniciando fluxo completo (Cadastro + Evidência + Homologação)...")
         with sync_playwright() as p:
@@ -1051,6 +1058,12 @@ class MunkaAutomation:
             edit_btn.click()
             page.wait_for_selector("form, #nome", state="visible", timeout=15000)
 
+            # Mudar status final para o configurado ANTES de preencher a execução
+            self._log(f"Configurando status final para: '{status_id}'...")
+            page.locator("#status").wait_for(state="attached", timeout=5000)
+            page.evaluate(select2_script)
+            page.wait_for_timeout(200)
+
             # Expandir painel de Execução
             self._log("Verificando se o painel 'Execução' está aberto...")
             if not page.locator("#data_fim").is_visible():
@@ -1100,25 +1113,9 @@ class MunkaAutomation:
             self._log(f"Preenchendo Commit SHA/URL: '{commit_val}'...")
             page.locator("#evidencia_commit_sha").fill(commit_val)
 
-            # Evidencia Anexo
-            self._log(f"Fazendo upload do anexo: '{os.path.basename(image_path)}'...")
-            page.locator("#evidencia_anexo").wait_for(state="attached", timeout=5000)
-            page.locator("#evidencia_anexo").set_input_files(image_path)
-            # Aguarda o browser processar o arquivo antes de avançar
-            try:
-                page.wait_for_function(
-                    "() => document.querySelector('#evidencia_anexo')?.files?.length > 0",
-                    timeout=5000
-                )
-            except Exception:
-                pass
-            page.wait_for_timeout(100)
+            # Evidencia Anexo removido conforme solicitado
 
-            # Mudar status final para homologação (ou o configurado)
-            self._log(f"Garantindo status final para: '{status_id}'...")
-            page.locator("#status").wait_for(state="attached", timeout=5000)
-            page.evaluate(select2_script)
-            page.wait_for_timeout(100)
+            # Status já definido anteriormente no início do fluxo de edição
 
             # Salvar Alterações
             page.keyboard.press("Escape")

@@ -1,7 +1,6 @@
 import os
 import json
 import re
-import tempfile
 from datetime import datetime
 from typing import Optional
 
@@ -69,7 +68,6 @@ import models
 from gitlab_service import obter_metadados_commit, obter_diff_commit
 from gemini_service import analisar_diff
 from evidence_generator import gerar_html_evidencia
-from diff_renderer import generate_diff_image
 from automation import MunkaAutomation
 from celery_app import celery_app
 from celery.result import AsyncResult
@@ -346,7 +344,7 @@ def importar_commit(req: ImportarRequest, db: Session = Depends(get_db)):
 
     commit_hash = req.commit_hash.strip()
     # Tenta extrair da URL completa do GitLab: https://gitlab.exemplo.com/grupo/projeto/-/commit/ee91a8e2...
-    url_match = re.search(r'(https?://[^/]+)/(.+?)/-?/commit/([0-9a-fA-F]{7,40})', commit_hash)
+    url_match = re.search(r'(https?://[^/]+)/(.+?)/(?:-/)?commit/([0-9a-fA-F]{6,64})', commit_hash)
     if url_match:
         url_extracted = url_match.group(1)
         project_extracted = url_match.group(2)
@@ -358,7 +356,7 @@ def importar_commit(req: ImportarRequest, db: Session = Depends(get_db)):
             project_path = project_extracted
     else:
         # Fallback para extração simples de SHA caso venha algo como /commit/sha no final
-        sha_match = re.search(r'/commit/([0-9a-fA-F]{7,40})', commit_hash)
+        sha_match = re.search(r'/commit/([0-9a-fA-F]{6,64})', commit_hash)
         if sha_match:
             commit_hash = sha_match.group(1)
 
@@ -667,14 +665,14 @@ def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)
     if not user or not password:
         raise HTTPException(status_code=400, detail="Credenciais MUNKA_USER/MUNKA_PASS não configuradas")
 
-    image_path = tempfile.mktemp(suffix=".png")
-    try:
-        generate_diff_image(commit.diff_raw, image_path)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao gerar imagem de evidência: {e}")
+    # Geração de imagem removida — evidencia via HTML
 
     gitlab_base = req.gitlab_url or cfg.get("GITLAB_URL", "")
-    gitlab_url_commit = f"{gitlab_base.rstrip('/')}/commit/{commit.id}" if gitlab_base else commit.id
+    if gitlab_base:
+        # Monta URL completa: base + caminho do projeto + /commit/SHA
+        gitlab_url_commit = f"{gitlab_base.rstrip('/')}/{(commit.projeto or '').strip('/')}/commit/{commit.id}"
+    else:
+        gitlab_url_commit = commit.id
 
     commit_metadata = {
         "data_inicio": f"{commit.data} 08:00",

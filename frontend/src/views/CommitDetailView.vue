@@ -463,7 +463,7 @@ async function enviarItemDoLote() {
       scrollTerminal()
       
       analiseStore.analise!.atividades[idx].enviado = true
-      analiseStore.fetchAnalise(sha)
+      analiseStore.fetchAnalise(sha, true)
       api.commits.obter(sha).then(res => {
         commit.value = res
       }).catch(() => {})

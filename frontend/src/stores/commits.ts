@@ -51,10 +51,12 @@ export const useAnaliseStore = defineStore('analise', () => {
   const enviando = ref<Record<number, boolean>>({})
   const error = ref('')
 
-  async function fetchAnalise(sha: string) {
-    loading.value = true
+  async function fetchAnalise(sha: string, quiet = false) {
+    if (!quiet) {
+      loading.value = true
+      analise.value = null
+    }
     error.value = ''
-    analise.value = null
     try {
       analise.value = await api.analise.obter(sha)
     } catch (e: any) {
@@ -62,7 +64,9 @@ export const useAnaliseStore = defineStore('analise', () => {
         error.value = e.response?.data?.detail ?? String(e)
       }
     } finally {
-      loading.value = false
+      if (!quiet) {
+        loading.value = false
+      }
     }
   }
 
