@@ -701,8 +701,8 @@ class MunkaAutomation:
             self._log(f"Localizando tarefa '{task_title}' na listagem da tabela...")
             try:
                 # Aguarda a tabela/linha carregar
-                page.wait_for_selector(f"table.table-bordered tbody tr:has-text('{task_title}')", timeout=15000)
                 row = page.locator("table.table-bordered tbody tr").filter(has_text=task_title).first
+                row.wait_for(timeout=15000)
                 edit_btn = row.locator("a[href*='tarefamodelview/edit']").first
             except Exception as e:
                 # Captura print de debug se não achar na listagem
@@ -1049,8 +1049,8 @@ class MunkaAutomation:
             try:
                 # Aguarda a tabela/linha carregar
                 task_title = task_data.get('titulo')
-                page.wait_for_selector(f"table.table-bordered tbody tr:has-text('{task_title}')", timeout=15000)
                 row = page.locator("table.table-bordered tbody tr").filter(has_text=task_title).first
+                row.wait_for(timeout=15000)
                 edit_btn = row.locator("a[href*='tarefamodelview/edit']").first
             except Exception as e:
                 # Captura print de debug para entender onde a página travou ou se deu erro de validação
