@@ -12,3 +12,8 @@ celery_app = Celery(
 )
 celery_app.conf.task_track_started = True
 celery_app.conf.result_expires = 3600
+celery_app.conf.task_routes = {
+    "tasks.analisar_commit": {"queue": "analises"},
+    "tasks.enviar_atividade": {"queue": "envios"},
+}
+

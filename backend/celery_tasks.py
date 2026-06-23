@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 import redis
 
 from dotenv import load_dotenv
@@ -13,7 +13,7 @@ redis_client = redis.Redis.from_url(os.environ.get("CELERY_BROKER_URL", "redis:/
 
 
 
-@celery_app.task(bind=True, name="tasks.analisar_commit")
+@celery_app.task(bind=True, name="tasks.analisar_commit", max_retries=2)
 def analisar_commit_task(self, commit_id: str, diff_raw: str, forcar: bool = False, modelo: str = "Gemini 2.5 Flash", fila_id: int = None):
     from database import SessionLocal
     import models
@@ -45,14 +45,14 @@ def analisar_commit_task(self, commit_id: str, diff_raw: str, forcar: bool = Fal
                             if f:
                                 f.status = "done"
                                 f.resultado = json.dumps(res, ensure_ascii=False)
-                                f.concluido_em = datetime.now().isoformat()
+                                f.concluido_em = datetime.now(timezone.utc).isoformat()
                                 db_f.commit()
                     return res
 
         # 2. Executa a chamada da API do Gemini (fora de qualquer transação de banco de dados)
         relatorio = analisar_diff(diff_raw, modelo=modelo)
         atividades = [a.model_dump() for a in relatorio.atividades]
-        analisado_em = datetime.now().isoformat()
+        analisado_em = datetime.now(timezone.utc).isoformat()
 
         # 3. Salva no banco em uma nova transação rápida
         with SessionLocal() as db:
@@ -82,17 +82,60 @@ def analisar_commit_task(self, commit_id: str, diff_raw: str, forcar: bool = Fal
                 if f:
                     f.status = "done"
                     f.resultado = json.dumps(res, ensure_ascii=False)
-                    f.concluido_em = datetime.now().isoformat()
+                    f.concluido_em = datetime.now(timezone.utc).isoformat()
                     db_f.commit()
         return res
     except Exception as e:
+        import re
+        msg_erro = str(e)
+        is_rate_limit = any(k in msg_erro.lower() for k in ["503", "429", "overloaded", "demand", "quota", "exhausted", "limit"])
+
+        if is_rate_limit and self.request.retries < 2:
+            default_limit = 60 if self.request.retries == 0 else 120
+            countdown = default_limit
+
+            # Tenta extrair o delay recomendado pelo erro do Gemini
+            match_retry = re.search(r"retry\s+in\s+([\d\.]+)\s*s", msg_erro, re.IGNORECASE)
+            if match_retry:
+                try:
+                    countdown = min(int(float(match_retry.group(1))) + 2, default_limit)
+                except ValueError:
+                    pass
+            else:
+                match_delay = re.search(r"retryDelay':\s*'(\d+)\s*s'", msg_erro, re.IGNORECASE)
+                if match_delay:
+                    try:
+                        countdown = min(int(match_delay.group(1)) + 2, default_limit)
+                    except ValueError:
+                        pass
+
+            # Garante no mínimo 10 segundos para dar tempo de liberar a cota
+            countdown = max(countdown, 10)
+
+            if fila_id:
+                with SessionLocal() as db_f:
+                    f = db_f.query(models.Fila).filter_by(id=fila_id).first()
+                    if f:
+                        # Mantém status 'running', mas atualiza resultado com info de retry
+                        info_tentativa = {
+                            "status": "retrying",
+                            "error": msg_erro,
+                            "retry_attempt": self.request.retries + 1,
+                            "countdown": countdown,
+                            "mensagem": f"Limite de requisições atingido. Tentando novamente em {countdown} segundos..."
+                        }
+                        f.resultado = json.dumps(info_tentativa, ensure_ascii=False)
+                        db_f.commit()
+
+            raise self.retry(exc=e, countdown=countdown)
+
         if fila_id:
             with SessionLocal() as db_f:
                 f = db_f.query(models.Fila).filter_by(id=fila_id).first()
                 if f:
                     f.status = "error"
                     f.resultado = json.dumps({"error": str(e)}, ensure_ascii=False)
-                    f.concluido_em = datetime.now().isoformat()
+                    f.concluido_em = datetime.now(timezone.utc).isoformat()
                     db_f.commit()
         raise e
 
@@ -204,7 +247,7 @@ def enviar_atividade_task(self, commit_id: str, atividade_idx: int, cfg: dict, f
                     codigo=atividade.get("codigo_id", ""),
                     hpa=float(atividade.get("hpa", 0)),
                     status="Pendente" if status_id == "17" else "Homologada",
-                    enviado_em=datetime.now().isoformat(),
+                    enviado_em=datetime.now(timezone.utc).isoformat(),
                 )
                 db.add(hist)
                 db.commit()
@@ -216,7 +259,7 @@ def enviar_atividade_task(self, commit_id: str, atividade_idx: int, cfg: dict, f
                 if f:
                     f.status = "done"
                     f.resultado = json.dumps(res, ensure_ascii=False)
-                    f.concluido_em = datetime.now().isoformat()
+                    f.concluido_em = datetime.now(timezone.utc).isoformat()
                     db_f.commit()
         return res
     except Exception as e:
@@ -228,7 +271,7 @@ def enviar_atividade_task(self, commit_id: str, atividade_idx: int, cfg: dict, f
                 if f:
                     f.status = "error"
                     f.resultado = json.dumps(res, ensure_ascii=False)
-                    f.concluido_em = datetime.now().isoformat()
+                    f.concluido_em = datetime.now(timezone.utc).isoformat()
                     db_f.commit()
         raise e
 
