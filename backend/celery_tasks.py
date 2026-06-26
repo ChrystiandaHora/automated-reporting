@@ -9,12 +9,20 @@ load_dotenv()
 
 from celery_app import celery_app
 
-redis_client = redis.Redis.from_url(os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0"))
-
+redis_client = redis.Redis.from_url(
+    os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
+)
 
 
 @celery_app.task(bind=True, name="tasks.analisar_commit")
-def analisar_commit_task(self, commit_id: str, diff_raw: str, forcar: bool = False, modelo: str = "Gemini 2.5 Flash", fila_id: int = None):
+def analisar_commit_task(
+    self,
+    commit_id: str,
+    diff_raw: str,
+    forcar: bool = False,
+    modelo: str = "Gemini 2.5 Flash",
+    fila_id: int = None,
+):
     from database import SessionLocal
     import models
     from gemini_service import analisar_diff
@@ -31,7 +39,9 @@ def analisar_commit_task(self, commit_id: str, diff_raw: str, forcar: bool = Fal
         # 1. Verifica cache rápido
         if not forcar:
             with SessionLocal() as db:
-                analise_existente = db.query(models.Analise).filter_by(commit_id=commit_id).first()
+                analise_existente = (
+                    db.query(models.Analise).filter_by(commit_id=commit_id).first()
+                )
                 if analise_existente:
                     res = {
                         "commit_id": commit_id,
@@ -56,18 +66,24 @@ def analisar_commit_task(self, commit_id: str, diff_raw: str, forcar: bool = Fal
 
         # 3. Salva no banco em uma nova transação rápida
         with SessionLocal() as db:
-            analise_existente = db.query(models.Analise).filter_by(commit_id=commit_id).first()
+            analise_existente = (
+                db.query(models.Analise).filter_by(commit_id=commit_id).first()
+            )
             if analise_existente:
                 analise_existente.complexidade_global = relatorio.complexidade_global
-                analise_existente.atividades_json = json.dumps(atividades, ensure_ascii=False)
+                analise_existente.atividades_json = json.dumps(
+                    atividades, ensure_ascii=False
+                )
                 analise_existente.analisado_em = analisado_em
             else:
-                db.add(models.Analise(
-                    commit_id=commit_id,
-                    complexidade_global=relatorio.complexidade_global,
-                    atividades_json=json.dumps(atividades, ensure_ascii=False),
-                    analisado_em=analisado_em,
-                ))
+                db.add(
+                    models.Analise(
+                        commit_id=commit_id,
+                        complexidade_global=relatorio.complexidade_global,
+                        atividades_json=json.dumps(atividades, ensure_ascii=False),
+                        analisado_em=analisado_em,
+                    )
+                )
             db.commit()
 
         res = {
@@ -98,7 +114,9 @@ def analisar_commit_task(self, commit_id: str, diff_raw: str, forcar: bool = Fal
 
 
 @celery_app.task(bind=True, name="tasks.enviar_atividade")
-def enviar_atividade_task(self, commit_id: str, atividade_idx: int, cfg: dict, fila_id: int = None):
+def enviar_atividade_task(
+    self, commit_id: str, atividade_idx: int, cfg: dict, fila_id: int = None
+):
     from database import SessionLocal
     import models
     from evidence_generator import gerar_html_evidencia
@@ -155,7 +173,9 @@ def enviar_atividade_task(self, commit_id: str, atividade_idx: int, cfg: dict, f
         }
 
         prefixes_media = ("57", "58", "59", "60", "61")
-        atividade["is_media"] = str(atividade.get("codigo_id", "")).startswith(prefixes_media)
+        atividade["is_media"] = str(atividade.get("codigo_id", "")).startswith(
+            prefixes_media
+        )
 
         evidencia_html = atividade.get("evidencia_html")
         if not evidencia_html:
@@ -192,19 +212,26 @@ def enviar_atividade_task(self, commit_id: str, atividade_idx: int, cfg: dict, f
                 custom_evidence_html=evidencia_html,
             )
 
-
         pulada = resultado == "PULADA_DUPLICADA"
-        if not pulada:
-            status_id = cfg.get("MUNKA_STATUS_ID", "17")
-            # 2. Salva o histórico em uma transação rápida e isolada
-            with SessionLocal() as db:
+        status_id = cfg.get("MUNKA_STATUS_ID", "17")
+        hist_status = "Pendente" if status_id == "17" else "Homologada"
+
+        with SessionLocal() as db:
+            # 2. Verifica se a tarefa já está no histórico local para evitar duplicações no banco de dados local
+            already_exists = (
+                db.query(models.Historico)
+                .filter_by(commit_id=commit_id, titulo=atividade.get("titulo", ""))
+                .first()
+            )
+
+            if not already_exists:
                 hist = models.Historico(
                     commit_id=commit_id,
                     titulo=atividade.get("titulo", ""),
                     codigo=atividade.get("codigo_id", ""),
                     hpa=float(atividade.get("hpa", 0)),
-                    status="Pendente" if status_id == "17" else "Homologada",
-                    enviado_em=datetime.now().isoformat(),
+                    status=hist_status,
+                    enviado_em=datetime.now(timezone.utc).isoformat(),
                 )
                 db.add(hist)
                 db.commit()
@@ -231,4 +258,3 @@ def enviar_atividade_task(self, commit_id: str, atividade_idx: int, cfg: dict, f
                     f.concluido_em = datetime.now().isoformat()
                     db_f.commit()
         raise e
-

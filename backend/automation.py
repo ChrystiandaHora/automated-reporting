@@ -331,7 +331,7 @@ class MunkaAutomation:
                 
                 raise ValueError(msg_erro)
 
-    def _verificar_duplicidade_portal(self, page, task_title, target_sha) -> bool:
+    def _verificar_duplicidade_portal(self, page, task_title, target_sha) -> tuple[bool, str | None]:
         """Verifica se uma tarefa com o mesmo título e commit SHA já existe no portal.
 
         Navega para a listagem, localiza linhas com título idêntico, abre a página de
@@ -363,15 +363,17 @@ class MunkaAutomation:
 
         if not edit_urls:
             self._log("Nenhuma tarefa com esse título encontrada no portal.")
-            return False
+            return False, None
 
         # Se target_sha for vazio/nulo ou for "sem_sha", usamos apenas a validação por título
         if not target_sha or target_sha == "sem_sha":
             self._log("Target SHA não fornecido ou inválido. Usando apenas validação de título.")
             self._log(f"Duplicidade detectada (título '{task_title_clean}' já cadastrado e sem SHA definido).")
-            return True
+            return True, None
 
         self._log(f"Encontrada(s) {len(edit_urls)} tarefa(s) com título '{task_title_clean}'. Inspecionando commit SHA...")
+
+        incomplete_edit_url = None
 
         # Visita cada URL de edição para checar o SHA
         for edit_url in edit_urls:
@@ -401,12 +403,20 @@ class MunkaAutomation:
 
                 if target_sha_clean in current_sha_val_lower or target_sha_short in current_sha_val_lower:
                     self._log(f"Duplicidade confirmada! A tarefa com o SHA/URL '{target_sha}' já está cadastrada no portal.")
-                    return True
+                    return True, None
+
+                # Se o SHA estiver vazio ou "sem_sha", consideramos esta tarefa como incompleta
+                if not current_sha_val or current_sha_val.lower() == "sem_sha":
+                    incomplete_edit_url = edit_url
             except Exception as e:
                 self._log(f"Erro ao verificar tarefa na URL {edit_url}: {e}. Continuando verificação...")
 
+        if incomplete_edit_url:
+            self._log(f"Tarefa incompleta encontrada (mesmo título '{task_title_clean}', sem SHA). Reusando URL de edição: {incomplete_edit_url}")
+            return False, incomplete_edit_url
+
         self._log("Nenhuma tarefa correspondente ao título e SHA encontrados. Prosseguindo com cadastro.")
-        return False
+        return False, None
 
     def cadastrar_tarefa(
         self, task_data, product_name="[DESENV] MUNKA", project_name="MUNKA Multicontrato", dev_profile=None, commit_metadata=None
@@ -482,7 +492,8 @@ class MunkaAutomation:
             # 1.5. Verificar duplicados na listagem de tarefas
             task_title = task_data.get("titulo", "").strip()
             target_sha = commit_metadata.get("sha", "sem_sha")
-            if self._verificar_duplicidade_portal(page, task_title, target_sha):
+            is_dup, _ = self._verificar_duplicidade_portal(page, task_title, target_sha)
+            if is_dup:
                 browser.close()
                 return "PULADA_DUPLICADA"
 
@@ -893,6 +904,15 @@ class MunkaAutomation:
                 "sha": "sem_sha",
             }
         status_id = dev_profile.get("status_id", "17")
+        select2_script = f"""() => {{
+            var $status = $('#status');
+            if ($status.length) {{
+                $status.val('{status_id}').trigger('change');
+                if (typeof $status.select2 === 'function') {{
+                    $status.select2('val', '{status_id}');
+                }}
+            }}
+        }}"""
 
         # Evidencia Anexo removido — image_path não é mais utilizado
 
@@ -910,131 +930,126 @@ class MunkaAutomation:
             # 1.5. Verificar duplicados na listagem de tarefas
             task_title = task_data.get("titulo", "").strip()
             target_sha = commit_metadata.get("sha", "sem_sha")
-            if self._verificar_duplicidade_portal(page, task_title, target_sha):
+            is_dup, incomplete_url = self._verificar_duplicidade_portal(page, task_title, target_sha)
+            if is_dup:
                 browser.close()
                 return "PULADA_DUPLICADA"
 
-            # 2. Navegar para criação
-            self._log("Carregando formulário de criação de tarefa...")
-            page.goto(f"{self.base_url}/tarefamodelview/add", wait_until="domcontentloaded")
-            page.wait_for_selector("form, #nome", state="visible", timeout=15000)
-            # Aguarda o Select2 estar completamente inicializado
-            page.wait_for_selector("#s2id_produto, #s2id_projeto", state="visible", timeout=5000)
+            if incomplete_url:
+                self._log("Tarefa incompleta detectada (mesmo título, sem SHA cadastrado). Pulando criação de nova tarefa.")
+            else:
+                # 2. Navegar para criação
+                self._log("Carregando formulário de criação de tarefa...")
+                page.goto(f"{self.base_url}/tarefamodelview/add", wait_until="domcontentloaded")
+                page.wait_for_selector("form, #nome", state="visible", timeout=15000)
+                # Aguarda o Select2 estar completamente inicializado
+                page.wait_for_selector("#s2id_produto, #s2id_projeto", state="visible", timeout=5000)
 
-            # 3. Preencher Nome (Título)
-            self._log(f"Preenchendo Título da tarefa: '{task_data.get('titulo')}'...")
-            page.locator("#nome").fill(task_data.get("titulo", ""))
+                # 3. Preencher Nome (Título)
+                self._log(f"Preenchendo Título da tarefa: '{task_data.get('titulo')}'...")
+                page.locator("#nome").fill(task_data.get("titulo", ""))
 
-            # 4. Preencher Perfil (Cargo) e Nível
-            self._log(f"Preenchendo Perfil: Cargo '{dev_profile.get('cargo')}' e Nível '{dev_profile.get('nivel')}'...")
-            page.evaluate(f"() => {{ $('#cargo').val('{dev_profile['cargo']}').trigger('change'); }}")
-            page.wait_for_timeout(100)
-            page.evaluate(f"() => {{ $('#nivel').val('{dev_profile['nivel']}').trigger('change'); }}")
-            page.wait_for_timeout(100)
+                # 4. Preencher Perfil (Cargo) e Nível
+                self._log(f"Preenchendo Perfil: Cargo '{dev_profile.get('cargo')}' e Nível '{dev_profile.get('nivel')}'...")
+                page.evaluate(f"() => {{ $('#cargo').val('{dev_profile['cargo']}').trigger('change'); }}")
+                page.wait_for_timeout(100)
+                page.evaluate(f"() => {{ $('#nivel').val('{dev_profile['nivel']}').trigger('change'); }}")
+                page.wait_for_timeout(100)
 
-            # 5. Selecionar Responsável
-            responsavel_busca = dev_profile.get("responsavel", "")
-            if responsavel_busca:
-                self._log(f"Selecionando Responsável: '{responsavel_busca}'...")
-                self._preencher_select2_ajax(page, "responsavel", responsavel_busca)
+                # 5. Selecionar Responsável
+                responsavel_busca = dev_profile.get("responsavel", "")
+                if responsavel_busca:
+                    self._log(f"Selecionando Responsável: '{responsavel_busca}'...")
+                    self._preencher_select2_ajax(page, "responsavel", responsavel_busca)
 
-            # 6. Preencher Data de Início
-            self._log(f"Preenchendo Data de Início: '{commit_metadata['data_inicio']}'...")
-            data_inicio_input = page.locator("#data_inicio")
-            data_inicio_input.fill(commit_metadata["data_inicio"])
-            data_inicio_input.press("Tab")
+                # 6. Preencher Data de Início
+                self._log(f"Preenchendo Data de Início: '{commit_metadata['data_inicio']}'...")
+                data_inicio_input = page.locator("#data_inicio")
+                data_inicio_input.fill(commit_metadata["data_inicio"])
+                data_inicio_input.press("Tab")
 
-            # 8. Selecionar Tipo (projeto)
-            self._log("Configurando Tipo de tarefa para 'projeto'...")
-            page.evaluate("() => { $('#tipo').val('projeto').trigger('change'); }")
-            page.wait_for_timeout(200)
+                # 8. Selecionar Tipo (projeto)
+                self._log("Configurando Tipo de tarefa para 'projeto'...")
+                page.evaluate("() => { $('#tipo').val('projeto').trigger('change'); }")
+                page.wait_for_timeout(200)
 
-            # 7. Selecionar Produto
-            self._log(f"Selecionando Produto: '{product_name}'...")
-            self._preencher_select2_ajax(page, "produto", product_name, force_ui=True)
-            page.wait_for_timeout(1000)  # Aguarda carregar os projetos no select condicional via AJAX
+                # 7. Selecionar Produto
+                self._log(f"Selecionando Produto: '{product_name}'...")
+                self._preencher_select2_ajax(page, "produto", product_name, force_ui=True)
+                page.wait_for_timeout(1000)  # Aguarda carregar os projetos no select condicional via AJAX
 
-            # 9. Selecionar Projeto
-            self._log(f"Selecionando Projeto: '{project_name}'...")
-            self._preencher_select2_ajax(page, "projeto", project_name, force_ui=True)
+                # 9. Selecionar Projeto
+                self._log(f"Selecionando Projeto: '{project_name}'...")
+                self._preencher_select2_ajax(page, "projeto", project_name, force_ui=True)
 
-            # 10. Matriz de Complexidade se for média
-            is_media = task_data.get("is_media", False)
-            if is_media:
-                self._log("Complexidade média detectada. Preenchendo matriz de 15 pontos do Munka...")
-                painel_complexidade = page.locator('[id="1_href"]')
-                if not painel_complexidade.is_visible():
-                    page.click("a.accordion-toggle:has-text('Complexidade')")
-                    page.wait_for_selector('[id="1_href"]', state="visible")
+                # 10. Matriz de Complexidade se for média
+                is_media = task_data.get("is_media", False)
+                if is_media:
+                    self._log("Complexidade média detectada. Preenchendo matriz de 15 pontos do Munka...")
+                    painel_complexidade = page.locator('[id="1_href"]')
+                    if not painel_complexidade.is_visible():
+                        page.click("a.accordion-toggle:has-text('Complexidade')")
+                        page.wait_for_selector('[id="1_href"]', state="visible")
 
-                matrix_script = r"""() => {
-                    $('#Volume\ de\ Dados-13').val('37').trigger('change');
-                    $('#Processamento\ Distribuido-14').val('38').trigger('change');
-                    $('#Escalabilidade-15').val('41').trigger('change');
-                    $('#Publico\ Alvo-16').val('45').trigger('change');
-                    $('#Volume\ de\ Acessos-17').val('48').trigger('change');
-                    $('#Desempenho-18').val('50').trigger('change');
-                    $('#Disponibilidade-19').val('52').trigger('change');
-                    $('#Segurança-20').val('53').trigger('change');
-                    $('#Interoperabilidade-21').val('56').trigger('change');
-                    $('#Confiabilidade-22').val('58').trigger('change');
-                    $('#Padroes\ de\ Projeto-23').val('60').trigger('change');
-                    $('#Legais-24').val('62').trigger('change');
-                    $('#Estrategia\ Governamental-25').val('64').trigger('change');
-                    $('#Urgencia-26').val('66').trigger('change');
-                    $('#Impacto-27').val('68').trigger('change');
-                    calcular_pontuacao_requisitos(atualiza_servicos);
-                }"""
-                page.evaluate(matrix_script)
-                # Aguarda o site processar o recálculo da pontuação
+                    matrix_script = r"""() => {
+                        $('#Volume\ de\ Dados-13').val('37').trigger('change');
+                        $('#Processamento\ Distribuido-14').val('38').trigger('change');
+                        $('#Escalabilidade-15').val('41').trigger('change');
+                        $('#Publico\ Alvo-16').val('45').trigger('change');
+                        $('#Volume\ de\ Acessos-17').val('48').trigger('change');
+                        $('#Desempenho-18').val('50').trigger('change');
+                        $('#Disponibilidade-19').val('52').trigger('change');
+                        $('#Segurança-20').val('53').trigger('change');
+                        $('#Interoperabilidade-21').val('56').trigger('change');
+                        $('#Confiabilidade-22').val('58').trigger('change');
+                        $('#Padroes\ de\ Projeto-23').val('60').trigger('change');
+                        $('#Legais-24').val('62').trigger('change');
+                        $('#Estrategia\ Governamental-25').val('64').trigger('change');
+                        $('#Urgencia-26').val('66').trigger('change');
+                        $('#Impacto-27').val('68').trigger('change');
+                        calcular_pontuacao_requisitos(atualiza_servicos);
+                    }"""
+                    page.evaluate(matrix_script)
+                    # Aguarda o site processar o recálculo da pontuação
+                    try:
+                        page.wait_for_function(
+                            "() => { const el = document.querySelector('#pontuacao_total, [name*=pontuacao], .pontuacao-resultado'); "
+                            "return el && el.value && parseFloat(el.value) > 0; }",
+                            timeout=3000
+                        )
+                    except Exception:
+                        page.wait_for_timeout(500)  # fallback conservador
+
+                # 11. Selecionar Serviço (regra)
+                codigo_id = task_data.get("codigo_id", "")
+                if codigo_id:
+                    self._log(f"Selecionando Serviço (Regra): '{codigo_id}'...")
+                    self._preencher_select2_ajax(page, "regra", codigo_id)
+
+                # 12. Selecionar Status inicial (Homologação ou o configurado)
+                self._log(f"Configurando status inicial para: '{status_id}'...")
+                page.locator("#status").wait_for(state="attached", timeout=5000)
+                page.evaluate(select2_script)
+                page.wait_for_timeout(100)
+
+                # 13. Salvar Cadastro
+                page.keyboard.press("Escape")
+                page.evaluate("() => { if (typeof $ !== 'undefined') { $('.my_select2, select').select2('close'); } }")
+                page.wait_for_timeout(200)
+
+                self._log("Salvando cadastro da tarefa...")
+                save_btn = page.locator("button[type='submit'], input[type='submit']").first
+                save_btn.click()
+
+                # Aguarda a submissão completar
+                self._log("Aguardando processamento do cadastro...")
                 try:
-                    page.wait_for_function(
-                        "() => { const el = document.querySelector('#pontuacao_total, [name*=pontuacao], .pontuacao-resultado'); "
-                        "return el && el.value && parseFloat(el.value) > 0; }",
-                        timeout=3000
-                    )
+                    page.wait_for_url("**/tarefamodelview/list/**", timeout=15000)
                 except Exception:
-                    page.wait_for_timeout(500)  # fallback conservador
-
-            # 11. Selecionar Serviço (regra)
-            codigo_id = task_data.get("codigo_id", "")
-            if codigo_id:
-                self._log(f"Selecionando Serviço (Regra): '{codigo_id}'...")
-                self._preencher_select2_ajax(page, "regra", codigo_id)
-
-            # 12. Selecionar Status inicial (Homologação ou o configurado)
-            self._log(f"Configurando status inicial para: '{status_id}'...")
-            page.locator("#status").wait_for(state="attached", timeout=5000)
-            select2_script = f"""() => {{
-                var $status = $('#status');
-                if ($status.length) {{
-                    $status.val('{status_id}').trigger('change');
-                    if (typeof $status.select2 === 'function') {{
-                        $status.select2('val', '{status_id}');
-                    }}
-                }}
-            }}"""
-            page.evaluate(select2_script)
-            page.wait_for_timeout(100)
-
-            # 13. Salvar Cadastro
-            page.keyboard.press("Escape")
-            page.evaluate("() => { if (typeof $ !== 'undefined') { $('.my_select2, select').select2('close'); } }")
-            page.wait_for_timeout(200)
-
-            self._log("Salvando cadastro da tarefa...")
-            save_btn = page.locator("button[type='submit'], input[type='submit']").first
-            save_btn.click()
-
-            # Aguarda a submissão completar
-            self._log("Aguardando processamento do cadastro...")
-            try:
-                page.wait_for_url("**/tarefamodelview/list/**", timeout=15000)
-            except Exception:
-                try:
-                    page.wait_for_url("**/", timeout=5000)
-                except Exception:
-                    page.wait_for_load_state("networkidle")
+                    try:
+                        page.wait_for_url("**/", timeout=5000)
+                    except Exception:
+                        page.wait_for_load_state("networkidle")
             
             # --- FASE 2: EDITAR E ANEXAR EVIDÊNCIAS DIRETAMENTE ---
             # Se já estivermos na listagem, não precisamos recarregar. Se não, navegamos até lá.
@@ -1045,7 +1060,7 @@ class MunkaAutomation:
                 self._log("Já estamos na listagem de tarefas. Carregando dados...")
             page.wait_for_selector("table.table-bordered, div.container-fluid.espacamento", state="visible", timeout=15000)
 
-            self._log(f"Localizando tarefa recém-criada '{task_data.get('titulo')}' na tabela...")
+            self._log(f"Localizando tarefa '{task_data.get('titulo')}' na tabela...")
             try:
                 # Aguarda a tabela/linha carregar
                 task_title = task_data.get('titulo')
@@ -1055,7 +1070,7 @@ class MunkaAutomation:
             except Exception as e:
                 # Captura print de debug para entender onde a página travou ou se deu erro de validação
                 page.screenshot(path="/tmp/debug_edit_not_found.png")
-                raise ValueError(f"Não foi possível encontrar a tarefa recém-criada '{task_title}' na listagem. Ver /tmp/debug_edit_not_found.png") from e
+                raise ValueError(f"Não foi possível encontrar a tarefa '{task_title}' na listagem. Ver /tmp/debug_edit_not_found.png") from e
 
             self._log("Clicando no botão 'Editar'...")
             edit_btn.click()

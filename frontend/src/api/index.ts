@@ -98,6 +98,12 @@ export interface FilaItem {
   titulo_atividade?: string
 }
 
+export interface ProjetoAtualizacao {
+  has_update: boolean
+  behind_count: number
+  error?: string
+}
+
 export const api = {
   commits: {
     listar: () => http.get<CommitSummary[]>('/commits').then(r => r.data),
@@ -143,6 +149,9 @@ export const api = {
     enfileirarEnvio: (payload: { commit_id: string; atividade_idx: number }) =>
       http.post<{ ok: boolean; job_id: number }>('/fila/envio', payload).then(r => r.data),
     remover: (id: number) => http.delete(`/fila/${id}`).then(r => r.data),
+  },
+  projeto: {
+    verificarAtualizacao: () => http.get<ProjetoAtualizacao>('/projeto/atualizacao').then(r => r.data),
   },
 }
 

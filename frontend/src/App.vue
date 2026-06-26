@@ -1,12 +1,29 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, computed, ref } from 'vue'
 import { useFilaStore } from './stores/fila'
+import { api } from './api'
 import ToastManager from './components/ToastManager.vue'
 
 const filaStore = useFilaStore()
 
+const activeJobsCount = computed(() => {
+  return filaStore.jobs.filter(j => j.status === 'pending' || j.status === 'running').length
+})
+
+const hasProjectUpdate = ref(false)
+
+async function checarAtualizacaoProjeto() {
+  try {
+    const res = await api.projeto.verificarAtualizacao()
+    hasProjectUpdate.value = res.has_update
+  } catch (e) {
+    console.error("Falha ao verificar atualizações do projeto:", e)
+  }
+}
+
 onMounted(() => {
   filaStore.startPolling()
+  checarAtualizacaoProjeto()
 })
 
 onUnmounted(() => {
@@ -17,10 +34,22 @@ onUnmounted(() => {
 <template>
   <div class="app">
     <header class="topbar">
-      <span class="brand">MUNKA</span>
+      <span class="brand">
+        MUNKA
+        <span 
+          v-if="hasProjectUpdate" 
+          class="project-update-badge" 
+          title="Nova atualização disponível! Execute 'git pull' no terminal para atualizar o projeto."
+        >
+          Update
+        </span>
+      </span>
       <nav class="nav">
         <router-link to="/commits">Commits</router-link>
-        <router-link to="/fila">Fila</router-link>
+        <router-link to="/fila">
+          Fila
+          <span v-if="activeJobsCount > 0" class="fila-badge">{{ activeJobsCount }}</span>
+        </router-link>
         <router-link to="/historico">Histórico</router-link>
         <router-link to="/config">Configuração</router-link>
       </nav>
@@ -91,9 +120,58 @@ body { background: var(--bg); }
   padding: 0.3rem 0.75rem;
   border: 2px solid transparent;
   transition: color 0.1s, border-color 0.1s, background 0.1s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 .nav a:hover { color: var(--text); border-color: var(--border); }
 .nav a.router-link-active { background: var(--accent); color: var(--bg); border-color: var(--border); }
+
+.fila-badge {
+  background: #f08a00;
+  color: #101010;
+  border-radius: 10px;
+  padding: 0 5px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  height: 16px;
+  min-width: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s, color 0.1s;
+}
+.nav a.router-link-active .fila-badge {
+  background: var(--bg);
+  color: var(--accent);
+}
+
+.project-update-badge {
+  margin-left: 0.5rem;
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #bc75ed, #007acc);
+  color: #ffffff;
+  padding: 2px 6px;
+  border-radius: 9999px;
+  vertical-align: middle;
+  animation: pulse-badge 2s infinite;
+  cursor: pointer;
+}
+
+@keyframes pulse-badge {
+  0% {
+    box-shadow: 0 0 0 0 rgba(188, 117, 237, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(188, 117, 237, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(188, 117, 237, 0);
+  }
+}
 
 /* ── Content ── */
 .content {
