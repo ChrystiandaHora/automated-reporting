@@ -1,7 +1,7 @@
 import os
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
@@ -311,6 +311,14 @@ def listar_commits(db: Session = Depends(get_db)):
                          if l.startswith(('+', '-')) and not l.startswith(('+++', '---'))][:4]
                 diff_preview = '\n'.join(lines)
 
+        data_autor = None
+        if c.diff_raw:
+            match_data = re.search(r"^Date:\s*(.+)$", c.diff_raw, re.MULTILINE)
+            if match_data:
+                data_autor = match_data.group(1).strip()
+        if not data_autor:
+            data_autor = c.importado_em
+
         result.append({
             "id": c.id,
             "data": c.data,
@@ -318,6 +326,7 @@ def listar_commits(db: Session = Depends(get_db)):
             "autor": c.autor,
             "mensagem": c.mensagem,
             "importado_em": c.importado_em,
+            "data_autor": data_autor,
             "analisado": analise is not None,
             "atividades_total": atividades_total,
             "atividades_enviadas": atividades_enviadas,
@@ -325,7 +334,31 @@ def listar_commits(db: Session = Depends(get_db)):
             "hpa_enviado": hpa_enviado,
             "diff_preview": diff_preview,
         })
+    def parse_date_autor(dt_str):
+        if not dt_str:
+            return datetime.min.replace(tzinfo=timezone.utc)
+        try:
+            val = dt_str
+            if val.endswith('Z'):
+                val = val[:-1] + '+00:00'
+            dt = datetime.fromisoformat(val)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
+        except Exception:
+            pass
+        try:
+            import email.utils
+            tup = email.utils.parsedate_to_datetime(dt_str)
+            if tup:
+                return tup
+        except Exception:
+            pass
+        return datetime.min.replace(tzinfo=timezone.utc)
+
+    result.sort(key=lambda x: parse_date_autor(x.get("data_autor")), reverse=True)
     return result
+
 
 
 @app.post("/commits/importar", status_code=201)
@@ -424,7 +457,7 @@ def importar_commit(req: ImportarRequest, db: Session = Depends(get_db)):
         autor=meta.get("author_name", ""),
         mensagem=mensagem,
         diff_raw=diff_com_header,
-        importado_em=datetime.now().isoformat(),
+        importado_em=datetime.now(timezone.utc).isoformat(),
     )
     db.add(commit_obj)
     db.commit()
@@ -472,6 +505,14 @@ def obter_commit(sha: str, db: Session = Depends(get_db)):
         except Exception:
             pass
 
+    data_autor = None
+    if commit.diff_raw:
+        match_data = re.search(r"^Date:\s*(.+)$", commit.diff_raw, re.MULTILINE)
+        if match_data:
+            data_autor = match_data.group(1).strip()
+    if not data_autor:
+        data_autor = commit.importado_em
+
     return {
         "id": commit.id,
         "data": commit.data,
@@ -480,6 +521,7 @@ def obter_commit(sha: str, db: Session = Depends(get_db)):
         "mensagem": commit.mensagem,
         "diff_raw": commit.diff_raw,
         "importado_em": commit.importado_em,
+        "data_autor": data_autor,
         "analisado": analise is not None,
         "atividades_total": atividades_total,
         "atividades_enviadas": atividades_enviadas,
@@ -743,7 +785,7 @@ def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)
             codigo=atividade.get("codigo_id", ""),
             hpa=float(atividade.get("hpa", 0)),
             status=hist_status,
-            enviado_em=datetime.now().isoformat(),
+            enviado_em=datetime.now(timezone.utc).isoformat(),
         )
         db.add(hist)
         db.commit()
@@ -829,8 +871,17 @@ def listar_historico(db: Session = Depends(get_db)):
             "status": h.status,
             "enviado_em": h.enviado_em,
         }
-        for h in itens
     ]
+
+
+@app.delete("/historico/{item_id}", status_code=204)
+def deletar_historico_item(item_id: int, db: Session = Depends(get_db)):
+    """Delete a history record by ID."""
+    item = db.query(models.Historico).filter_by(id=item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item do histórico não encontrado")
+    db.delete(item)
+    db.commit()
 
 
 # ─── Endpoints: Configuração ────────────────────────────────────────────────
@@ -907,6 +958,17 @@ def salvar_config(req: ConfiguracaoRequest):
 
 @app.post("/fila/analise", status_code=201)
 def enfileirar_analise(req: FilaAnaliseRequest, db: Session = Depends(get_db)):
+    # Limite de concorrência/fila de 5 análises na fila
+    active_jobs = db.query(models.Fila).filter(
+        models.Fila.tipo == "analise",
+        models.Fila.status.in_(["running", "pending"])
+    ).count()
+    if active_jobs + len(req.commit_ids) > 5:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Fila de análises cheia. Máximo de 5 análises permitidas na fila (atualmente: {active_jobs})."
+        )
+
     jobs_enfileirados = []
     for commit_id in req.commit_ids:
         commit = db.query(models.Commit).filter(models.Commit.id.like(f"{commit_id}%")).first()
@@ -918,7 +980,7 @@ def enfileirar_analise(req: FilaAnaliseRequest, db: Session = Depends(get_db)):
             commit_id=commit.id,
             modelo=req.modelo,
             status="pending",
-            criado_em=datetime.now().isoformat()
+            criado_em=datetime.now(timezone.utc).isoformat()
         )
         db.add(job)
         db.flush()
@@ -939,15 +1001,15 @@ def enfileirar_analise(req: FilaAnaliseRequest, db: Session = Depends(get_db)):
 
 @app.post("/fila/envio", status_code=201)
 def enfileirar_envio(req: FilaEnvioRequest, db: Session = Depends(get_db)):
-    # 1. Limite de concorrência local de 5 envios simultâneos
-    running_jobs = db.query(models.Fila).filter(
+    # 1. Limite de concorrência local de 15 envios simultâneos/pendentes
+    active_jobs = db.query(models.Fila).filter(
         models.Fila.tipo == "envio",
-        models.Fila.status == "running"
+        models.Fila.status.in_(["running", "pending"])
     ).count()
-    if running_jobs >= 5:
+    if active_jobs >= 15:
         raise HTTPException(
             status_code=429,
-            detail="Fila de envios cheia. Máximo de 5 envios simultâneos permitidos."
+            detail="Fila de envios cheia. Máximo de 15 envios simultâneos na fila permitidos."
         )
 
     commit = db.query(models.Commit).filter(models.Commit.id.like(f"{req.commit_id}%")).first()
@@ -967,7 +1029,7 @@ def enfileirar_envio(req: FilaEnvioRequest, db: Session = Depends(get_db)):
         commit_id=commit.id,
         atividade_idx=req.atividade_idx,
         status="pending",
-        criado_em=datetime.now().isoformat()
+        criado_em=datetime.now(timezone.utc).isoformat()
     )
     db.add(job)
     db.flush()
