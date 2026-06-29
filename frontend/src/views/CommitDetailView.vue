@@ -140,9 +140,15 @@
               <label>Categoria</label>
               <input v-model="atv.categoria" />
               <label>Código</label>
-              <input v-model="atv.codigo_id" style="width: 6rem" />
+              <input v-model="atv.codigo_id" @input="recalcularHpa(atv)" style="width: 6rem" />
               <label>HPA (horas)</label>
               <input v-model.number="atv.hpa" type="number" style="width: 5rem" />
+              <label>Complexidade</label>
+              <select v-model="atv.complexidade" @change="recalcularHpa(atv)" style="width: 8rem">
+                <option value="Baixa">Baixa</option>
+                <option value="Média">Média</option>
+                <option value="Alta">Alta</option>
+              </select>
               <label>Arquivos afetados</label>
               <div class="files-list">
                 <span v-for="f in atv.arquivos" :key="f" class="file-chip">{{ f }}</span>
@@ -221,6 +227,106 @@ async function salvarMeta() {
     alert(e.response?.data?.detail ?? 'Erro ao salvar metadados.')
   } finally {
     salvandoMeta.value = false
+  }
+}
+
+function obterHpaPorCodigoEComplexidade(codigoId: string, complexidade: string): number | null {
+  const code = codigoId.trim().toLowerCase()
+  const comp = complexidade || 'Baixa'
+  
+  if (code === '1') return comp === 'Baixa' ? 24 : comp === 'Média' ? 32 : 40
+  if (code === '2') return comp === 'Baixa' ? 5 : comp === 'Média' ? 11 : 17
+  if (code === '51') return comp === 'Baixa' ? 5 : comp === 'Média' ? 11 : 16
+  if (code === '5') return comp === 'Baixa' ? 22 : comp === 'Média' ? 29 : 36
+  if (code === '55') return 8
+  if (code === '56a') return 14
+  if (code === '56b') return 8
+  if (code === '56c') return 2
+  if (code === '56d') return 4
+  if (code === '6') return 2
+  if (code === '7') return 1
+  if (code === '8') return 22
+  if (code === '9a') return 22
+  if (code === '9b') return 10
+  if (code === '10') return 1
+  if (code === '11') return 1
+
+  if (code === '14') return comp === 'Baixa' ? 11 : comp === 'Média' ? 14 : 17
+  if (code === '15') return comp === 'Baixa' ? 8 : comp === 'Média' ? 10 : 12
+  if (code === '16') return 6
+  if (code === '57') return comp === 'Baixa' ? 5 : comp === 'Média' ? 6 : 8
+  if (code === '58') return comp === 'Baixa' ? 4 : comp === 'Média' ? 5 : 6
+  if (code === '59a') return 4
+  if (code === '59b') return 10
+  if (code === '60') return comp === 'Baixa' ? 2 : comp === 'Média' ? 3 : 4
+  if (code === '61') return comp === 'Baixa' ? 1 : comp === 'Média' ? 2 : 4
+  if (code === '62a') return 2
+  if (code === '62b') return 3
+  if (code === '63') return 8
+
+  if (code === '21a') return 4
+  if (code === '21b') return 1
+  if (code === '21c') return 1
+  if (code === '21d') return 2
+  if (code === '21e') return 2
+  if (code === '21f') return 1
+  if (code === '21g') return 4
+  if (code === '21h') return 1
+
+  if (code === '22a') return 4
+  if (code === '22b') return 1
+  if (code === '23a') return 8
+  if (code === '23b') return 2
+  if (code === '24a') return 6
+  if (code === '24b') return 2
+  if (code === '25a') return 4
+  if (code === '25b') return 2
+  if (code === '26') return 4
+  if (code === '28') return 24
+  if (code === '29') return 4
+
+  if (code === '30') return 6
+  if (code === '31') return 1
+  if (code === '32') return 1
+  if (code === '33') return comp === 'Baixa' ? 8 : comp === 'Média' ? 16 : 36
+  if (code === '35') return 6
+
+  if (code === '39') return 2
+  if (code === '40') return 4
+  if (code === '42') return 36
+  if (code === '43') return 0.10
+
+  if (code === '44a') return 2
+  if (code === '44b') return 1
+  if (code === '45a') return 4
+  if (code === '45b') return 1
+  if (code === '46') return 2
+
+  if (code === '64') return 2
+  if (code === '65') return 0.5
+  if (code === '66') return 1
+  if (code === '67') return 0.25
+  if (code === '68') return 0.25
+  if (code === '69') return 0.25
+  if (code === '70') return 0.5
+
+  if (code === '71') return 1
+  if (code === '72') return 1
+  if (code === '73') return 1
+  if (code === '74') return 1
+  if (code === '75') return 1
+  if (code === '76') return 1
+  if (code === '77') return comp === 'Baixa' ? 5 : comp === 'Média' ? 10 : 20
+
+  return null
+}
+
+function recalcularHpa(atv: any) {
+  if (atv.codigo_id && atv.complexidade) {
+    const valorHpa = obterHpaPorCodigoEComplexidade(atv.codigo_id, atv.complexidade)
+    if (valorHpa !== null) {
+      atv.hpa = valorHpa
+    }
   }
 }
 

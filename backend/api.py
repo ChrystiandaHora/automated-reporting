@@ -727,6 +727,7 @@ def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)
         )
 
     # Geração de imagem removida — evidencia via HTML
+    image_path = None
 
     gitlab_base = req.gitlab_url or cfg.get("GITLAB_URL", "")
     if gitlab_base:
@@ -748,15 +749,22 @@ def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)
         "status_id": req.status_id,
     }
 
-    prefixes_media = ("57", "58", "59", "60", "61")
-    atividade["is_media"] = str(atividade.get("codigo_id", "")).startswith(
-        prefixes_media
-    )
+    complexidade = atividade.get("complexidade")
+    if complexidade:
+        atividade["is_media"] = (complexidade in ("Média", "Alta"))
+    else:
+        prefixes_media = ("57", "58", "59", "60", "61")
+        atividade["is_media"] = str(atividade.get("codigo_id", "")).startswith(
+            prefixes_media
+        )
 
     # Gera evidência HTML se não existir na atividade
     evidencia_html = atividade.get("evidencia_html")
     if not evidencia_html:
-        complexity = "Média" if atividade.get("is_media") else "Baixa/Única"
+        if complexidade:
+            complexity = complexidade
+        else:
+            complexity = "Média" if atividade.get("is_media") else "Baixa/Única"
         try:
             evidencia_html = gerar_html_evidencia(
                 atividade,
@@ -794,7 +802,13 @@ def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)
                 pass
 
     pulada = resultado == "PULADA_DUPLICADA"
-    hist_status = "Pendente" if req.status_id == "17" else "Homologada"
+    status_map = {
+        "17": "Enviado ao Munka",
+        "18": "Desenvolvimento",
+        "20": "Homologação",
+        "21": "Concluído"
+    }
+    hist_status = status_map.get(req.status_id, "Cadastrada")
 
     already_exists = (
         db.query(models.Historico)
@@ -802,7 +816,7 @@ def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)
         .first()
     )
 
-    if not already_exists:
+    if not already_exists and not pulada:
         hist = models.Historico(
             commit_id=commit.id,
             titulo=atividade.get("titulo", ""),
@@ -904,6 +918,7 @@ def listar_historico(db: Session = Depends(get_db)):
             "status": h.status,
             "enviado_em": h.enviado_em,
         }
+        for h in itens
     ]
 
 

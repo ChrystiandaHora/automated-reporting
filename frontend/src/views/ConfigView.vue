@@ -27,20 +27,6 @@
 
       <div class="config-grid">
         <div class="config-section">
-          <h3>Gemini AI</h3>
-          <label>API Key</label>
-          <input v-model="form.gemini_api_key" type="password" placeholder="Insira para atualizar" autocomplete="off" />
-        </div>
-
-        <div class="config-section">
-          <h3>Munka - Acesso</h3>
-          <label>Usuário</label>
-          <input v-model="form.munka_user" placeholder="Login" />
-          <label>Senha</label>
-          <input v-model="form.munka_pass" type="password" placeholder="Insira para atualizar" autocomplete="off" />
-        </div>
-
-        <div class="config-section">
           <h3>Munka - Faturamento Padrão</h3>
           <label>Cargo Padrão</label>
           <select v-model="form.munka_cargo">
@@ -70,14 +56,6 @@
             <option value="18">Desenvolvimento</option>
           </select>
         </div>
-
-        <div class="config-section">
-          <h3>GitLab</h3>
-          <label>URL</label>
-          <input v-model="form.gitlab_url" placeholder="https://gitlab.suaorganizacao.com" />
-          <label>Token</label>
-          <input v-model="form.gitlab_token" type="password" placeholder="Insira para atualizar" autocomplete="off" />
-        </div>
       </div>
 
       <p v-if="msg" :class="ok ? 'success' : 'error'">{{ msg }}</p>
@@ -91,11 +69,10 @@ import { api, type Config } from '../api'
 import HelpModal from '../components/HelpModal.vue'
 
 const helpItems = [
-  { title: 'Gemini API Key', text: 'Chave da API do Google Gemini, usada para análise de diffs. Obtenha em aistudio.google.com (Get API Key). O modelo padrão é gemini-2.5-flash com fallback automático para outros modelos.' },
-  { title: 'Credenciais Munka', text: 'Usuário e senha do portal Munka. Usados pelo Playwright para automatizar o cadastro e homologação das atividades no sistema de faturamento.' },
-  { title: 'Token do GitLab', text: 'PRIVATE-TOKEN de acesso pessoal ao GitLab para baixar diffs via API. Gere em: GitLab → Preferências → Tokens de Acesso. Escopo mínimo: read_repository.' },
-  { title: 'Como as credenciais são salvas', text: 'Todas as configurações são armazenadas no arquivo .env no servidor. Campos deixados em branco não sobrescrevem os valores existentes — preencha apenas o que deseja atualizar.' },
-  { title: 'Indicadores de status', text: 'Verde (●) indica que a credencial está configurada no servidor. Vermelho (●) indica ausência. O status reflete apenas a presença da variável, não sua validade.' },
+  { title: 'Cargo Padrão', text: 'Cargo utilizado no faturamento das atividades no portal Munka.' },
+  { title: 'Nível Padrão', text: 'Nível de faturamento das atividades (ex: Júnior, Pleno, Sênior).' },
+  { title: 'Demais Configurações', text: 'As credenciais de acesso ao Munka, tokens do GitLab e chave da API do Gemini devem ser configurados diretamente no arquivo .env do servidor.' },
+  { title: 'Indicadores de status', text: 'Os badges indicam se as variáveis de ambiente necessárias foram detectadas no servidor.' },
 ]
 
 const loading = ref(true)

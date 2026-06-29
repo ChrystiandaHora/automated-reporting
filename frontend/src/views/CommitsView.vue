@@ -12,10 +12,10 @@
     <div v-if="showImport" class="modal-overlay" @click.self="showImport = false">
       <div class="modal">
         <h2>Importar Commits do GitLab (Lote)</h2>
-        <label>URLs Completas ou SHAs dos Commits (um por linha)</label>
+        <label>URLs Completas dos Commits do GitLab (uma por linha)</label>
         <textarea 
           v-model="form.commit_hashes" 
-          placeholder="Ex:&#10;082630b1&#10;https://gitlab.../commit/abc123" 
+          placeholder="Ex:&#10;https://gitlab.suaorganizacao.com/grupo/projeto/-/commit/abc123hash" 
           rows="6"
         ></textarea>
         <div class="modal-actions">
@@ -340,13 +340,20 @@ async function importar() {
   importing.value = true
   importError.value = ''
   
-  const hashes = form.value.commit_hashes
+  const urls = form.value.commit_hashes
     .split('\n')
     .map(h => h.trim())
     .filter(h => h.length > 0)
     
-  if (hashes.length === 0) {
-    importError.value = 'Informe pelo menos um SHA ou URL de commit.'
+  if (urls.length === 0) {
+    importError.value = 'Informe pelo menos uma URL completa de commit.'
+    importing.value = false
+    return
+  }
+
+  const urlsInvalidas = urls.filter(u => !u.startsWith('http://') && !u.startsWith('https://'))
+  if (urlsInvalidas.length > 0) {
+    importError.value = 'Todas as linhas devem ser URLs completas do GitLab (começando com http:// ou https://).'
     importing.value = false
     return
   }
@@ -354,13 +361,13 @@ async function importar() {
   let sucessos = 0
   let falhas = 0
 
-  for (const hash of hashes) {
+  for (const url of urls) {
     try {
-      await store.importar(hash)
+      await store.importar(url)
       sucessos++
     } catch (e: any) {
       falhas++
-      console.error(`Erro ao importar commit ${hash}:`, e)
+      console.error(`Erro ao importar commit ${url}:`, e)
     }
   }
 

@@ -13,111 +13,122 @@
       Nenhuma tarefa na fila de execução.
     </div>
 
-    <div v-else class="jobs-list">
-      <div 
-        v-for="job in filaStore.jobs" 
-        :key="job.id" 
-        class="job-card"
-        :class="`job-card-${job.status}`"
-      >
-        <div class="job-header">
-          <span 
-            class="badge" 
-            :class="job.tipo === 'analise' ? 'badge-blue' : 'badge-purple'"
+    <div v-else class="fila-grouped">
+      <!-- Percorre os commits agrupados -->
+      <div v-for="grupo in jobsAgrupados" :key="grupo.commit_id" class="commit-group">
+        <!-- Cabeçalho do Commit -->
+        <div class="commit-group-header" @click="alternarGrupo(grupo.commit_id)" style="cursor: pointer; user-select: none;">
+          <div class="commit-group-info">
+            <span class="collapse-icon">{{ isGrupoColapsado(grupo.commit_id) ? '▶' : '▼' }}</span>
+            <span class="commit-hash">{{ grupo.commit_id.slice(0, 8) }}</span>
+            <span class="commit-msg-title" :title="grupo.commit_mensagem">{{ grupo.commit_mensagem }}</span>
+          </div>
+          <span class="job-count-badge">{{ grupo.jobs.length }} tarefa{{ grupo.jobs.length > 1 ? 's' : '' }}</span>
+        </div>
+
+        <!-- Lista de tarefas deste commit -->
+        <div v-show="!isGrupoColapsado(grupo.commit_id)" class="commit-group-jobs">
+          <div 
+            v-for="job in grupo.jobs" 
+            :key="job.id" 
+            class="job-row"
+            :class="`job-row-${job.status}`"
           >
-            {{ job.tipo === 'analise' ? 'Análise AI' : 'Envio Munka' }}
-          </span>
-          
-          <span class="job-time">{{ formatarData(job.criado_em) }}</span>
-          
-          <div class="job-actions">
-            <!-- Botão de Ver Logs (para envio concluído ou com erro) -->
-            <button 
-              v-if="job.resultado && job.resultado.logs && job.resultado.logs.length" 
-              class="btn-ghost btn-xs" 
-              @click="abrirLogs(job)"
-            >
-              Ver Logs
-            </button>
-            
-            <!-- Botão Cancelar (para pending) -->
-            <button 
-              v-if="job.status === 'pending'" 
-              class="btn-danger-link" 
-              @click="cancelarJob(job.id)"
-            >
-              Cancelar
-            </button>
-
-            <!-- Botão de Deletar (para done ou error) -->
-            <button 
-              v-if="['done', 'error'].includes(job.status)" 
-              class="btn-danger-link" 
-              @click="removerJob(job.id)"
-            >
-              Limpar
-            </button>
-          </div>
-        </div>
-
-        <div class="job-body">
-          <div class="commit-info">
-            <span class="commit-hash">{{ job.commit_id.slice(0, 8) }}</span>
-            <span class="commit-msg">{{ job.commit_mensagem }}</span>
-          </div>
-
-          <div v-if="job.tipo === 'analise'" class="job-meta">
-            <strong>Modelo:</strong> {{ job.modelo }}
-          </div>
-          
-          <div v-else-if="job.tipo === 'envio'" class="job-meta">
-            <strong>Atividade:</strong> "{{ job.titulo_atividade || 'Carregando título...' }}"
-          </div>
-
-          <!-- Mensagem de Erro -->
-          <div v-if="job.status === 'error'" class="error-box">
-            <span>{{ obterMensagemErro(job) }}</span>
-          </div>
-
-          <!-- Mensagem de Retry / Aguardando -->
-          <div v-if="job.status === 'running' && job.resultado && job.resultado.status === 'retrying'" class="warning-box">
-            <span>{{ job.resultado.mensagem || 'Aguardando tempo limite para tentar novamente...' }}</span>
-          </div>
-
-          <!-- Seleção de outro modelo em caso de limite atingido -->
-          <div v-if="podeMudarModelo(job)" class="mudar-modelo-box">
-            <span class="mudar-modelo-label">Limite atingido. Tentar outro modelo:</span>
-            <div class="mudar-modelo-control">
-              <select 
-                :value="obterModeloSelecionado(job.id, job.modelo)" 
-                @change="atualizarModeloSelecionado(job.id, $event)"
-                class="select-modelo"
+            <div class="job-header">
+              <span 
+                class="badge" 
+                :class="job.tipo === 'analise' ? 'badge-blue' : 'badge-purple'"
               >
-                <option v-for="m in models" :key="m.name" :value="m.name">
-                  {{ m.name }}
-                </option>
-              </select>
-              <button class="btn-primary-mudar" @click="reprocessarComOutroModelo(job)">
-                Reprocessar
-              </button>
-            </div>
-          </div>
+                {{ job.tipo === 'analise' ? 'Análise AI' : 'Envio Munka' }}
+              </span>
+              
+              <span class="job-time">{{ formatarData(job.criado_em) }}</span>
+              
+              <div class="job-actions">
+                <!-- Botão de Ver Logs (para envio concluído ou com erro) -->
+                <button 
+                  v-if="job.resultado && job.resultado.logs && job.resultado.logs.length" 
+                  class="btn-ghost btn-xs" 
+                  @click="abrirLogs(job)"
+                >
+                  Ver Logs
+                </button>
+                
+                <!-- Botão Cancelar (para pending) -->
+                <button 
+                  v-if="job.status === 'pending'" 
+                  class="btn-danger-link" 
+                  @click="cancelarJob(job.id)"
+                >
+                  Cancelar
+                </button>
 
-          <!-- Opção de Reenviar em caso de falha de envio -->
-          <div v-if="job.tipo === 'envio' && job.status === 'error'" class="mudar-modelo-box">
-            <span class="mudar-modelo-label">Esta atividade falhou no envio. Deseja tentar novamente?</span>
-            <div class="mudar-modelo-control">
-              <button class="btn-primary-mudar" @click="reenviarAtividade(job)">
-                Reenviar Envio
-              </button>
+                <!-- Botão de Deletar (para done ou error) -->
+                <button 
+                  v-if="['done', 'error'].includes(job.status)" 
+                  class="btn-danger-link" 
+                  @click="removerJob(job.id)"
+                >
+                  Limpar
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
 
-        <div class="job-footer">
-          <div class="status-indicator">
-            <span class="status-dot" :class="`status-${job.status}`"></span>
-            <span class="status-text">{{ formatarStatus(job.status) }}</span>
+            <div class="job-body">
+              <div v-if="job.tipo === 'analise'" class="job-meta">
+                <strong>Modelo:</strong> {{ job.modelo }}
+              </div>
+              
+              <div v-else-if="job.tipo === 'envio'" class="job-meta">
+                <strong>Atividade:</strong> "{{ job.titulo_atividade || 'Carregando título...' }}"
+              </div>
+
+              <!-- Mensagem de Erro -->
+              <div v-if="job.status === 'error'" class="error-box">
+                <span>{{ obterMensagemErro(job) }}</span>
+              </div>
+
+              <!-- Mensagem de Retry / Aguardando -->
+              <div v-if="job.status === 'running' && job.resultado && job.resultado.status === 'retrying'" class="warning-box">
+                <span>{{ job.resultado.mensagem || 'Aguardando tempo limite para tentar novamente...' }}</span>
+              </div>
+
+              <!-- Seleção de outro modelo em caso de limite atingido -->
+              <div v-if="podeMudarModelo(job)" class="mudar-modelo-box">
+                <span class="mudar-modelo-label">Limite atingido. Tentar outro modelo:</span>
+                <div class="mudar-modelo-control">
+                  <select 
+                    :value="obterModeloSelecionado(job.id, job.modelo)" 
+                    @change="atualizarModeloSelecionado(job.id, $event)"
+                    class="select-modelo"
+                  >
+                    <option v-for="m in models" :key="m.name" :value="m.name">
+                      {{ m.name }}
+                    </option>
+                  </select>
+                  <button class="btn-primary-mudar" @click="reprocessarComOutroModelo(job)">
+                    Reprocessar
+                  </button>
+                </div>
+              </div>
+
+              <!-- Opção de Reenviar em caso de falha de envio -->
+              <div v-if="job.tipo === 'envio' && job.status === 'error'" class="mudar-modelo-box">
+                <span class="mudar-modelo-label">Esta atividade falhou no envio. Deseja tentar novamente?</span>
+                <div class="mudar-modelo-control">
+                  <button class="btn-primary-mudar" @click="reenviarAtividade(job)">
+                    Reenviar Envio
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="job-footer">
+              <div class="status-indicator">
+                <span class="status-dot" :class="`status-${job.status}`"></span>
+                <span class="status-text">{{ formatarStatus(job.status) }}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -146,11 +157,44 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useFilaStore } from '../stores/fila'
 
 const filaStore = useFilaStore()
 const logJobSelecionado = ref<any>(null)
+
+const gruposColapsados = ref<Record<string, boolean>>({})
+
+function alternarGrupo(commitId: string) {
+  gruposColapsados.value[commitId] = !gruposColapsados.value[commitId]
+}
+
+function isGrupoColapsado(commitId: string) {
+  return !!gruposColapsados.value[commitId]
+}
+
+const jobsAgrupados = computed(() => {
+  const grupos: Record<string, { commit_id: string; commit_mensagem: string; jobs: any[] }> = {}
+  
+  for (const job of filaStore.jobs) {
+    const key = job.commit_id
+    if (!grupos[key]) {
+      grupos[key] = {
+        commit_id: job.commit_id,
+        commit_mensagem: job.commit_mensagem || '(sem mensagem)',
+        jobs: []
+      }
+    }
+    grupos[key].jobs.push(job)
+  }
+  
+  // Ordena os grupos pela data de criação do job mais recente
+  return Object.values(grupos).sort((a, b) => {
+    const maxA = Math.max(...a.jobs.map(j => new Date(j.criado_em).getTime()))
+    const maxB = Math.max(...b.jobs.map(j => new Date(j.criado_em).getTime()))
+    return maxB - maxA
+  })
+})
 
 onMounted(async () => {
   await filaStore.fetchJobs()
@@ -512,5 +556,85 @@ async function reenviarAtividade(job: any) {
 .btn-primary-mudar:hover {
   transform: translate(-1px, -1px);
   box-shadow: 3px 3px 0 var(--border);
+}
+
+/* Agrupamento da fila por Commit */
+.fila-grouped {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+.commit-group {
+  display: flex;
+  flex-direction: column;
+  border: 2px solid var(--border);
+  background: var(--card-bg);
+}
+.commit-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem;
+  background: rgba(238, 238, 238, 0.02);
+  border-bottom: 2px solid var(--border);
+}
+.commit-group-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  flex: 1;
+}
+.collapse-icon {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  width: 12px;
+  display: inline-block;
+}
+.commit-msg-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.job-count-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: rgba(238, 238, 238, 0.05);
+  padding: 2px 6px;
+  border: 1px solid rgba(238, 238, 238, 0.1);
+  margin-left: 1rem;
+  flex-shrink: 0;
+}
+.commit-group-jobs {
+  display: flex;
+  flex-direction: column;
+}
+.job-row {
+  padding: 1.25rem;
+  border-bottom: 1px solid rgba(238, 238, 238, 0.08);
+  transition: background-color 0.15s;
+}
+.job-row:last-child {
+  border-bottom: none;
+}
+.job-row:hover {
+  background-color: rgba(238, 238, 238, 0.01);
+}
+.job-row-running {
+  border-left: 4px solid var(--accent);
+  background-color: rgba(0, 122, 204, 0.02);
+}
+.job-row-done {
+  border-left: 4px solid #3fb950;
+  background-color: rgba(63, 185, 80, 0.02);
+}
+.job-row-error {
+  border-left: 4px solid #f85149;
+  background-color: rgba(248, 81, 73, 0.02);
 }
 </style>

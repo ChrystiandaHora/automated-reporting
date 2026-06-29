@@ -29,6 +29,7 @@ export interface Atividade {
   justificativa: string
   evidencia_html?: string
   is_media?: boolean
+  complexidade?: string
   enviado?: boolean
 }
 

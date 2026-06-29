@@ -11,11 +11,13 @@ const activeJobsCount = computed(() => {
 })
 
 const hasProjectUpdate = ref(false)
+const projectBehindCount = ref(0)
 
 async function checarAtualizacaoProjeto() {
   try {
     const res = await api.projeto.verificarAtualizacao()
     hasProjectUpdate.value = res.has_update
+    projectBehindCount.value = res.behind_count
   } catch (e) {
     console.error("Falha ao verificar atualizações do projeto:", e)
   }
@@ -39,9 +41,9 @@ onUnmounted(() => {
         <span 
           v-if="hasProjectUpdate" 
           class="project-update-badge" 
-          title="Nova atualização disponível! Execute 'git pull' no terminal para atualizar o projeto."
+          :title="`Nova atualização disponível! ${projectBehindCount} commit(s) atrás. Execute 'git pull' no terminal para atualizar o projeto.`"
         >
-          Update
+          Update {{ projectBehindCount > 0 ? `(${projectBehindCount})` : '' }}
         </span>
       </span>
       <nav class="nav">

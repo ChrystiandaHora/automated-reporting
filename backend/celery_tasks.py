@@ -215,14 +215,21 @@ def enviar_atividade_task(
             "status_id": cfg.get("MUNKA_STATUS_ID", "17"),
         }
 
-        prefixes_media = ("57", "58", "59", "60", "61")
-        atividade["is_media"] = str(atividade.get("codigo_id", "")).startswith(
-            prefixes_media
-        )
+        complexidade = atividade.get("complexidade")
+        if complexidade:
+            atividade["is_media"] = (complexidade in ("Média", "Alta"))
+        else:
+            prefixes_media = ("57", "58", "59", "60", "61")
+            atividade["is_media"] = str(atividade.get("codigo_id", "")).startswith(
+                prefixes_media
+            )
 
         evidencia_html = atividade.get("evidencia_html")
         if not evidencia_html:
-            complexity = "Média" if atividade.get("is_media") else "Baixa/Única"
+            if complexidade:
+                complexity = complexidade
+            else:
+                complexity = "Média" if atividade.get("is_media") else "Baixa/Única"
             try:
                 evidencia_html = gerar_html_evidencia(
                     atividade,
@@ -257,7 +264,13 @@ def enviar_atividade_task(
 
         pulada = resultado == "PULADA_DUPLICADA"
         status_id = cfg.get("MUNKA_STATUS_ID", "17")
-        hist_status = "Pendente" if status_id == "17" else "Homologada"
+        status_map = {
+            "17": "Enviado ao Munka",
+            "18": "Desenvolvimento",
+            "20": "Homologação",
+            "21": "Concluído"
+        }
+        hist_status = status_map.get(status_id, "Cadastrada")
 
         with SessionLocal() as db:
             # 2. Verifica se a tarefa já está no histórico local para evitar duplicações no banco de dados local
@@ -267,7 +280,7 @@ def enviar_atividade_task(
                 .first()
             )
 
-            if not already_exists:
+            if not already_exists and not pulada:
                 hist = models.Historico(
                     commit_id=commit_id,
                     titulo=atividade.get("titulo", ""),
