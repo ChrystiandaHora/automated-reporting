@@ -457,7 +457,7 @@ def importar_commit(req: ImportarRequest, db: Session = Depends(get_db)):
         autor=meta.get("author_name", ""),
         mensagem=mensagem,
         diff_raw=diff_com_header,
-        importado_em=datetime.now().isoformat(),
+        importado_em=datetime.now(timezone.utc).isoformat(),
     )
     db.add(commit_obj)
     db.commit()
@@ -505,6 +505,14 @@ def obter_commit(sha: str, db: Session = Depends(get_db)):
         except Exception:
             pass
 
+    data_autor = None
+    if commit.diff_raw:
+        match_data = re.search(r"^Date:\s*(.+)$", commit.diff_raw, re.MULTILINE)
+        if match_data:
+            data_autor = match_data.group(1).strip()
+    if not data_autor:
+        data_autor = commit.importado_em
+
     return {
         "id": commit.id,
         "data": commit.data,
@@ -513,6 +521,7 @@ def obter_commit(sha: str, db: Session = Depends(get_db)):
         "mensagem": commit.mensagem,
         "diff_raw": commit.diff_raw,
         "importado_em": commit.importado_em,
+        "data_autor": data_autor,
         "analisado": analise is not None,
         "atividades_total": atividades_total,
         "atividades_enviadas": atividades_enviadas,
@@ -800,7 +809,7 @@ def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)
             codigo=atividade.get("codigo_id", ""),
             hpa=float(atividade.get("hpa", 0)),
             status=hist_status,
-            enviado_em=datetime.now().isoformat(),
+            enviado_em=datetime.now(timezone.utc).isoformat(),
         )
         db.add(hist)
         db.commit()
@@ -1061,6 +1070,21 @@ def salvar_config(req: ConfiguracaoRequest):
 
 @app.post("/fila/analise", status_code=201)
 def enfileirar_analise(req: FilaAnaliseRequest, db: Session = Depends(get_db)):
+    # Limite de concorrência/fila de 5 análises na fila
+    active_jobs = (
+        db.query(models.Fila)
+        .filter(
+            models.Fila.tipo == "analise",
+            models.Fila.status.in_(["running", "pending"]),
+        )
+        .count()
+    )
+    if active_jobs + len(req.commit_ids) > 5:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Fila de análises cheia. Máximo de 5 análises permitidas na fila (atualmente: {active_jobs}).",
+        )
+
     jobs_enfileirados = []
     for commit_id in req.commit_ids:
         commit = (

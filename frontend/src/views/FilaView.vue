@@ -78,6 +78,40 @@
           <div v-if="job.status === 'error'" class="error-box">
             <span>{{ obterMensagemErro(job) }}</span>
           </div>
+
+          <!-- Mensagem de Retry / Aguardando -->
+          <div v-if="job.status === 'running' && job.resultado && job.resultado.status === 'retrying'" class="warning-box">
+            <span>{{ job.resultado.mensagem || 'Aguardando tempo limite para tentar novamente...' }}</span>
+          </div>
+
+          <!-- Seleção de outro modelo em caso de limite atingido -->
+          <div v-if="podeMudarModelo(job)" class="mudar-modelo-box">
+            <span class="mudar-modelo-label">Limite atingido. Tentar outro modelo:</span>
+            <div class="mudar-modelo-control">
+              <select 
+                :value="obterModeloSelecionado(job.id, job.modelo)" 
+                @change="atualizarModeloSelecionado(job.id, $event)"
+                class="select-modelo"
+              >
+                <option v-for="m in models" :key="m.name" :value="m.name">
+                  {{ m.name }}
+                </option>
+              </select>
+              <button class="btn-primary-mudar" @click="reprocessarComOutroModelo(job)">
+                Reprocessar
+              </button>
+            </div>
+          </div>
+
+          <!-- Opção de Reenviar em caso de falha de envio -->
+          <div v-if="job.tipo === 'envio' && job.status === 'error'" class="mudar-modelo-box">
+            <span class="mudar-modelo-label">Esta atividade falhou no envio. Deseja tentar novamente?</span>
+            <div class="mudar-modelo-control">
+              <button class="btn-primary-mudar" @click="reenviarAtividade(job)">
+                Reenviar Envio
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="job-footer">
@@ -173,6 +207,63 @@ function abrirLogs(job: any) {
 
 function fecharLogs() {
   logJobSelecionado.value = null
+}
+
+const models = [
+  { name: 'Gemini 2.5 Flash' },
+  { name: 'Gemini 3.5 Flash' },
+  { name: 'Gemini 2.5 Flash Lite' },
+  { name: 'Gemini 3 Flash' },
+  { name: 'Gemini 3.1 Flash Lite' }
+]
+
+const modelosSelecionados = ref<Record<number, string>>({})
+
+function obterModeloSelecionado(jobId: number, modeloAtual?: string) {
+  if (modelosSelecionados.value[jobId] === undefined) {
+    modelosSelecionados.value[jobId] = modeloAtual || 'Gemini 2.5 Flash'
+  }
+  return modelosSelecionados.value[jobId]
+}
+
+function atualizarModeloSelecionado(jobId: number, event: Event) {
+  const target = event.target as HTMLSelectElement
+  modelosSelecionados.value[jobId] = target.value
+}
+
+function podeMudarModelo(job: any) {
+  if (job.tipo !== 'analise') return false
+  if (job.status === 'error') {
+    const msg = obterMensagemErro(job).toLowerCase()
+    return msg.includes('429') || msg.includes('quota') || msg.includes('limit') || msg.includes('exhausted') || msg.includes('resource') || msg.includes('503')
+  }
+  if (job.status === 'running' && job.resultado && job.resultado.status === 'retrying') {
+    return true
+  }
+  return false
+}
+
+async function reprocessarComOutroModelo(job: any) {
+  const modeloSelecionado = modelosSelecionados.value[job.id] || job.modelo || 'Gemini 2.5 Flash'
+  if (confirm(`Deseja cancelar a tarefa atual e iniciar uma nova análise com o modelo ${modeloSelecionado}?`)) {
+    try {
+      await filaStore.removerJob(job.id)
+      await filaStore.enfileirarAnalise([job.commit_id], modeloSelecionado)
+    } catch {
+      // Erro já tratado pelo toast
+    }
+  }
+}
+
+async function reenviarAtividade(job: any) {
+  if (confirm('Deseja realmente remover esta tentativa com erro e enfileirar o envio novamente?')) {
+    try {
+      await filaStore.removerJob(job.id)
+      await filaStore.enfileirarEnvio(job.commit_id, job.atividade_idx)
+    } catch {
+      // Erro tratado pelo toast
+    }
+  }
 }
 </script>
 
@@ -364,5 +455,62 @@ function fecharLogs() {
 }
 .btn-danger-link:hover {
   text-decoration: underline;
+}
+
+.warning-box {
+  background: rgba(243,156,18,0.08);
+  border-left: 3px solid #f39c12;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.78rem;
+  color: #f39c12;
+  margin-top: 0.6rem;
+  font-weight: 500;
+}
+
+.mudar-modelo-box {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(238,238,238,0.02);
+  border: 1px dashed rgba(238,238,238,0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.mudar-modelo-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.mudar-modelo-control {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.select-modelo {
+  background: var(--bg);
+  color: var(--text);
+  border: 2px solid var(--border);
+  font-size: 0.75rem;
+  padding: 0.15rem 0.4rem;
+  font-weight: 600;
+  outline: none;
+}
+.select-modelo:focus {
+  border-color: var(--accent);
+}
+.btn-primary-mudar {
+  background: var(--accent);
+  color: var(--bg);
+  border: 2px solid var(--border);
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.15rem 0.5rem;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--border);
+  text-transform: uppercase;
+}
+.btn-primary-mudar:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--border);
 }
 </style>

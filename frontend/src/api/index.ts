@@ -9,6 +9,7 @@ export interface CommitSummary {
   autor: string
   mensagem: string
   importado_em: string
+  data_autor?: string
   analisado: boolean
   atividades_total?: number
   atividades_enviadas?: number
@@ -137,6 +138,7 @@ export const api = {
   }) => http.post<{ ok: boolean; pulada_duplicada: boolean; mensagem: string }>(`/commits/${sha}/enviar`, payload).then(r => r.data),
   historico: {
     listar: () => http.get<HistoricoItem[]>('/historico').then(r => r.data),
+    remover: (id: number) => http.delete(`/historico/${id}`).then(r => r.data),
   },
   config: {
     obter: () => http.get<Config>('/config').then(r => r.data),
