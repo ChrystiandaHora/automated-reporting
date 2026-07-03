@@ -122,6 +122,8 @@ export const api = {
       http.post<Analise | TaskResponse>(`/commits/${sha}/analisar`, { forcar }).then(r => r.data),
     atualizar: (sha: string, atividades: Atividade[], complexidade_global?: string) =>
       http.put(`/commits/${sha}/atividades`, { atividades, complexidade_global }).then(r => r.data),
+    previewEvidencia: (sha: string, atividade: Atividade, projeto?: string) =>
+      http.post<{ html: string }>(`/commits/${sha}/preview-evidencia`, { atividade, projeto }).then(r => r.data),
   },
   task: {
     status: (taskId: string) => http.get<TaskStatus>(`/task/${taskId}`).then(r => r.data),

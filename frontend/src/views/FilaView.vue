@@ -20,8 +20,12 @@
         <div class="commit-group-header" @click="alternarGrupo(grupo.commit_id)" style="cursor: pointer; user-select: none;">
           <div class="commit-group-info">
             <span class="collapse-icon">{{ isGrupoColapsado(grupo.commit_id) ? '▶' : '▼' }}</span>
-            <span class="commit-hash">{{ grupo.commit_id.slice(0, 8) }}</span>
-            <span class="commit-msg-title" :title="grupo.commit_mensagem">{{ grupo.commit_mensagem }}</span>
+            <router-link :to="`/commits/${grupo.commit_id}`" class="commit-hash-link" @click.stop>
+              {{ grupo.commit_id.slice(0, 8) }}
+            </router-link>
+            <router-link :to="`/commits/${grupo.commit_id}`" class="commit-msg-link" :title="grupo.commit_mensagem" @click.stop>
+              {{ grupo.commit_mensagem }}
+            </router-link>
           </div>
           <span class="job-count-badge">{{ grupo.jobs.length }} tarefa{{ grupo.jobs.length > 1 ? 's' : '' }}</span>
         </div>
@@ -592,13 +596,35 @@ async function reenviarAtividade(job: any) {
   width: 12px;
   display: inline-block;
 }
-.commit-msg-title {
+.commit-hash-link {
+  font-family: monospace;
+  font-size: 0.78rem;
+  background: rgba(238,238,238,0.06);
+  border: 1px solid rgba(238,238,238,0.12);
+  padding: 1px 4px;
+  color: var(--accent);
+  text-decoration: none;
+  border-radius: 0;
+  transition: all 0.1s;
+}
+.commit-hash-link:hover {
+  text-decoration: underline;
+  background: rgba(0,122,204,0.08);
+}
+.commit-msg-link {
   font-size: 0.9rem;
   font-weight: 700;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-decoration: none;
+  min-width: 0;
+  flex: 1;
+}
+.commit-msg-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
 }
 .job-count-badge {
   font-size: 0.75rem;

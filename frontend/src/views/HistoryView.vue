@@ -49,7 +49,11 @@
             <tbody>
               <tr v-for="item in grupo.items" :key="item.id">
                 <td class="col-date">{{ formatDate(item.enviado_em) }}</td>
-                <td class="col-title" :title="item.titulo">{{ item.titulo }}</td>
+                <td class="col-title" :title="item.titulo">
+                  <router-link :to="`/commits/${grupo.commit_id}`" class="activity-link">
+                    {{ item.titulo }}
+                  </router-link>
+                </td>
                 <td><code>{{ item.codigo }}</code></td>
                 <td><span class="hpa-badge">{{ item.hpa }}h</span></td>
                 <td><span class="badge badge-green">{{ item.status }}</span></td>
@@ -208,6 +212,8 @@ tr:hover td { background: rgba(0,122,204,0.05); }
 tr:last-child td { border-bottom: none; }
 .sha-link { font-family: monospace; color: var(--accent); text-decoration: none; font-size: 0.82rem; }
 .sha-link:hover { text-decoration: underline; }
+.activity-link { color: var(--accent); text-decoration: none; font-weight: 600; }
+.activity-link:hover { text-decoration: underline; }
 code {
   font-size: 0.78rem;
   border: 1px solid rgba(0,122,204,0.4);

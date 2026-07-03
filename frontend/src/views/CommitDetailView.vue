@@ -130,7 +130,26 @@
               </button>
             </div>
 
-            <div class="atividade-body">
+            <div class="card-tabs">
+              <button 
+                type="button" 
+                class="tab-btn" 
+                :class="{ 'active': activeTabs[idx] !== 'preview' }" 
+                @click="activeTabs[idx] = 'form'"
+              >
+                📝 Formulário
+              </button>
+              <button 
+                type="button" 
+                class="tab-btn" 
+                :class="{ 'active': activeTabs[idx] === 'preview' }" 
+                @click="carregarPreview(idx)"
+              >
+                🔍 Visualizar Evidência
+              </button>
+            </div>
+
+            <div v-show="activeTabs[idx] !== 'preview'" class="atividade-body">
               <label>Título</label>
               <input v-model="atv.titulo" />
               <label>Descrição</label>
@@ -152,6 +171,35 @@
               <label>Arquivos afetados</label>
               <div class="files-list">
                 <span v-for="f in atv.arquivos" :key="f" class="file-chip">{{ f }}</span>
+              </div>
+            </div>
+
+            <div v-if="activeTabs[idx] === 'preview'" class="atividade-preview-body">
+              <div v-if="loadingPreviews[idx]" class="preview-loading">
+                <div class="spinner"></div> Carregando pré-visualização da evidência...
+              </div>
+              <div v-else-if="previews[idx]" class="preview-container">
+                <div class="preview-header">
+                  <span>Pré-visualização da Evidência</span>
+                  <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" class="btn-ghost btn-sm" @click="copiarEvidencia(idx)" :disabled="!previews[idx]">
+                      {{ statusCopia[idx] ? '📋 Copiado!' : '📋 Copiar HTML' }}
+                    </button>
+                    <button type="button" class="btn-ghost btn-sm" @click="carregarPreview(idx)">🔄 Atualizar</button>
+                  </div>
+                </div>
+                <iframe 
+                  :srcdoc="previews[idx]" 
+                  frameborder="0" 
+                  width="100%" 
+                  scrolling="no"
+                  @load="ajustarAlturaIframe($event)"
+                  style="border: none; background: transparent; width: 100%; min-height: 200px;"
+                ></iframe>
+              </div>
+              <div v-else class="preview-error">
+                Erro ao gerar pré-visualização. 
+                <button type="button" class="btn-primary btn-sm" style="margin-left: 1rem;" @click="carregarPreview(idx)">🔄 Tentar Novamente</button>
               </div>
             </div>
           </div>
@@ -198,6 +246,54 @@ const filaStore = useFilaStore()
 const selecionadas = ref<number[]>([])
 const enviandoIndividual = ref<Record<number, boolean>>({})
 const enviandoAtividade = ref(false)
+
+const activeTabs = ref<Record<number, string>>({})
+const previews = ref<Record<number, string>>({})
+const loadingPreviews = ref<Record<number, boolean>>({})
+const statusCopia = ref<Record<number, boolean>>({})
+
+async function copiarEvidencia(idx: number) {
+  const htmlContent = previews.value[idx]
+  if (!htmlContent) return
+  try {
+    await navigator.clipboard.writeText(htmlContent)
+    statusCopia.value[idx] = true
+    setTimeout(() => {
+      statusCopia.value[idx] = false
+    }, 2000)
+  } catch (err) {
+    console.error('Falha ao copiar:', err)
+    alert('Não foi possível copiar o HTML automaticamente.')
+  }
+}
+
+async function carregarPreview(idx: number) {
+  activeTabs.value[idx] = 'preview'
+  loadingPreviews.value[idx] = true
+  try {
+    const atv = analiseStore.analise?.atividades?.[idx]
+    if (!atv) throw new Error('Atividade não encontrada')
+    const res = await api.analise.previewEvidencia(sha, atv, commit.value?.projeto)
+    previews.value[idx] = res.html
+  } catch (err) {
+    console.error(err)
+    previews.value[idx] = ''
+  } finally {
+    loadingPreviews.value[idx] = false
+  }
+}
+
+function ajustarAlturaIframe(event: Event) {
+  const iframe = event.target as HTMLIFrameElement
+  if (iframe && iframe.contentWindow) {
+    const doc = iframe.contentDocument || iframe.contentWindow.document
+    if (doc && doc.documentElement) {
+      setTimeout(() => {
+        iframe.style.height = doc.documentElement.scrollHeight + 'px'
+      }, 50)
+    }
+  }
+}
 
 const editandoMeta = ref(false)
 const salvandoMeta = ref(false)
@@ -582,4 +678,76 @@ async function enviarTodasFila() {
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Card Tabs styling ── */
+.card-tabs {
+  display: flex;
+  background: rgba(238, 238, 238, 0.02);
+  border-bottom: 2px solid var(--border);
+}
+.tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  padding: 0.5rem 1.25rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 0;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.tab-btn:hover {
+  background: rgba(238, 238, 238, 0.05);
+  color: var(--text);
+}
+.tab-btn.active {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+  background: rgba(0, 122, 204, 0.04);
+}
+
+.atividade-preview-body {
+  padding: 1rem;
+  background: #ffffff;
+  border-top: 1px solid var(--border);
+}
+.preview-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 2.5rem;
+  justify-content: center;
+}
+.preview-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.35rem;
+}
+.preview-error {
+  color: #cf222e;
+  font-size: 0.85rem;
+  padding: 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
 </style>

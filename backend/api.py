@@ -127,6 +127,11 @@ class EnviarRequest(BaseModel):
     gitlab_url: Optional[str] = None
 
 
+class PreviewEvidenciaRequest(BaseModel):
+    atividade: dict
+    projeto: Optional[str] = None
+
+
 class AtualizarCommitRequest(BaseModel):
     data: Optional[str] = None
     projeto: Optional[str] = None
@@ -680,6 +685,43 @@ def atualizar_atividades(
         analise.complexidade_global = req.complexidade_global
     db.commit()
     return {"ok": True}
+
+
+@app.post("/commits/{sha}/preview-evidencia")
+def preview_evidencia(sha: str, req: PreviewEvidenciaRequest, db: Session = Depends(get_db)):
+    """Generate a preview of the HTML evidence for a given activity.
+    """
+    commit = db.query(models.Commit).filter(models.Commit.id.like(f"{sha}%")).first()
+    if not commit:
+        raise HTTPException(status_code=404, detail="Commit não encontrado")
+    
+    atividade = req.atividade
+    complexidade = atividade.get("complexidade")
+    if complexidade:
+        complexity = complexidade
+    else:
+        is_media = str(atividade.get("codigo_id", "")).startswith(("57", "58", "59", "60", "61"))
+        complexity = "Média" if is_media else "Baixa/Única"
+        
+    commit_metadata = {
+        "sha": commit.id,
+        "data_inicio": f"{commit.data} 08:00",
+    }
+    
+    system_name = req.projeto or commit.projeto or "Novo Sistema"
+    
+    try:
+        evidencia_html = gerar_html_evidencia(
+            atividade,
+            commit_metadata,
+            commit.diff_raw,
+            system_name=system_name,
+            complexity=complexity,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar evidência: {str(e)}")
+        
+    return {"html": evidencia_html}
 
 
 # ─── Endpoints: Envio ao Munka ──────────────────────────────────────────────
