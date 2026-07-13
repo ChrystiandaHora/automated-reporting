@@ -55,6 +55,8 @@ def obter_config_valores() -> dict:
         "MUNKA_PRODUTO": os.environ.get("MUNKA_PRODUTO", "[DESENV] MUNKA"),
         "MUNKA_PROJETO": os.environ.get("MUNKA_PROJETO", "MUNKA Multicontrato"),
         "MUNKA_STATUS_ID": os.environ.get("MUNKA_STATUS_ID", "17"),
+        "MUNKA_DATA_INICIO": os.environ.get("MUNKA_DATA_INICIO", "08:00"),
+        "MUNKA_DATA_FIM": os.environ.get("MUNKA_DATA_FIM", "18:00"),
     }
     caminho = _obter_caminho_config_persistente()
     if os.path.exists(caminho):
@@ -152,6 +154,8 @@ class ConfiguracaoRequest(BaseModel):
     munka_produto: Optional[str] = None
     munka_projeto: Optional[str] = None
     munka_status_id: Optional[str] = None
+    munka_data_inicio: Optional[str] = None
+    munka_data_fim: Optional[str] = None
 
 
 class FilaAnaliseRequest(BaseModel):
@@ -392,10 +396,8 @@ def importar_commit(req: ImportarRequest, db: Session = Depends(get_db)):
         project_extracted = url_match.group(2)
         sha_extracted = url_match.group(3)
         commit_hash = sha_extracted
-        if not gitlab_url:
-            gitlab_url = url_extracted
-        if not project_path:
-            project_path = project_extracted
+        gitlab_url = url_extracted
+        project_path = project_extracted
     else:
         # Fallback para extração simples de SHA caso venha algo como /commit/sha no final
         sha_match = re.search(r"/commit/([0-9a-fA-F]{6,64})", commit_hash)
@@ -703,9 +705,13 @@ def preview_evidencia(sha: str, req: PreviewEvidenciaRequest, db: Session = Depe
         is_media = str(atividade.get("codigo_id", "")).startswith(("57", "58", "59", "60", "61"))
         complexity = "Média" if is_media else "Baixa/Única"
         
+    cfg = obter_config_valores()
+    hora_inicio = cfg.get("MUNKA_DATA_INICIO", "08:00")
+    data_inicio_val = hora_inicio if " " in hora_inicio else f"{commit.data} {hora_inicio}"
+
     commit_metadata = {
         "sha": commit.id,
-        "data_inicio": f"{commit.data} 08:00",
+        "data_inicio": data_inicio_val,
     }
     
     system_name = req.projeto or commit.projeto or "Novo Sistema"
@@ -778,9 +784,14 @@ def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)
     else:
         gitlab_url_commit = commit.id
 
+    hora_inicio = cfg.get("MUNKA_DATA_INICIO", "08:00")
+    hora_fim = cfg.get("MUNKA_DATA_FIM", "18:00")
+    data_inicio_val = hora_inicio if " " in hora_inicio else f"{commit.data} {hora_inicio}"
+    data_fim_val = hora_fim if " " in hora_fim else f"{commit.data} {hora_fim}"
+
     commit_metadata = {
-        "data_inicio": f"{commit.data} 08:00",
-        "data_fim": f"{commit.data} 18:00",
+        "data_inicio": data_inicio_val,
+        "data_fim": data_fim_val,
         "sha": commit.id,
         "url": gitlab_url_commit,
     }
@@ -825,7 +836,7 @@ def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)
             munka_url=cfg.get("MUNKA_URL", ""),
             headless=True,
         )
-        resultado = auto.cadastrar_e_homologar_completo(
+        resultado, task_id = auto.cadastrar_e_homologar_completo(
             task_data=atividade,
             image_path=image_path,
             product_name=req.produto,
@@ -870,9 +881,16 @@ def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)
         db.add(hist)
         db.commit()
 
+    task_url = None
+    if task_id:
+        munka_url = cfg.get("MUNKA_URL", "").rstrip("/")
+        if munka_url:
+            task_url = f"{munka_url}/tarefamodelview/show/{task_id}"
+
     return {
         "ok": True,
         "pulada_duplicada": pulada,
+        "task_url": task_url,
         "mensagem": "Pulada: já cadastrada"
         if pulada
         else "Enviado e Homologado com sucesso!",
@@ -1079,6 +1097,8 @@ def obter_config():
         "munka_produto": cfg.get("MUNKA_PRODUTO", "[DESENV] MUNKA"),
         "munka_projeto": cfg.get("MUNKA_PROJETO", "MUNKA Multicontrato"),
         "munka_status_id": cfg.get("MUNKA_STATUS_ID", "17"),
+        "munka_data_inicio": cfg.get("MUNKA_DATA_INICIO", "08:00"),
+        "munka_data_fim": cfg.get("MUNKA_DATA_FIM", "18:00"),
         "status": {
             "gemini": bool(cfg.get("GEMINI_API_KEY")),
             "munka": bool(cfg.get("MUNKA_USER") and cfg.get("MUNKA_PASS")),
@@ -1110,6 +1130,8 @@ def salvar_config(req: ConfiguracaoRequest):
         "munka_produto": "MUNKA_PRODUTO",
         "munka_projeto": "MUNKA_PROJETO",
         "munka_status_id": "MUNKA_STATUS_ID",
+        "munka_data_inicio": "MUNKA_DATA_INICIO",
+        "munka_data_fim": "MUNKA_DATA_FIM",
     }
     for field, env_key in mapping.items():
         value = getattr(req, field)
@@ -1250,6 +1272,18 @@ def listar_fila(db: Session = Depends(get_db)):
                 except:
                     pass
 
+        resultado_data = None
+        if j.resultado:
+            try:
+                resultado_data = json.loads(j.resultado)
+                if isinstance(resultado_data, dict) and j.status == "done" and not resultado_data.get("task_url"):
+                    cfg_valores = obter_config_valores()
+                    munka_url = cfg_valores.get("MUNKA_URL", "").rstrip("/")
+                    if munka_url:
+                        resultado_data["task_url"] = f"{munka_url}/tarefamodelview/list/?"
+            except:
+                resultado_data = {"logs": [], "resultado": j.resultado}
+
         resultado.append(
             {
                 "id": j.id,
@@ -1259,7 +1293,7 @@ def listar_fila(db: Session = Depends(get_db)):
                 "modelo": j.modelo,
                 "status": j.status,
                 "task_id": j.task_id,
-                "resultado": json.loads(j.resultado) if j.resultado else None,
+                "resultado": resultado_data,
                 "criado_em": j.criado_em,
                 "concluido_em": j.concluido_em,
                 "commit_mensagem": mensagem,

@@ -62,6 +62,8 @@ export interface Config {
   munka_produto: string
   munka_projeto: string
   munka_status_id: string
+  munka_data_inicio?: string
+  munka_data_fim?: string
   status: { gemini: boolean; munka: boolean; gitlab: boolean }
 }
 

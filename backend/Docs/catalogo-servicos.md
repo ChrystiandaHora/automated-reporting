@@ -245,7 +245,8 @@ Exceções (não perguntar): elementos estáticos de UI → sempre `21b`; bug is
 ---
 
 ### 4. Cálculo do HPA
-`quantidade × HPA_unitário`. Itens com escopo "por hora" são estimados pelo tamanho/complexidade do diff. Somar o total ao final.
+O HPA de cada atividade individual deve ser estritamente o valor fixo (limite) definido na tabela do catálogo para o item correspondente, NÃO devendo ser multiplicado pela quantidade de alterações, arquivos modificados ou eventos dentro de uma mesma atividade (por exemplo, se o item for de 2h, a atividade deve ter exatamente 2h, e nunca ser multiplicada para 2 * 3 = 6h). O cálculo de multiplicação por quantidade não deve ser feito para itens fixos. Apenas itens com escopo "por hora" (como liderança ou reuniões) são estimados pelo tempo correspondente. Somar o total das atividades ao final.
+
 
 ---
 

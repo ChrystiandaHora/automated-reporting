@@ -820,7 +820,7 @@ class MunkaAutomation:
 
     def cadastrar_e_homologar_completo(
         self, task_data, image_path, product_name="[DESENV] MUNKA", project_name="MUNKA Multicontrato", dev_profile=None, commit_metadata=None, custom_evidence_html=None
-    ) -> str:
+    ) -> tuple[str, str | None]:
         """Run the full task workflow (Cadastro + Evidência + Homologação) in one browser session.
 
         Combines Fase 1 (task creation) and Fase 2 (evidence attachment and
@@ -933,7 +933,7 @@ class MunkaAutomation:
             is_dup, incomplete_url = self._verificar_duplicidade_portal(page, task_title, target_sha)
             if is_dup:
                 browser.close()
-                return "PULADA_DUPLICADA"
+                return "PULADA_DUPLICADA", None
 
             if incomplete_url:
                 self._log("Tarefa incompleta detectada (mesmo título, sem SHA cadastrado). Pulando criação de nova tarefa.")
@@ -1072,6 +1072,20 @@ class MunkaAutomation:
                 page.screenshot(path="/tmp/debug_edit_not_found.png")
                 raise ValueError(f"Não foi possível encontrar a tarefa '{task_title}' na listagem. Ver /tmp/debug_edit_not_found.png") from e
 
+            task_id = None
+            try:
+                href = edit_btn.get_attribute("href") or ""
+                self._log(f"Link de edição localizado: '{href}'")
+                import re
+                match = re.search(r"tarefamodelview/edit/(\d+)", href)
+                if match:
+                    task_id = match.group(1)
+                    self._log(f"ID da tarefa extraído com sucesso: '{task_id}'")
+                else:
+                    self._log("Não foi possível encontrar o ID da tarefa no href.")
+            except Exception as ex:
+                self._log(f"Erro ao extrair ID da tarefa do link de edicao: {ex}")
+
             self._log("Clicando no botão 'Editar'...")
             edit_btn.click()
             page.wait_for_selector("form, #nome", state="visible", timeout=15000)
@@ -1155,4 +1169,4 @@ class MunkaAutomation:
 
             browser.close()
             self._log("Fluxo completo finalizado com sucesso!")
-            return task_data.get("titulo", "")
+            return task_data.get("titulo", ""), task_id

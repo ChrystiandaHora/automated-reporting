@@ -202,9 +202,14 @@ def enviar_atividade_task(
         else:
             gitlab_url_commit = commit_id
 
+        hora_inicio = cfg.get("MUNKA_DATA_INICIO", "08:00")
+        hora_fim = cfg.get("MUNKA_DATA_FIM", "18:00")
+        data_inicio_val = hora_inicio if " " in hora_inicio else f"{commit_data_val} {hora_inicio}"
+        data_fim_val = hora_fim if " " in hora_fim else f"{commit_data_val} {hora_fim}"
+
         commit_metadata = {
-            "data_inicio": f"{commit_data_val} 08:00",
-            "data_fim": f"{commit_data_val} 18:00",
+            "data_inicio": data_inicio_val,
+            "data_fim": data_fim_val,
             "sha": commit_id,
             "url": gitlab_url_commit,
         }
@@ -252,7 +257,7 @@ def enviar_atividade_task(
         log(f"Aguardando liberação da fila de conexões do portal Munka...")
         with redis_client.lock("munka_envio_lock", timeout=180, blocking_timeout=600):
             log(f"Conexão liberada! Acessando o portal Munka...")
-            resultado = auto.cadastrar_e_homologar_completo(
+            resultado, task_id = auto.cadastrar_e_homologar_completo(
                 task_data=atividade,
                 image_path=None,
                 product_name=cfg.get("MUNKA_PRODUTO", ""),
@@ -292,7 +297,13 @@ def enviar_atividade_task(
                 db.add(hist)
                 db.commit()
 
-        res = {"resultado": resultado, "logs": logs}
+        task_url = None
+        if task_id:
+            munka_url = cfg.get("MUNKA_URL", "").rstrip("/")
+            if munka_url:
+                task_url = f"{munka_url}/tarefamodelview/show/{task_id}"
+
+        res = {"resultado": resultado, "task_id": task_id, "task_url": task_url, "logs": logs}
         if fila_id:
             with SessionLocal() as db_f:
                 f = db_f.query(models.Fila).filter_by(id=fila_id).first()

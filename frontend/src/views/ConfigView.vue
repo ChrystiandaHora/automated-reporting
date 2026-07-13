@@ -55,6 +55,10 @@
             <option value="21">Concluído</option>
             <option value="18">Desenvolvimento</option>
           </select>
+          <label>Data/Hora de Início Padrão (Ex: 08:00 ou DD/MM/YYYY 08:00)</label>
+          <input v-model="form.munka_data_inicio" placeholder="Ex: 08:00" />
+          <label>Data/Hora de Fim Padrão (Ex: 18:00 ou DD/MM/YYYY 18:00)</label>
+          <input v-model="form.munka_data_fim" placeholder="Ex: 18:00" />
         </div>
       </div>
 
@@ -71,6 +75,7 @@ import HelpModal from '../components/HelpModal.vue'
 const helpItems = [
   { title: 'Cargo Padrão', text: 'Cargo utilizado no faturamento das atividades no portal Munka.' },
   { title: 'Nível Padrão', text: 'Nível de faturamento das atividades (ex: Júnior, Pleno, Sênior).' },
+  { title: 'Datas e Horas Padrão', text: 'Defina os valores padrão para preenchimento de início e fim da atividade. Caso informe apenas a hora (ex: 08:00), a data do commit será utilizada.' },
   { title: 'Demais Configurações', text: 'As credenciais de acesso ao Munka, tokens do GitLab e chave da API do Gemini devem ser configurados diretamente no arquivo .env do servidor.' },
   { title: 'Indicadores de status', text: 'Os badges indicam se as variáveis de ambiente necessárias foram detectadas no servidor.' },
 ]
@@ -85,6 +90,7 @@ const cfg = ref<Config>({
   gitlab_token: '', gitlab_url: '',
   munka_cargo: '9', munka_nivel: '3', munka_responsavel: '',
   munka_produto: '[DESENV] MUNKA', munka_projeto: 'MUNKA Multicontrato', munka_status_id: '17',
+  munka_data_inicio: '08:00', munka_data_fim: '18:00',
   status: { gemini: false, munka: false, gitlab: false },
 })
 
@@ -93,6 +99,7 @@ const form = ref({
   gitlab_token: '', gitlab_url: '',
   munka_cargo: '9', munka_nivel: '3', munka_responsavel: '',
   munka_produto: '[DESENV] MUNKA', munka_projeto: 'MUNKA Multicontrato', munka_status_id: '17',
+  munka_data_inicio: '08:00', munka_data_fim: '18:00',
 })
 
 onMounted(async () => {
@@ -106,6 +113,8 @@ onMounted(async () => {
     form.value.munka_produto = cfg.value.munka_produto || '[DESENV] MUNKA'
     form.value.munka_projeto = cfg.value.munka_projeto || 'MUNKA Multicontrato'
     form.value.munka_status_id = cfg.value.munka_status_id || '17'
+    form.value.munka_data_inicio = cfg.value.munka_data_inicio || '08:00'
+    form.value.munka_data_fim = cfg.value.munka_data_fim || '18:00'
   } finally {
     loading.value = false
   }

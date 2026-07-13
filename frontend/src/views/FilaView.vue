@@ -49,6 +49,17 @@
               <span class="job-time">{{ formatarData(job.criado_em) }}</span>
               
               <div class="job-actions">
+                <!-- Botão de Ver Tarefa (para envio concluído com sucesso) -->
+                <a 
+                  v-if="job.status === 'done' && job.resultado && job.resultado.task_url" 
+                  :href="job.resultado.task_url" 
+                  target="_blank" 
+                  class="btn-ghost btn-xs" 
+                  style="text-decoration: none; margin-right: 0.5rem; display: inline-block;"
+                >
+                  Ver Tarefa
+                </a>
+                
                 <!-- Botão de Ver Logs (para envio concluído ou com erro) -->
                 <button 
                   v-if="job.resultado && job.resultado.logs && job.resultado.logs.length" 
@@ -319,31 +330,6 @@ async function reenviarAtividade(job: any) {
 .title-row { display: flex; align-items: center; gap: 0.5rem; }
 .jobs-list { display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem; }
 
-.job-card {
-  background: var(--card-bg);
-  border: 2px solid var(--border);
-  box-shadow: 4px 4px 0 rgba(238,238,238,0.1);
-  padding: 1.25rem;
-  transition: transform 0.1s, box-shadow 0.1s;
-}
-.job-card:hover {
-  transform: translateY(-2px) translateX(-2px);
-  box-shadow: 6px 6px 0 rgba(238,238,238,0.15);
-}
-
-.job-card-running {
-  border-color: var(--accent);
-  box-shadow: 4px 4px 0 var(--accent);
-}
-.job-card-done {
-  border-color: #3fb950;
-  box-shadow: 4px 4px 0 rgba(63,185,80,0.15);
-}
-.job-card-error {
-  border-color: #f85149;
-  box-shadow: 4px 4px 0 rgba(248,81,73,0.15);
-}
-
 .job-header {
   display: flex;
   align-items: center;
@@ -373,9 +359,10 @@ async function reenviarAtividade(job: any) {
 .commit-hash {
   font-family: monospace;
   font-size: 0.78rem;
-  background: rgba(238,238,238,0.06);
-  border: 1px solid rgba(238,238,238,0.12);
-  padding: 1px 4px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 .commit-msg {
   font-weight: 700;
@@ -387,146 +374,157 @@ async function reenviarAtividade(job: any) {
 }
 
 .error-box {
-  background: rgba(248,81,73,0.08);
-  border-left: 3px solid #f85149;
-  padding: 0.5rem 0.75rem;
+  background: rgba(239, 68, 68, 0.08);
+  border-left: 3px solid var(--error);
+  padding: 0.6rem 0.85rem;
   font-size: 0.78rem;
-  color: #f85149;
+  color: var(--error);
   margin-top: 0.6rem;
   font-weight: 500;
+  border-radius: 0 6px 6px 0;
 }
 
 .job-footer {
   display: flex;
   align-items: center;
-  border-top: 1px solid rgba(238,238,238,0.08);
-  padding-top: 0.6rem;
+  border-top: 1px solid rgba(255,255,255,0.04);
+  padding-top: 0.75rem;
 }
 .status-indicator {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
   font-size: 0.75rem;
   font-weight: 600;
 }
 .status-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
 }
-.status-pending { background: #888; }
+.status-pending { background: #6b7280; }
 .status-running { 
-  background: var(--accent); 
-  box-shadow: 0 0 8px var(--accent);
+  background: var(--accent-light); 
+  box-shadow: 0 0 10px var(--accent-light);
   animation: pulse 1.5s infinite;
 }
-.status-done { background: #3fb950; }
-.status-error { background: #f85149; }
+.status-done { background: var(--success); box-shadow: 0 0 8px rgba(16, 185, 129, 0.3); }
+.status-error { background: var(--error); box-shadow: 0 0 8px rgba(239, 68, 68, 0.3); }
 
 .status-text {
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+  font-size: 0.7rem;
 }
 
 @keyframes pulse {
-  0% { transform: scale(0.95); opacity: 0.5; }
+  0% { transform: scale(0.9); opacity: 0.5; }
   50% { transform: scale(1.1); opacity: 1; }
-  100% { transform: scale(0.95); opacity: 0.5; }
+  100% { transform: scale(0.9); opacity: 0.5; }
 }
 
 /* Modal de logs */
-.modal-wide { width: 100%; max-width: 650px; }
+.modal-wide { width: 100%; max-width: 700px; }
 .modal-subtitle {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
   margin-top: -0.5rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 .terminal-container {
-  background: #0a0a0a;
-  border: 2px solid rgba(238,238,238,0.15);
-  margin-top: 0.5rem;
+  background: #060813;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  margin-top: 0.75rem;
+  overflow: hidden;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 .terminal-header {
-  background: rgba(238,238,238,0.03);
-  padding: 0.5rem 0.85rem;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0.6rem 1rem;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 600;
   display: flex;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(238,238,238,0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 .status-badge {
   text-transform: uppercase;
   font-size: 0.65rem;
-  padding: 1px 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
 }
-.badge-done { color: #3fb950; }
-.badge-error { color: #f85149; }
+.badge-done { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+.badge-error { background: rgba(239, 68, 68, 0.1); color: var(--error); }
 
 .terminal-body {
-  padding: 0.85rem;
+  padding: 1rem;
   font-size: 0.78rem;
-  font-family: 'Courier New', Courier, monospace;
-  max-height: 250px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  max-height: 350px;
   overflow-y: auto;
   margin: 0;
   white-space: pre-wrap;
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
-  background: #000;
-  color: #ccc;
+  gap: 0.25rem;
+  background: #03050a;
+  color: #d1d5db;
 }
 .terminal-body div.error-line {
-  color: #f85149;
+  color: #f87171;
 }
 
 .btn-xs {
-  padding: 0.15rem 0.4rem;
+  padding: 0.25rem 0.6rem;
   font-size: 0.72rem;
-  box-shadow: 2px 2px 0 var(--accent);
-}
-.btn-xs:hover {
-  box-shadow: 3px 3px 0 var(--accent);
+  border-radius: 6px;
+  box-shadow: none;
 }
 
 .btn-danger-link {
   background: transparent;
   border: none;
-  color: #f85149;
+  color: var(--error);
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  transition: all 0.2s ease;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
 }
 .btn-danger-link:hover {
-  text-decoration: underline;
+  background: rgba(239, 68, 68, 0.08);
+  color: #f87171;
 }
 
 .warning-box {
-  background: rgba(243,156,18,0.08);
-  border-left: 3px solid #f39c12;
-  padding: 0.5rem 0.75rem;
+  background: rgba(245, 158, 11, 0.08);
+  border-left: 3px solid var(--warning);
+  padding: 0.6rem 0.85rem;
   font-size: 0.78rem;
-  color: #f39c12;
+  color: var(--warning);
   margin-top: 0.6rem;
   font-weight: 500;
+  border-radius: 0 6px 6px 0;
 }
 
 .mudar-modelo-box {
   margin-top: 0.75rem;
-  padding: 0.75rem;
-  background: rgba(238,238,238,0.02);
-  border: 1px dashed rgba(238,238,238,0.15);
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.5rem;
 }
 .mudar-modelo-label {
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-muted);
 }
 .mudar-modelo-control {
@@ -535,31 +533,32 @@ async function reenviarAtividade(job: any) {
   align-items: center;
 }
 .select-modelo {
-  background: var(--bg);
-  color: var(--text);
-  border: 2px solid var(--border);
-  font-size: 0.75rem;
-  padding: 0.15rem 0.4rem;
-  font-weight: 600;
-  outline: none;
-}
-.select-modelo:focus {
-  border-color: var(--accent);
+  background: #0b0f19 !important;
+  color: var(--text) !important;
+  border: 1px solid var(--card-border) !important;
+  border-radius: 6px !important;
+  font-size: 0.75rem !important;
+  padding: 0.25rem 0.5rem !important;
+  font-weight: 600 !important;
+  width: auto !important;
 }
 .btn-primary-mudar {
-  background: var(--accent);
-  color: var(--bg);
-  border: 2px solid var(--border);
-  font-size: 0.72rem;
-  font-weight: 800;
-  padding: 0.15rem 0.5rem;
-  cursor: pointer;
-  box-shadow: 2px 2px 0 var(--border);
+  background: var(--accent-grad) !important;
+  color: #fff !important;
+  border: none !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  padding: 0.35rem 0.75rem !important;
+  cursor: pointer !important;
+  border-radius: 6px !important;
   text-transform: uppercase;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.15) !important;
 }
 .btn-primary-mudar:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0 var(--border);
+  filter: brightness(1.1) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3) !important;
 }
 
 /* Agrupamento da fila por Commit */
@@ -572,16 +571,15 @@ async function reenviarAtividade(job: any) {
 .commit-group {
   display: flex;
   flex-direction: column;
-  border: 2px solid var(--border);
-  background: var(--card-bg);
+  overflow: hidden;
 }
 .commit-group-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.65rem 1rem;
-  background: rgba(238, 238, 238, 0.02);
-  border-bottom: 2px solid var(--border);
+  padding: 0.85rem 1.25rem !important;
+  background: rgba(255, 255, 255, 0.01) !important;
+  border-bottom: 1px solid var(--card-border) !important;
 }
 .commit-group-info {
   display: flex;
@@ -591,29 +589,20 @@ async function reenviarAtividade(job: any) {
   flex: 1;
 }
 .collapse-icon {
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  width: 12px;
+  font-size: 0.65rem !important;
+  color: var(--text-muted) !important;
+  padding: 2px 6px !important;
   display: inline-block;
+  cursor: pointer;
 }
 .commit-hash-link {
-  font-family: monospace;
-  font-size: 0.78rem;
-  background: rgba(238,238,238,0.06);
-  border: 1px solid rgba(238,238,238,0.12);
-  padding: 1px 4px;
-  color: var(--accent);
+  color: var(--accent-light) !important;
   text-decoration: none;
-  border-radius: 0;
-  transition: all 0.1s;
-}
-.commit-hash-link:hover {
-  text-decoration: underline;
-  background: rgba(0,122,204,0.08);
+  font-family: monospace;
 }
 .commit-msg-link {
   font-size: 0.9rem;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
@@ -621,46 +610,36 @@ async function reenviarAtividade(job: any) {
   text-decoration: none;
   min-width: 0;
   flex: 1;
+  transition: color 0.2s ease;
 }
 .commit-msg-link:hover {
-  color: var(--accent);
-  text-decoration: underline;
+  color: var(--accent-light);
 }
 .job-count-badge {
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 600;
   color: var(--text-muted);
-  background: rgba(238, 238, 238, 0.05);
-  padding: 2px 6px;
-  border: 1px solid rgba(238, 238, 238, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 2px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
   margin-left: 1rem;
   flex-shrink: 0;
 }
 .commit-group-jobs {
   display: flex;
   flex-direction: column;
+  padding-top: 0 !important;
 }
 .job-row {
   padding: 1.25rem;
-  border-bottom: 1px solid rgba(238, 238, 238, 0.08);
-  transition: background-color 0.15s;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
+  transition: all 0.2s ease;
 }
 .job-row:last-child {
-  border-bottom: none;
+  border-bottom: none !important;
 }
 .job-row:hover {
-  background-color: rgba(238, 238, 238, 0.01);
-}
-.job-row-running {
-  border-left: 4px solid var(--accent);
-  background-color: rgba(0, 122, 204, 0.02);
-}
-.job-row-done {
-  border-left: 4px solid #3fb950;
-  background-color: rgba(63, 185, 80, 0.02);
-}
-.job-row-error {
-  border-left: 4px solid #f85149;
-  background-color: rgba(248, 81, 73, 0.02);
+  background-color: rgba(255, 255, 255, 0.015) !important;
 }
 </style>
