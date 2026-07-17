@@ -88,6 +88,7 @@ def analisar_diff(diff_content: str, prompt_path: str = "Docs/regras-medicao.md"
         "Você é um engenheiro de software sênior responsável pelo faturamento de entregas técnicas.\n"
         "Seu papel é receber um Git Diff de alterações e cruzá-lo com o catálogo de faturamento para gerar as atividades.\n"
         "Cruze rigorosamente o catálogo e siga as regras de ouro: uso de primeira pessoa do singular e justificativa profunda.\n"
+        "ATENÇÃO CRÍTICA: O HPA de cada atividade individual deve ser estritamente o valor fixo (limite) definido no catálogo de serviços para o item correspondente. NUNCA multiplique o HPA pela quantidade de alterações, arquivos modificados ou eventos dentro de uma mesma atividade (por exemplo, se o item tem HPA de 2h, o valor do HPA deve ser exatamente 2h, e nunca ser multiplicado para 2 * 3 = 6h). Considere a quantidade sempre como 1 para itens de valor fixo.\n"
         "Retorne estritamente o JSON estruturado conforme o esquema definido."
     )
 

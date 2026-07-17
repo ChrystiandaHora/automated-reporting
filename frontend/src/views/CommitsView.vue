@@ -12,10 +12,10 @@
     <div v-if="showImport" class="modal-overlay" @click.self="showImport = false">
       <div class="modal">
         <h2>Importar Commits do GitLab (Lote)</h2>
-        <label>URLs Completas ou SHAs dos Commits (um por linha)</label>
+        <label>URLs Completas dos Commits do GitLab (uma por linha)</label>
         <textarea 
           v-model="form.commit_hashes" 
-          placeholder="Ex:&#10;082630b1&#10;https://gitlab.../commit/abc123" 
+          placeholder="Ex:&#10;https://gitlab.suaorganizacao.com/grupo/projeto/-/commit/abc123hash" 
           rows="6"
         ></textarea>
         <div class="modal-actions">
@@ -340,13 +340,20 @@ async function importar() {
   importing.value = true
   importError.value = ''
   
-  const hashes = form.value.commit_hashes
+  const urls = form.value.commit_hashes
     .split('\n')
     .map(h => h.trim())
     .filter(h => h.length > 0)
     
-  if (hashes.length === 0) {
-    importError.value = 'Informe pelo menos um SHA ou URL de commit.'
+  if (urls.length === 0) {
+    importError.value = 'Informe pelo menos uma URL completa de commit.'
+    importing.value = false
+    return
+  }
+
+  const urlsInvalidas = urls.filter(u => !u.startsWith('http://') && !u.startsWith('https://'))
+  if (urlsInvalidas.length > 0) {
+    importError.value = 'Todas as linhas devem ser URLs completas do GitLab (começando com http:// ou https://).'
     importing.value = false
     return
   }
@@ -354,13 +361,13 @@ async function importar() {
   let sucessos = 0
   let falhas = 0
 
-  for (const hash of hashes) {
+  for (const url of urls) {
     try {
-      await store.importar(hash)
+      await store.importar(url)
       sucessos++
     } catch (e: any) {
       falhas++
-      console.error(`Erro ao importar commit ${hash}:`, e)
+      console.error(`Erro ao importar commit ${url}:`, e)
     }
   }
 
@@ -390,38 +397,43 @@ async function importar() {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
-  padding: 0.65rem 1rem;
-  background: rgba(238, 238, 238, 0.02);
-  border: 2px solid var(--border);
+  padding: 0.75rem 1.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--card-border);
   border-bottom: none;
+  border-radius: 10px 10px 0 0;
   font-size: 0.88rem;
 }
 
 .date-text {
   font-weight: 800;
-  color: var(--text);
+  color: #fff;
+  font-size: 0.95rem;
 }
 
 .commit-count-text {
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 500;
 }
 
 .date-group-commits {
-  border: 2px solid var(--border);
+  border: 1px solid var(--card-border);
+  border-top: none;
   background: var(--card-bg);
   display: flex;
   flex-direction: column;
+  border-radius: 0 0 10px 10px;
+  overflow: hidden;
 }
 
 .commit-row {
   display: flex;
   align-items: center;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid rgba(238, 238, 238, 0.08);
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   cursor: pointer;
-  transition: background 0.1s;
+  transition: background 0.15s;
 }
 
 .commit-row:last-child {
@@ -429,7 +441,7 @@ async function importar() {
 }
 
 .commit-row:hover {
-  background: rgba(238, 238, 238, 0.02);
+  background: rgba(96, 165, 250, 0.04);
 }
 
 .commit-avatar {
@@ -479,13 +491,15 @@ async function importar() {
 }
 
 .badge-status {
-  font-size: 0.65rem;
-  padding: 1px 5px;
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  font-weight: 700;
 }
 
 .commit-author-time {
-  font-size: 0.76rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
+  margin-top: 0.1rem;
 }
 
 .commit-actions {
@@ -530,11 +544,12 @@ async function importar() {
 }
 
 .sha-box {
-  font-family: monospace;
+  font-family: 'Courier New', monospace;
   font-size: 0.8rem;
   color: var(--text-muted);
-  background: rgba(238, 238, 238, 0.04);
-  border: 2px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
   padding: 0.3rem 0.6rem;
   letter-spacing: 0.04em;
   font-weight: 700;

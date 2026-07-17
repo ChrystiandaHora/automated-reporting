@@ -14,32 +14,21 @@
 
     <template v-else>
       <div class="status-bar">
-        <span class="status-badge" :class="cfg.status.gemini ? 'status-ok' : 'status-err'">
-          {{ cfg.status.gemini ? '● GEMINI OK' : '✗ GEMINI' }}
-        </span>
-        <span class="status-badge" :class="cfg.status.munka ? 'status-ok' : 'status-err'">
-          {{ cfg.status.munka ? '● MUNKA OK' : '✗ MUNKA' }}
-        </span>
-        <span class="status-badge" :class="cfg.status.gitlab ? 'status-ok' : 'status-err'">
-          {{ cfg.status.gitlab ? '● GITLAB OK' : '✗ GITLAB' }}
-        </span>
+        <div class="status-item" :class="cfg.status.gemini ? 'status-ok' : 'status-err'">
+          <span class="status-dot-sm"></span>
+          <span>Gemini {{ cfg.status.gemini ? 'Conectado' : 'Não configurado' }}</span>
+        </div>
+        <div class="status-item" :class="cfg.status.munka ? 'status-ok' : 'status-err'">
+          <span class="status-dot-sm"></span>
+          <span>Munka {{ cfg.status.munka ? 'Conectado' : 'Não configurado' }}</span>
+        </div>
+        <div class="status-item" :class="cfg.status.gitlab ? 'status-ok' : 'status-err'">
+          <span class="status-dot-sm"></span>
+          <span>GitLab {{ cfg.status.gitlab ? 'Conectado' : 'Não configurado' }}</span>
+        </div>
       </div>
 
       <div class="config-grid">
-        <div class="config-section">
-          <h3>Gemini AI</h3>
-          <label>API Key</label>
-          <input v-model="form.gemini_api_key" type="password" placeholder="Insira para atualizar" autocomplete="off" />
-        </div>
-
-        <div class="config-section">
-          <h3>Munka - Acesso</h3>
-          <label>Usuário</label>
-          <input v-model="form.munka_user" placeholder="Login" />
-          <label>Senha</label>
-          <input v-model="form.munka_pass" type="password" placeholder="Insira para atualizar" autocomplete="off" />
-        </div>
-
         <div class="config-section">
           <h3>Munka - Faturamento Padrão</h3>
           <label>Cargo Padrão</label>
@@ -64,19 +53,17 @@
           <input v-model="form.munka_projeto" placeholder="Ex: [DESENV] MUNKA" />
           <label>Status Inicial Padrão</label>
           <select v-model="form.munka_status_id">
+            <option value="15">Backlog</option>
+            <option value="16">Backlog Prioritário</option>
             <option value="17">Pendente</option>
             <option value="20">Homologação</option>
             <option value="21">Concluído</option>
             <option value="18">Desenvolvimento</option>
           </select>
-        </div>
-
-        <div class="config-section">
-          <h3>GitLab</h3>
-          <label>URL</label>
-          <input v-model="form.gitlab_url" placeholder="https://gitlab.suaorganizacao.com" />
-          <label>Token</label>
-          <input v-model="form.gitlab_token" type="password" placeholder="Insira para atualizar" autocomplete="off" />
+          <label>Data/Hora de Início Padrão (Ex: 08:00 ou DD/MM/YYYY 08:00)</label>
+          <input v-model="form.munka_data_inicio" placeholder="Ex: 08:00" />
+          <label>Data/Hora de Fim Padrão (Ex: 18:00 ou DD/MM/YYYY 18:00)</label>
+          <input v-model="form.munka_data_fim" placeholder="Ex: 18:00" />
         </div>
       </div>
 
@@ -91,11 +78,11 @@ import { api, type Config } from '../api'
 import HelpModal from '../components/HelpModal.vue'
 
 const helpItems = [
-  { title: 'Gemini API Key', text: 'Chave da API do Google Gemini, usada para análise de diffs. Obtenha em aistudio.google.com (Get API Key). O modelo padrão é gemini-2.5-flash com fallback automático para outros modelos.' },
-  { title: 'Credenciais Munka', text: 'Usuário e senha do portal Munka. Usados pelo Playwright para automatizar o cadastro e homologação das atividades no sistema de faturamento.' },
-  { title: 'Token do GitLab', text: 'PRIVATE-TOKEN de acesso pessoal ao GitLab para baixar diffs via API. Gere em: GitLab → Preferências → Tokens de Acesso. Escopo mínimo: read_repository.' },
-  { title: 'Como as credenciais são salvas', text: 'Todas as configurações são armazenadas no arquivo .env no servidor. Campos deixados em branco não sobrescrevem os valores existentes — preencha apenas o que deseja atualizar.' },
-  { title: 'Indicadores de status', text: 'Verde (●) indica que a credencial está configurada no servidor. Vermelho (●) indica ausência. O status reflete apenas a presença da variável, não sua validade.' },
+  { title: 'Cargo Padrão', text: 'Cargo utilizado no faturamento das atividades no portal Munka.' },
+  { title: 'Nível Padrão', text: 'Nível de faturamento das atividades (ex: Júnior, Pleno, Sênior).' },
+  { title: 'Datas e Horas Padrão', text: 'Defina os valores padrão para preenchimento de início e fim da atividade. Caso informe apenas a hora (ex: 08:00), a data do commit será utilizada.' },
+  { title: 'Demais Configurações', text: 'As credenciais de acesso ao Munka, tokens do GitLab e chave da API do Gemini devem ser configurados diretamente no arquivo .env do servidor.' },
+  { title: 'Indicadores de status', text: 'Os badges indicam se as variáveis de ambiente necessárias foram detectadas no servidor.' },
 ]
 
 const loading = ref(true)
@@ -108,6 +95,7 @@ const cfg = ref<Config>({
   gitlab_token: '', gitlab_url: '',
   munka_cargo: '9', munka_nivel: '3', munka_responsavel: '',
   munka_produto: '[DESENV] MUNKA', munka_projeto: 'MUNKA Multicontrato', munka_status_id: '17',
+  munka_data_inicio: '08:00', munka_data_fim: '18:00',
   status: { gemini: false, munka: false, gitlab: false },
 })
 
@@ -116,6 +104,7 @@ const form = ref({
   gitlab_token: '', gitlab_url: '',
   munka_cargo: '9', munka_nivel: '3', munka_responsavel: '',
   munka_produto: '[DESENV] MUNKA', munka_projeto: 'MUNKA Multicontrato', munka_status_id: '17',
+  munka_data_inicio: '08:00', munka_data_fim: '18:00',
 })
 
 onMounted(async () => {
@@ -129,6 +118,8 @@ onMounted(async () => {
     form.value.munka_produto = cfg.value.munka_produto || '[DESENV] MUNKA'
     form.value.munka_projeto = cfg.value.munka_projeto || 'MUNKA Multicontrato'
     form.value.munka_status_id = cfg.value.munka_status_id || '17'
+    form.value.munka_data_inicio = cfg.value.munka_data_inicio || '08:00'
+    form.value.munka_data_fim = cfg.value.munka_data_fim || '18:00'
   } finally {
     loading.value = false
   }
@@ -163,39 +154,56 @@ async function salvar() {
 <style scoped>
 .title-row { display: flex; align-items: center; gap: 0.5rem; }
 
-.status-bar { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1.75rem; flex-wrap: wrap; }
-.status-badge {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 3px 8px;
-  border-radius: 2px;
+.status-bar { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1.75rem; flex-wrap: wrap; }
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 99px;
   border: 1px solid;
 }
-.status-ok  { border-color: #3fb950; color: #3fb950; }
-.status-err { border-color: #f85149; color: #f85149; }
+.status-dot-sm {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.status-ok  {
+  border-color: rgba(74, 222, 128, 0.4);
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.08);
+}
+.status-err {
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.08);
+}
 
-.config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+.config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
 
 .config-section {
   background: var(--card-bg);
-  border: 2px solid var(--border);
-  border-radius: 0;
-  box-shadow: var(--shadow);
-  padding: 1.25rem;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.75rem;
 }
 .config-section h3 {
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.5rem;
   font-size: 0.78rem;
   font-weight: 800;
-  color: var(--accent);
+  color: var(--accent-light);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  border-bottom: 1px solid rgba(0,122,204,0.3);
-  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  padding-bottom: 0.625rem;
 }
-.success { color: #3fb950; margin-top: 1rem; font-weight: 600; }
+.success { color: #4ade80; margin-top: 1rem; font-weight: 600; }
 </style>

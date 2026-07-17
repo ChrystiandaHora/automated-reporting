@@ -58,7 +58,16 @@ export const useAnaliseStore = defineStore('analise', () => {
     }
     error.value = ''
     try {
-      analise.value = await api.analise.obter(sha)
+      const data = await api.analise.obter(sha)
+      if (data && data.atividades) {
+        for (const atv of data.atividades) {
+          if (!atv.complexidade) {
+            const isMedia = atv.is_media ?? (atv.codigo_id && ['57', '58', '59', '60', '61'].some(p => String(atv.codigo_id).startsWith(p)))
+            atv.complexidade = isMedia ? 'Média' : 'Baixa'
+          }
+        }
+      }
+      analise.value = data
     } catch (e: any) {
       if (e.response?.status !== 404) {
         error.value = e.response?.data?.detail ?? String(e)
@@ -93,7 +102,16 @@ export const useAnaliseStore = defineStore('analise', () => {
       await new Promise(resolve => setTimeout(resolve, 2000))
       const status = await api.task.status(taskId)
       if (status.status === 'SUCCESS') {
-        analise.value = await api.analise.obter(sha)
+        const data = await api.analise.obter(sha)
+        if (data && data.atividades) {
+          for (const atv of data.atividades) {
+            if (!atv.complexidade) {
+              const isMedia = atv.is_media ?? (atv.codigo_id && ['57', '58', '59', '60', '61'].some(p => String(atv.codigo_id).startsWith(p)))
+              atv.complexidade = isMedia ? 'Média' : 'Baixa'
+            }
+          }
+        }
+        analise.value = data
         break
       } else if (status.status === 'FAILURE') {
         error.value = status.error ?? 'Erro inesperado na análise'

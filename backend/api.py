@@ -1,6 +1,8 @@
 import os
 import json
 import re
+import subprocess
+import time
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -12,6 +14,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 def _obter_caminho_config_persistente() -> str:
     db_url = os.environ.get("DATABASE_URL", "sqlite:///munka.db")
     db_dir = "."
@@ -20,6 +23,7 @@ def _obter_caminho_config_persistente() -> str:
         if "/" in db_path or "\\" in db_path:
             db_dir = os.path.dirname(db_path) or "."
     return os.path.join(db_dir, "config_persistente.json")
+
 
 def carregar_config_persistente():
     caminho = _obter_caminho_config_persistente()
@@ -33,7 +37,9 @@ def carregar_config_persistente():
         except Exception as e:
             print(f"Erro ao carregar configuracoes persistentes: {e}")
 
+
 carregar_config_persistente()
+
 
 def obter_config_valores() -> dict:
     config_valores = {
@@ -49,6 +55,8 @@ def obter_config_valores() -> dict:
         "MUNKA_PRODUTO": os.environ.get("MUNKA_PRODUTO", "[DESENV] MUNKA"),
         "MUNKA_PROJETO": os.environ.get("MUNKA_PROJETO", "MUNKA Multicontrato"),
         "MUNKA_STATUS_ID": os.environ.get("MUNKA_STATUS_ID", "17"),
+        "MUNKA_DATA_INICIO": os.environ.get("MUNKA_DATA_INICIO", "08:00"),
+        "MUNKA_DATA_FIM": os.environ.get("MUNKA_DATA_FIM", "18:00"),
     }
     caminho = _obter_caminho_config_persistente()
     if os.path.exists(caminho):
@@ -79,7 +87,12 @@ app = FastAPI(title="Munka API", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost", "http://localhost:80"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost",
+        "http://localhost:80",
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -87,18 +100,22 @@ app.add_middleware(
 
 # ─── Request/Response Schemas ───────────────────────────────────────────────
 
+
 class ImportarRequest(BaseModel):
     commit_hash: str
     gitlab_url: Optional[str] = None
     token: Optional[str] = None
     project_path: Optional[str] = None
 
+
 class AnalisarRequest(BaseModel):
     forcar: bool = False  # ignora cache se True
+
 
 class AtualizarAtividadesRequest(BaseModel):
     atividades: list
     complexidade_global: Optional[str] = None
+
 
 class EnviarRequest(BaseModel):
     atividade_idx: int
@@ -111,11 +128,18 @@ class EnviarRequest(BaseModel):
     headless: bool = True
     gitlab_url: Optional[str] = None
 
+
+class PreviewEvidenciaRequest(BaseModel):
+    atividade: dict
+    projeto: Optional[str] = None
+
+
 class AtualizarCommitRequest(BaseModel):
     data: Optional[str] = None
     projeto: Optional[str] = None
     autor: Optional[str] = None
     mensagem: Optional[str] = None
+
 
 class ConfiguracaoRequest(BaseModel):
     gemini_api_key: Optional[str] = None
@@ -130,10 +154,14 @@ class ConfiguracaoRequest(BaseModel):
     munka_produto: Optional[str] = None
     munka_projeto: Optional[str] = None
     munka_status_id: Optional[str] = None
+    munka_data_inicio: Optional[str] = None
+    munka_data_fim: Optional[str] = None
+
 
 class FilaAnaliseRequest(BaseModel):
     commit_ids: list[str]
     modelo: str = "Gemini 2.5 Flash"
+
 
 class FilaEnvioRequest(BaseModel):
     commit_id: str
@@ -142,7 +170,10 @@ class FilaEnvioRequest(BaseModel):
 
 # ─── Helpers ────────────────────────────────────────────────────────────────
 
-def _extrair_metadados_diff(diff_text: str, filename: str = "") -> tuple[str, str, str, str]:
+
+def _extrair_metadados_diff(
+    diff_text: str, filename: str = ""
+) -> tuple[str, str, str, str]:
     """Extract SHA, date, project, and author from raw diff text.
 
     Parses common git diff header patterns to recover commit metadata.
@@ -164,37 +195,37 @@ def _extrair_metadados_diff(diff_text: str, filename: str = "") -> tuple[str, st
         the commit author name.
     """
     sha = "sem_sha"
-    sha_match = re.search(r'\b([0-9a-fA-F]{40})\b', diff_text)
+    sha_match = re.search(r"\b([0-9a-fA-F]{40})\b", diff_text)
     if sha_match:
         sha = sha_match.group(1)
     else:
-        sha_match = re.search(r'^commit\s+([0-9a-fA-F]{7,40})', diff_text, re.MULTILINE)
+        sha_match = re.search(r"^commit\s+([0-9a-fA-F]{7,40})", diff_text, re.MULTILINE)
         if sha_match:
             sha = sha_match.group(1)
 
     data_formatada = None
-    date_match = re.search(r'Date:\s+(.+)', diff_text)
+    date_match = re.search(r"Date:\s+(.+)", diff_text)
     if date_match:
         date_str = date_match.group(1).strip()
         for fmt in ("%a %b %d %H:%M:%S %Y", "%Y-%m-%d"):
             try:
-                clean = re.sub(r'\s+[-+]\d{4}$', '', date_str)
+                clean = re.sub(r"\s+[-+]\d{4}$", "", date_str)
                 dt = datetime.strptime(clean, fmt)
                 data_formatada = dt.strftime("%d/%m/%Y")
                 break
             except Exception:
                 continue
     if not data_formatada:
-        m = re.search(r'diff_commits_(\d{4})_(\d{2})_(\d{2})', filename)
+        m = re.search(r"diff_commits_(\d{4})_(\d{2})_(\d{2})", filename)
         if m:
             data_formatada = f"{m.group(3)}/{m.group(2)}/{m.group(1)}"
         else:
             data_formatada = datetime.now().strftime("%d/%m/%Y")
 
-    project_match = re.search(r'Project:\s+(.+)', diff_text)
+    project_match = re.search(r"Project:\s+(.+)", diff_text)
     projeto = project_match.group(1).strip() if project_match else ""
 
-    autor_match = re.search(r'Author:\s+(.+?)\s*<', diff_text)
+    autor_match = re.search(r"Author:\s+(.+?)\s*<", diff_text)
     autor = autor_match.group(1).strip() if autor_match else ""
 
     return sha, data_formatada, projeto, autor
@@ -222,8 +253,8 @@ def _update_env(key: str, value: str):
         with open(env_path, "w", encoding="utf-8") as f:
             f.writelines(lines)
     except Exception:
-        pass # Ignora erros se .env no container for read-only
-        
+        pass  # Ignora erros se .env no container for read-only
+
     # 2. Atualiza no processo atual
     os.environ[key] = value
 
@@ -249,7 +280,7 @@ def _injetar_status_envio(commit_id: str, atividades: list, db: Session) -> list
     envios_por_titulo = {}
     for h in historico:
         envios_por_titulo[h.titulo] = envios_por_titulo.get(h.titulo, 0) + 1
-        
+
     for atv in atividades:
         titulo = atv.get("titulo", "")
         if envios_por_titulo.get(titulo, 0) > 0:
@@ -260,8 +291,8 @@ def _injetar_status_envio(commit_id: str, atividades: list, db: Session) -> list
     return atividades
 
 
-
 # ─── Endpoints: Commits ─────────────────────────────────────────────────────
+
 
 @app.get("/commits")
 def listar_commits(db: Session = Depends(get_db)):
@@ -285,12 +316,12 @@ def listar_commits(db: Session = Depends(get_db)):
                 atividades = json.loads(analise.atividades_json)
                 atividades_total = len(atividades)
                 hpa_total = sum(float(a.get("hpa", 0) or 0) for a in atividades)
-                
+
                 historicos = db.query(models.Historico).filter_by(commit_id=c.id).all()
                 envios_por_titulo = {}
                 for h in historicos:
                     envios_por_titulo[h.titulo] = envios_por_titulo.get(h.titulo, 0) + 1
-                
+
                 for a in atividades:
                     titulo = a.get("titulo", "")
                     hpa = float(a.get("hpa", 0) or 0)
@@ -300,65 +331,37 @@ def listar_commits(db: Session = Depends(get_db)):
                         envios_por_titulo[titulo] -= 1
             except Exception:
                 pass
-        
+
         diff_preview = ""
         if c.diff_raw:
             marker = "--- DIFF COMEÇA AQUI ---"
             idx = c.diff_raw.find(marker)
             if idx != -1:
-                raw = c.diff_raw[idx + len(marker):].strip()
-                lines = [l for l in raw.split('\n')
-                         if l.startswith(('+', '-')) and not l.startswith(('+++', '---'))][:4]
-                diff_preview = '\n'.join(lines)
+                raw = c.diff_raw[idx + len(marker) :].strip()
+                lines = [
+                    l
+                    for l in raw.split("\n")
+                    if l.startswith(("+", "-")) and not l.startswith(("+++", "---"))
+                ][:4]
+                diff_preview = "\n".join(lines)
 
-        data_autor = None
-        if c.diff_raw:
-            match_data = re.search(r"^Date:\s*(.+)$", c.diff_raw, re.MULTILINE)
-            if match_data:
-                data_autor = match_data.group(1).strip()
-        if not data_autor:
-            data_autor = c.importado_em
-
-        result.append({
-            "id": c.id,
-            "data": c.data,
-            "projeto": c.projeto,
-            "autor": c.autor,
-            "mensagem": c.mensagem,
-            "importado_em": c.importado_em,
-            "data_autor": data_autor,
-            "analisado": analise is not None,
-            "atividades_total": atividades_total,
-            "atividades_enviadas": atividades_enviadas,
-            "hpa_total": hpa_total,
-            "hpa_enviado": hpa_enviado,
-            "diff_preview": diff_preview,
-        })
-    def parse_date_autor(dt_str):
-        if not dt_str:
-            return datetime.min.replace(tzinfo=timezone.utc)
-        try:
-            val = dt_str
-            if val.endswith('Z'):
-                val = val[:-1] + '+00:00'
-            dt = datetime.fromisoformat(val)
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-            return dt
-        except Exception:
-            pass
-        try:
-            import email.utils
-            tup = email.utils.parsedate_to_datetime(dt_str)
-            if tup:
-                return tup
-        except Exception:
-            pass
-        return datetime.min.replace(tzinfo=timezone.utc)
-
-    result.sort(key=lambda x: parse_date_autor(x.get("data_autor")), reverse=True)
+        result.append(
+            {
+                "id": c.id,
+                "data": c.data,
+                "projeto": c.projeto,
+                "autor": c.autor,
+                "mensagem": c.mensagem,
+                "importado_em": c.importado_em,
+                "analisado": analise is not None,
+                "atividades_total": atividades_total,
+                "atividades_enviadas": atividades_enviadas,
+                "hpa_total": hpa_total,
+                "hpa_enviado": hpa_enviado,
+                "diff_preview": diff_preview,
+            }
+        )
     return result
-
 
 
 @app.post("/commits/importar", status_code=201)
@@ -378,33 +381,33 @@ def importar_commit(req: ImportarRequest, db: Session = Depends(get_db)):
         HTTPException: 400 when GitLab metadata or diff retrieval fails.
     """
     cfg = obter_config_valores()
-    
+
     gitlab_url = (req.gitlab_url or "").strip() or cfg.get("GITLAB_URL")
     token = (req.token or "").strip() or cfg.get("GITLAB_TOKEN")
     project_path = (req.project_path or "").strip()
 
     commit_hash = req.commit_hash.strip()
     # Tenta extrair da URL completa do GitLab: https://gitlab.exemplo.com/grupo/projeto/-/commit/ee91a8e2...
-    url_match = re.search(r'(https?://[^/]+)/(.+?)/(?:-/)?commit/([0-9a-fA-F]{6,64})', commit_hash)
+    url_match = re.search(
+        r"(https?://[^/]+)/(.+?)/(?:-/)?commit/([0-9a-fA-F]{6,64})", commit_hash
+    )
     if url_match:
         url_extracted = url_match.group(1)
         project_extracted = url_match.group(2)
         sha_extracted = url_match.group(3)
         commit_hash = sha_extracted
-        if not gitlab_url:
-            gitlab_url = url_extracted
-        if not project_path:
-            project_path = project_extracted
+        gitlab_url = url_extracted
+        project_path = project_extracted
     else:
         # Fallback para extração simples de SHA caso venha algo como /commit/sha no final
-        sha_match = re.search(r'/commit/([0-9a-fA-F]{6,64})', commit_hash)
+        sha_match = re.search(r"/commit/([0-9a-fA-F]{6,64})", commit_hash)
         if sha_match:
             commit_hash = sha_match.group(1)
 
     if not gitlab_url or not token or not project_path:
         raise HTTPException(
             status_code=400,
-            detail="Forneça a URL completa do commit GitLab (ex: https://gitlab.empresa.com/grupo/projeto/-/commit/abc123) ou informe o projeto manualmente"
+            detail="Forneça a URL completa do commit GitLab (ex: https://gitlab.empresa.com/grupo/projeto/-/commit/abc123) ou informe o projeto manualmente",
         )
 
     # Verifica se já existe
@@ -412,7 +415,9 @@ def importar_commit(req: ImportarRequest, db: Session = Depends(get_db)):
     if not existing:
         # Tenta match por SHA curto (8 chars)
         short = commit_hash[:8]
-        existing = db.query(models.Commit).filter(models.Commit.id.like(f"{short}%")).first()
+        existing = (
+            db.query(models.Commit).filter(models.Commit.id.like(f"{short}%")).first()
+        )
     if existing:
         return {"id": existing.id, "ja_existia": True}
 
@@ -427,7 +432,7 @@ def importar_commit(req: ImportarRequest, db: Session = Depends(get_db)):
     data_formatada = datetime.now().strftime("%d/%m/%Y")
     if committed_date_str:
         try:
-            clean = re.sub(r'(\.\d+)?([+-]\d{2}:?\d{2}|Z)$', '', committed_date_str)
+            clean = re.sub(r"(\.\d+)?([+-]\d{2}:?\d{2}|Z)$", "", committed_date_str)
             dt = datetime.strptime(clean, "%Y-%m-%dT%H:%M:%S")
             data_formatada = dt.strftime("%d/%m/%Y")
         except Exception:
@@ -435,20 +440,22 @@ def importar_commit(req: ImportarRequest, db: Session = Depends(get_db)):
 
     mensagem = meta.get("message", meta.get("title", ""))
     # Adiciona cabeçalho de metadados ao diff (mantém compatibilidade com evidence_generator)
-    diff_com_header = "\n".join([
-        f"Data do commit: {data_formatada} | Diff do commit {sha_full[:8]}",
-        f"commit {sha_full}",
-        f"Author: {meta.get('author_name', '')} <{meta.get('author_email', '')}>",
-        f"Date: {committed_date_str}",
-        f"Project: {project_path}",
-        f"Subject: {meta.get('title', '')}",
-        "",
-        mensagem,
-        "",
-        "--- DIFF COMEÇA AQUI ---",
-        "",
-        diff_text,
-    ])
+    diff_com_header = "\n".join(
+        [
+            f"Data do commit: {data_formatada} | Diff do commit {sha_full[:8]}",
+            f"commit {sha_full}",
+            f"Author: {meta.get('author_name', '')} <{meta.get('author_email', '')}>",
+            f"Date: {committed_date_str}",
+            f"Project: {project_path}",
+            f"Subject: {meta.get('title', '')}",
+            "",
+            mensagem,
+            "",
+            "--- DIFF COMEÇA AQUI ---",
+            "",
+            diff_text,
+        ]
+    )
 
     commit_obj = models.Commit(
         id=sha_full,
@@ -478,7 +485,7 @@ def obter_commit(sha: str, db: Session = Depends(get_db)):
     commit = db.query(models.Commit).filter(models.Commit.id.like(f"{sha}%")).first()
     if not commit:
         raise HTTPException(status_code=404, detail="Commit não encontrado")
-    
+
     analise = db.query(models.Analise).filter_by(commit_id=commit.id).first()
     atividades_total = 0
     atividades_enviadas = 0
@@ -489,12 +496,12 @@ def obter_commit(sha: str, db: Session = Depends(get_db)):
             atividades = json.loads(analise.atividades_json)
             atividades_total = len(atividades)
             hpa_total = sum(float(a.get("hpa", 0) or 0) for a in atividades)
-            
+
             historicos = db.query(models.Historico).filter_by(commit_id=commit.id).all()
             envios_por_titulo = {}
             for h in historicos:
                 envios_por_titulo[h.titulo] = envios_por_titulo.get(h.titulo, 0) + 1
-            
+
             for a in atividades:
                 titulo = a.get("titulo", "")
                 hpa = float(a.get("hpa", 0) or 0)
@@ -531,7 +538,9 @@ def obter_commit(sha: str, db: Session = Depends(get_db)):
 
 
 @app.patch("/commits/{sha}")
-def atualizar_commit(sha: str, req: AtualizarCommitRequest, db: Session = Depends(get_db)):
+def atualizar_commit(
+    sha: str, req: AtualizarCommitRequest, db: Session = Depends(get_db)
+):
     commit = db.query(models.Commit).filter(models.Commit.id.like(f"{sha}%")).first()
     if not commit:
         raise HTTPException(status_code=404, detail="Commit não encontrado")
@@ -567,6 +576,7 @@ def deletar_commit(sha: str, db: Session = Depends(get_db)):
 
 # ─── Endpoints: Análise ─────────────────────────────────────────────────────
 
+
 @app.get("/commits/{sha}/analise")
 def obter_analise(sha: str, db: Session = Depends(get_db)):
     """Retrieve the Gemini analysis for a commit.
@@ -584,10 +594,10 @@ def obter_analise(sha: str, db: Session = Depends(get_db)):
     analise = db.query(models.Analise).filter_by(commit_id=commit.id).first()
     if not analise:
         raise HTTPException(status_code=404, detail="Análise não encontrada")
-        
+
     atividades = json.loads(analise.atividades_json)
     atividades = _injetar_status_envio(commit.id, atividades, db)
-    
+
     return {
         "commit_id": analise.commit_id,
         "complexidade_global": analise.complexidade_global,
@@ -647,7 +657,9 @@ def get_task_status(task_id: str):
 
 
 @app.put("/commits/{sha}/atividades")
-def atualizar_atividades(sha: str, req: AtualizarAtividadesRequest, db: Session = Depends(get_db)):
+def atualizar_atividades(
+    sha: str, req: AtualizarAtividadesRequest, db: Session = Depends(get_db)
+):
     """Overwrite the activity list (and optionally global complexity) of an existing analysis.
 
     Replaces the stored ``atividades_json`` with the provided list.
@@ -665,7 +677,10 @@ def atualizar_atividades(sha: str, req: AtualizarAtividadesRequest, db: Session 
         raise HTTPException(status_code=404, detail="Commit não encontrado")
     analise = db.query(models.Analise).filter_by(commit_id=commit.id).first()
     if not analise:
-        raise HTTPException(status_code=404, detail="Análise não encontrada. Execute /analisar primeiro.")
+        raise HTTPException(
+            status_code=404,
+            detail="Análise não encontrada. Execute /analisar primeiro.",
+        )
 
     analise.atividades_json = json.dumps(req.atividades, ensure_ascii=False)
     if req.complexidade_global is not None:
@@ -674,7 +689,49 @@ def atualizar_atividades(sha: str, req: AtualizarAtividadesRequest, db: Session 
     return {"ok": True}
 
 
+@app.post("/commits/{sha}/preview-evidencia")
+def preview_evidencia(sha: str, req: PreviewEvidenciaRequest, db: Session = Depends(get_db)):
+    """Generate a preview of the HTML evidence for a given activity.
+    """
+    commit = db.query(models.Commit).filter(models.Commit.id.like(f"{sha}%")).first()
+    if not commit:
+        raise HTTPException(status_code=404, detail="Commit não encontrado")
+    
+    atividade = req.atividade
+    complexidade = atividade.get("complexidade")
+    if complexidade:
+        complexity = complexidade
+    else:
+        is_media = str(atividade.get("codigo_id", "")).startswith(("57", "58", "59", "60", "61"))
+        complexity = "Média" if is_media else "Baixa/Única"
+        
+    cfg = obter_config_valores()
+    hora_inicio = cfg.get("MUNKA_DATA_INICIO", "08:00")
+    data_inicio_val = hora_inicio if " " in hora_inicio else f"{commit.data} {hora_inicio}"
+
+    commit_metadata = {
+        "sha": commit.id,
+        "data_inicio": data_inicio_val,
+    }
+    
+    system_name = req.projeto or commit.projeto or "Novo Sistema"
+    
+    try:
+        evidencia_html = gerar_html_evidencia(
+            atividade,
+            commit_metadata,
+            commit.diff_raw,
+            system_name=system_name,
+            complexity=complexity,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar evidência: {str(e)}")
+        
+    return {"html": evidencia_html}
+
+
 # ─── Endpoints: Envio ao Munka ──────────────────────────────────────────────
+
 
 @app.post("/commits/{sha}/enviar")
 def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)):
@@ -713,9 +770,12 @@ def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)
     user = cfg.get("MUNKA_USER")
     password = cfg.get("MUNKA_PASS")
     if not user or not password:
-        raise HTTPException(status_code=400, detail="Credenciais MUNKA_USER/MUNKA_PASS não configuradas")
+        raise HTTPException(
+            status_code=400, detail="Credenciais MUNKA_USER/MUNKA_PASS não configuradas"
+        )
 
     # Geração de imagem removida — evidencia via HTML
+    image_path = None
 
     gitlab_base = req.gitlab_url or cfg.get("GITLAB_URL", "")
     if gitlab_base:
@@ -724,9 +784,14 @@ def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)
     else:
         gitlab_url_commit = commit.id
 
+    hora_inicio = cfg.get("MUNKA_DATA_INICIO", "08:00")
+    hora_fim = cfg.get("MUNKA_DATA_FIM", "18:00")
+    data_inicio_val = hora_inicio if " " in hora_inicio else f"{commit.data} {hora_inicio}"
+    data_fim_val = hora_fim if " " in hora_fim else f"{commit.data} {hora_fim}"
+
     commit_metadata = {
-        "data_inicio": f"{commit.data} 08:00",
-        "data_fim": f"{commit.data} 18:00",
+        "data_inicio": data_inicio_val,
+        "data_fim": data_fim_val,
         "sha": commit.id,
         "url": gitlab_url_commit,
     }
@@ -737,13 +802,22 @@ def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)
         "status_id": req.status_id,
     }
 
-    prefixes_media = ("57", "58", "59", "60", "61")
-    atividade["is_media"] = str(atividade.get("codigo_id", "")).startswith(prefixes_media)
+    complexidade = atividade.get("complexidade")
+    if complexidade:
+        atividade["is_media"] = (complexidade in ("Média", "Alta"))
+    else:
+        prefixes_media = ("57", "58", "59", "60", "61")
+        atividade["is_media"] = str(atividade.get("codigo_id", "")).startswith(
+            prefixes_media
+        )
 
     # Gera evidência HTML se não existir na atividade
     evidencia_html = atividade.get("evidencia_html")
     if not evidencia_html:
-        complexity = "Média" if atividade.get("is_media") else "Baixa/Única"
+        if complexidade:
+            complexity = complexidade
+        else:
+            complexity = "Média" if atividade.get("is_media") else "Baixa/Única"
         try:
             evidencia_html = gerar_html_evidencia(
                 atividade,
@@ -756,8 +830,13 @@ def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)
             evidencia_html = ""
 
     try:
-        auto = MunkaAutomation(username=user, password=password, munka_url=cfg.get("MUNKA_URL", ""), headless=True)
-        resultado = auto.cadastrar_e_homologar_completo(
+        auto = MunkaAutomation(
+            username=user,
+            password=password,
+            munka_url=cfg.get("MUNKA_URL", ""),
+            headless=True,
+        )
+        resultado, task_id = auto.cadastrar_e_homologar_completo(
             task_data=atividade,
             image_path=image_path,
             product_name=req.produto,
@@ -776,9 +855,24 @@ def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)
                 pass
 
     pulada = resultado == "PULADA_DUPLICADA"
+    status_map = {
+        "15": "Backlog",
+        "16": "Backlog Prioritário",
+        "17": "Enviado ao Munka",
+        "18": "Desenvolvimento",
+        "20": "Homologação",
+        "21": "Concluído"
+    }
+    hist_status = status_map.get(req.status_id, "Cadastrada")
 
-    if not pulada:
-        hist_status = "Pendente" if req.status_id == "17" else "Homologada"
+
+    already_exists = (
+        db.query(models.Historico)
+        .filter_by(commit_id=commit.id, titulo=atividade.get("titulo", ""))
+        .first()
+    )
+
+    if not already_exists and not pulada:
         hist = models.Historico(
             commit_id=commit.id,
             titulo=atividade.get("titulo", ""),
@@ -790,15 +884,26 @@ def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)
         db.add(hist)
         db.commit()
 
+    task_url = None
+    if task_id:
+        munka_url = cfg.get("MUNKA_URL", "").rstrip("/")
+        if munka_url:
+            task_url = f"{munka_url}/tarefamodelview/show/{task_id}"
+
     return {
         "ok": True,
         "pulada_duplicada": pulada,
-        "mensagem": "Pulada: já cadastrada" if pulada else "Enviado e Homologado com sucesso!",
+        "task_url": task_url,
+        "mensagem": "Pulada: já cadastrada"
+        if pulada
+        else "Enviado e Homologado com sucesso!",
     }
 
 
 @app.get("/commits/{sha}/enviar-stream")
-def enviar_atividade_stream(sha: str, atividade_idx: int, headless: bool = True, db: Session = Depends(get_db)):
+def enviar_atividade_stream(
+    sha: str, atividade_idx: int, headless: bool = True, db: Session = Depends(get_db)
+):
     import time
     from fastapi.responses import StreamingResponse
 
@@ -815,7 +920,9 @@ def enviar_atividade_stream(sha: str, atividade_idx: int, headless: bool = True,
 
     cfg = obter_config_valores()
     if not cfg.get("MUNKA_USER") or not cfg.get("MUNKA_PASS"):
-        raise HTTPException(status_code=400, detail="Credenciais MUNKA_USER/MUNKA_PASS não configuradas")
+        raise HTTPException(
+            status_code=400, detail="Credenciais MUNKA_USER/MUNKA_PASS não configuradas"
+        )
 
     task = enviar_atividade_task.delay(commit.id, atividade_idx, cfg)
     task_id = task.id
@@ -852,6 +959,7 @@ def enviar_atividade_stream(sha: str, atividade_idx: int, headless: bool = True,
 
 # ─── Endpoints: Histórico ────────────────────────────────────────────────────
 
+
 @app.get("/historico")
 def listar_historico(db: Session = Depends(get_db)):
     """List all successfully submitted activities ordered by most-recently sent first.
@@ -860,7 +968,9 @@ def listar_historico(db: Session = Depends(get_db)):
         A JSON array where each element contains ``id``, ``commit_id``,
         ``titulo``, ``codigo``, ``hpa``, ``status``, and ``enviado_em``.
     """
-    itens = db.query(models.Historico).order_by(models.Historico.enviado_em.desc()).all()
+    itens = (
+        db.query(models.Historico).order_by(models.Historico.enviado_em.desc()).all()
+    )
     return [
         {
             "id": h.id,
@@ -871,6 +981,7 @@ def listar_historico(db: Session = Depends(get_db)):
             "status": h.status,
             "enviado_em": h.enviado_em,
         }
+        for h in itens
     ]
 
 
@@ -884,7 +995,85 @@ def deletar_historico_item(item_id: int, db: Session = Depends(get_db)):
     db.commit()
 
 
+# ─── Endpoints: Projeto / Atualização do Git ────────────────────────────────
+
+_git_cache = {"last_check": 0.0, "behind_count": 0, "has_update": False, "error": None}
+GIT_CACHE_DURATION = 600  # 10 minutos
+
+
+def obter_status_atualizacao_git() -> dict:
+    now = time.time()
+    if now - _git_cache["last_check"] < GIT_CACHE_DURATION:
+        return {
+            "has_update": _git_cache["has_update"],
+            "behind_count": _git_cache["behind_count"],
+            "cached": True,
+            "error": _git_cache["error"],
+        }
+
+    backend_dir = os.path.dirname(os.path.abspath(__file__))
+    repo_root = os.path.dirname(backend_dir)
+
+    try:
+        # Executa git fetch para atualizar as informações remotas (timeout de 8s)
+        subprocess.run(
+            ["git", "fetch"], cwd=repo_root, capture_output=True, check=True, timeout=8
+        )
+
+        # Tenta contar a diferença de commits em relação ao upstream
+        try:
+            res = subprocess.run(
+                ["git", "rev-list", "--count", "HEAD..@{u}"],
+                cwd=repo_root,
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=4,
+            )
+            count = int(res.stdout.strip())
+            _git_cache["behind_count"] = count
+            _git_cache["has_update"] = count > 0
+            _git_cache["error"] = None
+        except subprocess.CalledProcessError:
+            # Fallback se não houver upstream configurado: tenta origin/main
+            try:
+                res_main = subprocess.run(
+                    ["git", "rev-list", "--count", "HEAD..origin/main"],
+                    cwd=repo_root,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    timeout=4,
+                )
+                count = int(res_main.stdout.strip())
+                _git_cache["behind_count"] = count
+                _git_cache["has_update"] = count > 0
+                _git_cache["error"] = None
+            except Exception as e_inner:
+                _git_cache["error"] = str(e_inner)
+                _git_cache["behind_count"] = 0
+                _git_cache["has_update"] = False
+    except Exception as e:
+        _git_cache["error"] = str(e)
+        # Não altera os valores de has_update e behind_count anteriores para evitar oscilações abruptas se a rede falhar
+
+    _git_cache["last_check"] = now
+    return {
+        "has_update": _git_cache["has_update"],
+        "behind_count": _git_cache["behind_count"],
+        "cached": False,
+        "error": _git_cache["error"],
+    }
+
+
+@app.get("/projeto/atualizacao")
+def verificar_atualizacao_projeto():
+    """Verifica se há atualizações pendentes no repositório remoto Git do projeto."""
+    return obter_status_atualizacao_git()
+
+
 # ─── Endpoints: Configuração ────────────────────────────────────────────────
+
 
 @app.get("/config")
 def obter_config():
@@ -911,6 +1100,8 @@ def obter_config():
         "munka_produto": cfg.get("MUNKA_PRODUTO", "[DESENV] MUNKA"),
         "munka_projeto": cfg.get("MUNKA_PROJETO", "MUNKA Multicontrato"),
         "munka_status_id": cfg.get("MUNKA_STATUS_ID", "17"),
+        "munka_data_inicio": cfg.get("MUNKA_DATA_INICIO", "08:00"),
+        "munka_data_fim": cfg.get("MUNKA_DATA_FIM", "18:00"),
         "status": {
             "gemini": bool(cfg.get("GEMINI_API_KEY")),
             "munka": bool(cfg.get("MUNKA_USER") and cfg.get("MUNKA_PASS")),
@@ -942,6 +1133,8 @@ def salvar_config(req: ConfiguracaoRequest):
         "munka_produto": "MUNKA_PRODUTO",
         "munka_projeto": "MUNKA_PROJETO",
         "munka_status_id": "MUNKA_STATUS_ID",
+        "munka_data_inicio": "MUNKA_DATA_INICIO",
+        "munka_data_fim": "MUNKA_DATA_FIM",
     }
     for field, env_key in mapping.items():
         value = getattr(req, field)
@@ -956,31 +1149,40 @@ def salvar_config(req: ConfiguracaoRequest):
 
 # ─── Endpoints: Fila de Tarefas ─────────────────────────────────────────────
 
+
 @app.post("/fila/analise", status_code=201)
 def enfileirar_analise(req: FilaAnaliseRequest, db: Session = Depends(get_db)):
     # Limite de concorrência/fila de 5 análises na fila
-    active_jobs = db.query(models.Fila).filter(
-        models.Fila.tipo == "analise",
-        models.Fila.status.in_(["running", "pending"])
-    ).count()
+    active_jobs = (
+        db.query(models.Fila)
+        .filter(
+            models.Fila.tipo == "analise",
+            models.Fila.status.in_(["running", "pending"]),
+        )
+        .count()
+    )
     if active_jobs + len(req.commit_ids) > 5:
         raise HTTPException(
             status_code=429,
-            detail=f"Fila de análises cheia. Máximo de 5 análises permitidas na fila (atualmente: {active_jobs})."
+            detail=f"Fila de análises cheia. Máximo de 5 análises permitidas na fila (atualmente: {active_jobs}).",
         )
 
     jobs_enfileirados = []
     for commit_id in req.commit_ids:
-        commit = db.query(models.Commit).filter(models.Commit.id.like(f"{commit_id}%")).first()
+        commit = (
+            db.query(models.Commit)
+            .filter(models.Commit.id.like(f"{commit_id}%"))
+            .first()
+        )
         if not commit:
             continue
-        
+
         job = models.Fila(
             tipo="analise",
             commit_id=commit.id,
             modelo=req.modelo,
             status="pending",
-            criado_em=datetime.now(timezone.utc).isoformat()
+            criado_em=datetime.now().isoformat(),
         )
         db.add(job)
         db.flush()
@@ -990,32 +1192,37 @@ def enfileirar_analise(req: FilaAnaliseRequest, db: Session = Depends(get_db)):
             commit.diff_raw,
             True,  # força re-análise
             req.modelo,
-            job.id
+            job.id,
         )
         job.task_id = task.id
         jobs_enfileirados.append(job.id)
-    
+
     db.commit()
     return {"ok": True, "job_ids": jobs_enfileirados}
 
 
 @app.post("/fila/envio", status_code=201)
 def enfileirar_envio(req: FilaEnvioRequest, db: Session = Depends(get_db)):
-    # 1. Limite de concorrência local de 15 envios simultâneos/pendentes
-    active_jobs = db.query(models.Fila).filter(
-        models.Fila.tipo == "envio",
-        models.Fila.status.in_(["running", "pending"])
-    ).count()
-    if active_jobs >= 15:
+    # 1. Limite de concorrência local de 5 envios simultâneos
+    running_jobs = (
+        db.query(models.Fila)
+        .filter(models.Fila.tipo == "envio", models.Fila.status == "running")
+        .count()
+    )
+    if running_jobs >= 5:
         raise HTTPException(
             status_code=429,
-            detail="Fila de envios cheia. Máximo de 15 envios simultâneos na fila permitidos."
+            detail="Fila de envios cheia. Máximo de 5 envios simultâneos permitidos.",
         )
 
-    commit = db.query(models.Commit).filter(models.Commit.id.like(f"{req.commit_id}%")).first()
+    commit = (
+        db.query(models.Commit)
+        .filter(models.Commit.id.like(f"{req.commit_id}%"))
+        .first()
+    )
     if not commit:
         raise HTTPException(status_code=404, detail="Commit não encontrado")
-    
+
     analise = db.query(models.Analise).filter_by(commit_id=commit.id).first()
     if not analise:
         raise HTTPException(status_code=404, detail="Análise do commit não encontrada")
@@ -1029,14 +1236,16 @@ def enfileirar_envio(req: FilaEnvioRequest, db: Session = Depends(get_db)):
         commit_id=commit.id,
         atividade_idx=req.atividade_idx,
         status="pending",
-        criado_em=datetime.now(timezone.utc).isoformat()
+        criado_em=datetime.now().isoformat(),
     )
     db.add(job)
     db.flush()
 
     cfg = obter_config_valores()
     if not cfg.get("MUNKA_USER") or not cfg.get("MUNKA_PASS"):
-        raise HTTPException(status_code=400, detail="Credenciais MUNKA_USER/MUNKA_PASS não configuradas")
+        raise HTTPException(
+            status_code=400, detail="Credenciais MUNKA_USER/MUNKA_PASS não configuradas"
+        )
 
     task = enviar_atividade_task.delay(commit.id, req.atividade_idx, cfg, job.id)
     job.task_id = task.id
@@ -1052,32 +1261,48 @@ def listar_fila(db: Session = Depends(get_db)):
     for j in jobs:
         commit = db.query(models.Commit).filter_by(id=j.commit_id).first()
         mensagem = commit.mensagem if commit else "(sem commit)"
-        
+
         titulo_atividade = None
         if j.tipo == "envio" and commit:
             analise = db.query(models.Analise).filter_by(commit_id=commit.id).first()
             if analise:
                 try:
                     atividades = json.loads(analise.atividades_json)
-                    if j.atividade_idx is not None and 0 <= j.atividade_idx < len(atividades):
+                    if j.atividade_idx is not None and 0 <= j.atividade_idx < len(
+                        atividades
+                    ):
                         titulo_atividade = atividades[j.atividade_idx].get("titulo")
                 except:
                     pass
 
-        resultado.append({
-            "id": j.id,
-            "tipo": j.tipo,
-            "commit_id": j.commit_id,
-            "atividade_idx": j.atividade_idx,
-            "modelo": j.modelo,
-            "status": j.status,
-            "task_id": j.task_id,
-            "resultado": json.loads(j.resultado) if j.resultado else None,
-            "criado_em": j.criado_em,
-            "concluido_em": j.concluido_em,
-            "commit_mensagem": mensagem,
-            "titulo_atividade": titulo_atividade
-        })
+        resultado_data = None
+        if j.resultado:
+            try:
+                resultado_data = json.loads(j.resultado)
+                if isinstance(resultado_data, dict) and j.status == "done" and not resultado_data.get("task_url"):
+                    cfg_valores = obter_config_valores()
+                    munka_url = cfg_valores.get("MUNKA_URL", "").rstrip("/")
+                    if munka_url:
+                        resultado_data["task_url"] = f"{munka_url}/tarefamodelview/list/?"
+            except:
+                resultado_data = {"logs": [], "resultado": j.resultado}
+
+        resultado.append(
+            {
+                "id": j.id,
+                "tipo": j.tipo,
+                "commit_id": j.commit_id,
+                "atividade_idx": j.atividade_idx,
+                "modelo": j.modelo,
+                "status": j.status,
+                "task_id": j.task_id,
+                "resultado": resultado_data,
+                "criado_em": j.criado_em,
+                "concluido_em": j.concluido_em,
+                "commit_mensagem": mensagem,
+                "titulo_atividade": titulo_atividade,
+            }
+        )
     return resultado
 
 
@@ -1086,18 +1311,13 @@ def remover_job_fila(job_id: int, db: Session = Depends(get_db)):
     job = db.query(models.Fila).filter_by(id=job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job não encontrado")
-    
+
     if job.status not in ("pending", "done", "error"):
         if job.task_id:
             try:
                 celery_app.control.revoke(job.task_id, terminate=True)
             except:
                 pass
-            
+
     db.delete(job)
     db.commit()
-
-
-
-
-
