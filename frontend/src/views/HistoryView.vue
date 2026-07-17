@@ -192,43 +192,58 @@ async function confirmarExclusao() {
 .title-row { display: flex; align-items: center; gap: 0.5rem; }
 .table-wrapper {
   overflow-x: auto;
-  border: 2px solid var(--border);
-  box-shadow: var(--shadow);
+  border: 1px solid var(--card-border);
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border-top: none;
 }
 table { width: 100%; border-collapse: collapse; }
 th {
   text-align: left;
-  padding: 0.65rem 0.9rem;
-  border-bottom: 2px solid var(--accent);
-  font-size: 0.7rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-muted);
-  background: var(--card-bg);
+  background: rgba(59, 130, 246, 0.04);
 }
-td { padding: 0.65rem 0.9rem; border-bottom: 1px solid rgba(238,238,238,0.07); font-size: 0.85rem; }
-tr:hover td { background: rgba(0,122,204,0.05); }
+td { padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.875rem; }
+tr:hover td { background: rgba(96, 165, 250, 0.03); }
 tr:last-child td { border-bottom: none; }
-.sha-link { font-family: monospace; color: var(--accent); text-decoration: none; font-size: 0.82rem; }
-.sha-link:hover { text-decoration: underline; }
-.activity-link { color: var(--accent); text-decoration: none; font-weight: 600; }
-.activity-link:hover { text-decoration: underline; }
+.sha-link {
+  font-family: 'Courier New', monospace;
+  color: var(--accent-light);
+  text-decoration: none;
+  font-size: 0.82rem;
+  background: rgba(96, 165, 250, 0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  transition: all 0.2s ease;
+}
+.sha-link:hover { background: rgba(96, 165, 250, 0.15); color: #bfdbfe; }
+.activity-link { color: var(--text); text-decoration: none; font-weight: 600; transition: color 0.2s; }
+.activity-link:hover { color: var(--accent-light); }
 code {
   font-size: 0.78rem;
-  border: 1px solid rgba(0,122,204,0.4);
-  color: var(--accent);
-  padding: 1px 5px;
-  font-family: monospace;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  color: #93c5fd;
+  background: rgba(96, 165, 250, 0.06);
+  padding: 2px 6px;
+  font-family: 'Courier New', monospace;
+  border-radius: 4px;
 }
 .hpa-badge {
-  font-family: monospace;
+  font-family: 'Courier New', monospace;
   font-weight: 700;
-  color: var(--text);
-  background: rgba(238, 238, 238, 0.04);
-  border: 1px solid rgba(238, 238, 238, 0.15);
-  padding: 2px 6px;
-  font-size: 0.8rem;
+  color: #fcd34d;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  padding: 2px 8px;
+  font-size: 0.82rem;
+  border-radius: 6px;
 }
 .action-cell {
   display: flex;
@@ -238,52 +253,56 @@ code {
 .btn-delete-item {
   background: transparent;
   border: none;
-  color: #f85149;
+  color: rgba(248, 113, 113, 0.7);
   cursor: pointer;
-  padding: 4px;
+  padding: 5px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.1s, color 0.1s;
+  transition: all 0.15s;
 }
 .btn-delete-item:hover {
-  color: #ff6b6b;
-  transform: scale(1.1);
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.08);
+  transform: scale(1.05);
 }
 .col-date {
   white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 0.82rem;
 }
 .col-title {
-  max-width: 300px;
+  max-width: 320px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .btn-danger {
-  background: #f85149;
-  color: var(--text);
-  border: 2px solid var(--border);
-  border-radius: 0;
+  background: rgba(239, 68, 68, 0.9);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
   padding: 0.5rem 1.1rem;
   font-weight: 700;
   cursor: pointer;
   font-size: 0.88rem;
-  letter-spacing: 0.02em;
-  box-shadow: 3px 3px 0 var(--border);
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }
 .btn-danger:hover {
-  transform: translateY(-2px) translateX(-2px);
-  box-shadow: 5px 5px 0 var(--border);
-  background: #ff6b6b;
+  background: #ef4444;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3);
 }
 .history-count-badge {
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--text-muted);
-  background: rgba(238, 238, 238, 0.05);
-  padding: 2px 6px;
-  border: 1px solid rgba(238, 238, 238, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 99px;
   margin-left: 0.5rem;
   vertical-align: middle;
 }
@@ -302,16 +321,24 @@ code {
 .commit-group {
   display: flex;
   flex-direction: column;
-  border: 2px solid var(--border);
+  border: 1px solid var(--card-border);
   background: var(--card-bg);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 .commit-group-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.65rem 1rem;
-  background: rgba(238, 238, 238, 0.02);
-  border-bottom: 2px solid var(--border);
+  padding: 0.875rem 1.25rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--card-border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.commit-group-header:hover {
+  background: rgba(96, 165, 250, 0.04);
 }
 .commit-group-info {
   display: flex;
@@ -328,22 +355,24 @@ code {
 }
 .commit-label {
   font-weight: 700;
-  font-size: 0.85rem;
-  color: var(--text-muted);
+  font-size: 0.8rem;
+  color: var(--text-subtle, #9ca3af);
   text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 .group-time {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
-  margin-left: 1rem;
+  margin-left: 0.5rem;
 }
 .job-count-badge {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: var(--text-muted);
-  background: rgba(238, 238, 238, 0.05);
-  padding: 2px 6px;
-  border: 1px solid rgba(238, 238, 238, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 3px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 99px;
   margin-left: 1rem;
   flex-shrink: 0;
 }

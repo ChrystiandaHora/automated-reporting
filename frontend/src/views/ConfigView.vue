@@ -14,15 +14,18 @@
 
     <template v-else>
       <div class="status-bar">
-        <span class="status-badge" :class="cfg.status.gemini ? 'status-ok' : 'status-err'">
-          {{ cfg.status.gemini ? '● GEMINI OK' : '✗ GEMINI' }}
-        </span>
-        <span class="status-badge" :class="cfg.status.munka ? 'status-ok' : 'status-err'">
-          {{ cfg.status.munka ? '● MUNKA OK' : '✗ MUNKA' }}
-        </span>
-        <span class="status-badge" :class="cfg.status.gitlab ? 'status-ok' : 'status-err'">
-          {{ cfg.status.gitlab ? '● GITLAB OK' : '✗ GITLAB' }}
-        </span>
+        <div class="status-item" :class="cfg.status.gemini ? 'status-ok' : 'status-err'">
+          <span class="status-dot-sm"></span>
+          <span>Gemini {{ cfg.status.gemini ? 'Conectado' : 'Não configurado' }}</span>
+        </div>
+        <div class="status-item" :class="cfg.status.munka ? 'status-ok' : 'status-err'">
+          <span class="status-dot-sm"></span>
+          <span>Munka {{ cfg.status.munka ? 'Conectado' : 'Não configurado' }}</span>
+        </div>
+        <div class="status-item" :class="cfg.status.gitlab ? 'status-ok' : 'status-err'">
+          <span class="status-dot-sm"></span>
+          <span>GitLab {{ cfg.status.gitlab ? 'Conectado' : 'Não configurado' }}</span>
+        </div>
       </div>
 
       <div class="config-grid">
@@ -50,6 +53,8 @@
           <input v-model="form.munka_projeto" placeholder="Ex: [DESENV] MUNKA" />
           <label>Status Inicial Padrão</label>
           <select v-model="form.munka_status_id">
+            <option value="15">Backlog</option>
+            <option value="16">Backlog Prioritário</option>
             <option value="17">Pendente</option>
             <option value="20">Homologação</option>
             <option value="21">Concluído</option>
@@ -149,39 +154,56 @@ async function salvar() {
 <style scoped>
 .title-row { display: flex; align-items: center; gap: 0.5rem; }
 
-.status-bar { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1.75rem; flex-wrap: wrap; }
-.status-badge {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 3px 8px;
-  border-radius: 2px;
+.status-bar { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1.75rem; flex-wrap: wrap; }
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 99px;
   border: 1px solid;
 }
-.status-ok  { border-color: #3fb950; color: #3fb950; }
-.status-err { border-color: #f85149; color: #f85149; }
+.status-dot-sm {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.status-ok  {
+  border-color: rgba(74, 222, 128, 0.4);
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.08);
+}
+.status-err {
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.08);
+}
 
-.config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+.config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
 
 .config-section {
   background: var(--card-bg);
-  border: 2px solid var(--border);
-  border-radius: 0;
-  box-shadow: var(--shadow);
-  padding: 1.25rem;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.75rem;
 }
 .config-section h3 {
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.5rem;
   font-size: 0.78rem;
   font-weight: 800;
-  color: var(--accent);
+  color: var(--accent-light);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  border-bottom: 1px solid rgba(0,122,204,0.3);
-  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  padding-bottom: 0.625rem;
 }
-.success { color: #3fb950; margin-top: 1rem; font-weight: 600; }
+.success { color: #4ade80; margin-top: 1rem; font-weight: 600; }
 </style>

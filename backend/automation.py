@@ -749,12 +749,19 @@ class MunkaAutomation:
                 page.locator('[id="3_href"]').click()
                 page.locator("#data_fim").wait_for(state="visible", timeout=5000)
 
-            # Data do Fim: preenche com base no commit_metadata["data_inicio"], alterando o horário para 18:00
-            data_inicio = commit_metadata.get("data_inicio", "")
-            if data_inicio and len(data_inicio) >= 10:
-                data_fim = f"{data_inicio[:10]} 18:00"
-            else:
-                data_fim = commit_metadata.get("data_fim", datetime.now().strftime("%d/%m/%Y 18:00"))
+            # Data do Fim: utiliza commit_metadata["data_fim"] que já vem com a hora configurada pelo usuário.
+            # Fallback: se data_fim não tiver data completa, extrai a data de data_inicio e concatena com a hora de data_fim.
+            data_fim = commit_metadata.get("data_fim", "")
+            if not data_fim:
+                data_inicio = commit_metadata.get("data_inicio", "")
+                data_fim = f"{data_inicio[:10]} 18:00" if data_inicio and len(data_inicio) >= 10 else datetime.now().strftime("%d/%m/%Y 18:00")
+            elif " " not in data_fim and len(data_fim) <= 5:
+                # Apenas hora foi configurada (ex: "17:00") — extrai data de data_inicio
+                data_inicio = commit_metadata.get("data_inicio", "")
+                if data_inicio and len(data_inicio) >= 10:
+                    data_fim = f"{data_inicio[:10]} {data_fim}"
+                else:
+                    data_fim = f"{datetime.now().strftime('%d/%m/%Y')} {data_fim}"
 
             self._log(f"Preenchendo Data de Fim: '{data_fim}'...")
             page.locator("#data_fim").fill(data_fim)
@@ -1103,12 +1110,19 @@ class MunkaAutomation:
                 page.locator('[id="3_href"]').click()
                 page.locator("#data_fim").wait_for(state="visible", timeout=5000)
 
-            # Data de Fim
-            data_inicio = commit_metadata.get("data_inicio", "")
-            if data_inicio and len(data_inicio) >= 10:
-                data_fim = f"{data_inicio[:10]} 18:00"
-            else:
-                data_fim = commit_metadata.get("data_fim", datetime.now().strftime("%d/%m/%Y 18:00"))
+            # Data de Fim: utiliza commit_metadata["data_fim"] que já vem com a hora configurada pelo usuário.
+            # Fallback: se data_fim não tiver data completa, extrai a data de data_inicio e concatena com a hora de data_fim.
+            data_fim = commit_metadata.get("data_fim", "")
+            if not data_fim:
+                data_inicio = commit_metadata.get("data_inicio", "")
+                data_fim = f"{data_inicio[:10]} 18:00" if data_inicio and len(data_inicio) >= 10 else datetime.now().strftime("%d/%m/%Y 18:00")
+            elif " " not in data_fim and len(data_fim) <= 5:
+                # Apenas hora foi configurada (ex: "17:00") — extrai data de data_inicio
+                data_inicio = commit_metadata.get("data_inicio", "")
+                if data_inicio and len(data_inicio) >= 10:
+                    data_fim = f"{data_inicio[:10]} {data_fim}"
+                else:
+                    data_fim = f"{datetime.now().strftime('%d/%m/%Y')} {data_fim}"
 
             self._log(f"Preenchendo Data de Fim: '{data_fim}'...")
             page.locator("#data_fim").fill(data_fim)

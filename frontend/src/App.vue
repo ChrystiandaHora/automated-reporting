@@ -69,19 +69,20 @@ onUnmounted(() => {
 
 :root {
   --bg: #060913;
-  --card-bg: rgba(17, 24, 39, 0.45);
-  --card-border: rgba(255, 255, 255, 0.06);
-  --border: rgba(255, 255, 255, 0.05);
-  --accent: #2563eb;
-  --accent-light: #3b82f6;
+  --card-bg: rgba(17, 24, 39, 0.6);
+  --card-border: rgba(255, 255, 255, 0.1);
+  --border: rgba(255, 255, 255, 0.08);
+  --accent: #3b82f6;
+  --accent-light: #60a5fa;
   --accent-grad: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
-  --accent-glow: rgba(59, 130, 246, 0.15);
+  --accent-glow: rgba(59, 130, 246, 0.2);
   --text: #f3f4f6;
-  --text-muted: #9ca3af;
-  --success: #10b981;
-  --error: #ef4444;
-  --warning: #f59e0b;
-  --topbar-bg: rgba(6, 9, 19, 0.75);
+  --text-muted: #c1c7d4;
+  --text-subtle: #9ca3af;
+  --success: #22c55e;
+  --error: #f87171;
+  --warning: #fbbf24;
+  --topbar-bg: rgba(6, 9, 19, 0.85);
   
   font-family: 'Outfit', 'Inter', system-ui, sans-serif;
   background: var(--bg);
@@ -246,53 +247,56 @@ body {
   padding: 3rem 0; 
   text-align: center;
   font-size: 0.95rem;
+  letter-spacing: 0.01em;
 }
 .error { 
-  color: var(--error); 
-  font-size: 0.85rem; 
+  color: #fca5a5; 
+  font-size: 0.875rem; 
   margin-top: 0.5rem; 
-  background: rgba(239, 68, 68, 0.08);
+  background: rgba(239, 68, 68, 0.12);
   border-left: 3px solid var(--error);
-  padding: 0.5rem 0.75rem;
+  padding: 0.625rem 0.875rem;
   border-radius: 4px;
+  line-height: 1.5;
 }
-.success { color: var(--success); }
+.success { color: var(--success); font-weight: 600; }
 
 /* ── Badges ── */
 .badge {
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 3px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 10px;
   border-radius: 6px;
   display: inline-block;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
+  line-height: 1;
 }
-.badge-green  { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
-.badge-gray   { background: rgba(255, 255, 255, 0.04); color: var(--text-muted); border: 1px solid rgba(255, 255, 255, 0.08); }
-.badge-blue   { background: rgba(59, 130, 246, 0.1); color: var(--accent-light); border: 1px solid rgba(59, 130, 246, 0.2); }
-.badge-orange { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
-.badge-purple { background: rgba(139, 92, 246, 0.1); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.2); }
+.badge-green  { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+.badge-gray   { background: rgba(255, 255, 255, 0.06); color: var(--text-muted); border: 1px solid rgba(255, 255, 255, 0.1); }
+.badge-blue   { background: rgba(96, 165, 250, 0.15); color: #93c5fd; border: 1px solid rgba(96, 165, 250, 0.3); }
+.badge-orange { background: rgba(251, 191, 36, 0.15); color: #fcd34d; border: 1px solid rgba(251, 191, 36, 0.3); }
+.badge-purple { background: rgba(167, 139, 250, 0.15); color: #c4b5fd; border: 1px solid rgba(167, 139, 250, 0.3); }
 
 /* ── Inputs ── */
 input, textarea, select {
-  background: rgba(255, 255, 255, 0.02) !important;
-  border: 1px solid var(--card-border) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
   color: var(--text) !important;
   border-radius: 8px !important;
-  padding: 0.55rem 0.75rem !important;
+  padding: 0.6rem 0.85rem !important;
   font-size: 0.9rem !important;
   font-family: inherit !important;
   width: 100% !important;
   resize: vertical !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15) !important;
 }
 input:focus, textarea:focus, select:focus {
   outline: none !important;
-  background: rgba(255, 255, 255, 0.04) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
   border-color: var(--accent-light) !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2) !important;
 }
 
 /* ── Buttons ── */
@@ -368,13 +372,14 @@ input:focus, textarea:focus, select:focus {
 .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; }
 
 label {
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.78rem;
+  font-weight: 700;
   display: block;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-muted);
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.35rem;
+  line-height: 1.4;
 }
 
 /* ── Glow / Glass Cards Overrides ── */
@@ -382,15 +387,15 @@ label {
   background: var(--card-bg) !important;
   border: 1px solid var(--card-border) !important;
   border-radius: 12px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
   padding: 1.5rem !important;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .job-card:hover, .commit-card:hover, .atividade-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(59, 130, 246, 0.3) !important;
-  box-shadow: 0 8px 30px rgba(59, 130, 246, 0.08), 0 0 0 1px rgba(59, 130, 246, 0.15) !important;
+  border-color: rgba(96, 165, 250, 0.4) !important;
+  box-shadow: 0 8px 30px rgba(59, 130, 246, 0.12), 0 0 0 1px rgba(96, 165, 250, 0.2) !important;
 }
 
 /* Specific elements adjustments */
@@ -480,23 +485,26 @@ td {
 }
 .story-step {
   border: none !important;
-  background: rgba(255, 255, 255, 0.02) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
   box-shadow: none !important;
   padding: 0.75rem 1.25rem !important;
   border-radius: 10px !important;
   flex: 1 !important;
   max-width: 30% !important;
-  opacity: 0.6 !important;
+  opacity: 0.5 !important;
+  transition: all 0.3s ease !important;
 }
 .story-step.active {
-  background: rgba(59, 130, 246, 0.08) !important;
-  border: 1px solid rgba(59, 130, 246, 0.25) !important;
+  background: rgba(59, 130, 246, 0.12) !important;
+  border: 1px solid rgba(96, 165, 250, 0.35) !important;
   opacity: 1 !important;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.08) !important;
 }
 .story-step.completed {
-  background: rgba(16, 185, 129, 0.08) !important;
-  border: 1px solid rgba(16, 185, 129, 0.25) !important;
+  background: rgba(34, 197, 94, 0.1) !important;
+  border: 1px solid rgba(34, 197, 94, 0.3) !important;
   opacity: 1 !important;
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.06) !important;
 }
 .story-arrow {
   color: var(--text-muted) !important;

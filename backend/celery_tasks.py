@@ -270,6 +270,8 @@ def enviar_atividade_task(
         pulada = resultado == "PULADA_DUPLICADA"
         status_id = cfg.get("MUNKA_STATUS_ID", "17")
         status_map = {
+            "15": "Backlog",
+            "16": "Backlog Prioritário",
             "17": "Enviado ao Munka",
             "18": "Desenvolvimento",
             "20": "Homologação",

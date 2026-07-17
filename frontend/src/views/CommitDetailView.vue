@@ -113,13 +113,14 @@
                 type="checkbox" 
                 :value="idx" 
                 v-model="selecionadas" 
-                style="width: auto; margin-right: 0.5rem;"
+                class="atividade-header-checkbox"
                 :disabled="atv.enviado"
               />
               <span class="badge badge-blue">{{ atv.etapa }}</span>
               <span class="atividade-codigo">{{ atv.codigo_id }} · {{ atv.hpa }}h</span>
-              <span v-if="atv.enviado" class="badge badge-green" style="margin-left: auto; margin-right: 1rem;">✔ Enviada</span>
-              <span v-else class="badge badge-orange" style="margin-left: auto; margin-right: 1rem;">Pendente</span>
+              <span class="atividade-titulo-header" :title="atv.titulo || 'Atividade sem Título'">{{ atv.titulo || 'Atividade sem Título' }}</span>
+              <span v-if="atv.enviado" class="badge badge-green" style="margin-left: auto; margin-right: 1.25rem;">✔ Enviada</span>
+              <span v-else class="badge badge-orange" style="margin-left: auto; margin-right: 1.25rem;">Pendente</span>
               <button
                 class="btn-sm"
                 :class="atv.enviado ? 'btn-ghost' : 'btn-primary'"
@@ -168,38 +169,66 @@
                 <option value="Média">Média</option>
                 <option value="Alta">Alta</option>
               </select>
-              <label>Arquivos afetados</label>
-              <div class="files-list">
-                <span v-for="f in atv.arquivos" :key="f" class="file-chip">{{ f }}</span>
+              <label>Arquivos Afetados (Clique em "Visualizar Alterações" para abrir o diff)</label>
+              <div class="files-list-interactive">
+                <div v-for="f in atv.arquivos" :key="f" class="file-chip-container">
+                  <div class="file-chip-row">
+                    <span class="file-chip-name">📄 {{ f }}</span>
+                    <button 
+                      type="button" 
+                      class="btn-ghost btn-xs file-diff-btn" 
+                      @click="alternarDiffArquivo(idx, f)"
+                      :class="{ 'btn-active-diff': exibindoDiff[idx]?.[f] }"
+                    >
+                      {{ exibindoDiff[idx]?.[f] ? 'Ocultar Diff' : 'Visualizar Alterações' }}
+                    </button>
+                  </div>
+                  <div v-if="exibindoDiff[idx]?.[f]" class="file-diff-preview">
+                    <div 
+                      v-for="(line, lidx) in obterDiffLinhas(f)" 
+                      :key="lidx" 
+                      :class="`diff-line diff-line-${line.type}`"
+                    >
+                      {{ line.text }}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
             <div v-if="activeTabs[idx] === 'preview'" class="atividade-preview-body">
               <div v-if="loadingPreviews[idx]" class="preview-loading">
-                <div class="spinner"></div> Carregando pré-visualização da evidência...
+                <div class="spinner"></div>
+                <span>Gerando pré-visualização...</span>
               </div>
               <div v-else-if="previews[idx]" class="preview-container">
                 <div class="preview-header">
-                  <span>Pré-visualização da Evidência</span>
+                  <div class="preview-header-title">
+                    <span class="preview-dot"></span>
+                    Pré-visualização da Evidência
+                  </div>
                   <div style="display: flex; gap: 0.5rem;">
                     <button type="button" class="btn-ghost btn-sm" @click="copiarEvidencia(idx)" :disabled="!previews[idx]">
-                      {{ statusCopia[idx] ? '📋 Copiado!' : '📋 Copiar HTML' }}
+                      {{ statusCopia[idx] ? '✅ Copiado!' : '📋 Copiar HTML' }}
                     </button>
                     <button type="button" class="btn-ghost btn-sm" @click="carregarPreview(idx)">🔄 Atualizar</button>
                   </div>
                 </div>
-                <iframe 
-                  :srcdoc="previews[idx]" 
-                  frameborder="0" 
-                  width="100%" 
-                  scrolling="no"
-                  @load="ajustarAlturaIframe($event)"
-                  style="border: none; background: transparent; width: 100%; min-height: 200px;"
-                ></iframe>
+                <div class="preview-iframe-wrapper">
+                  <iframe 
+                    :srcdoc="previews[idx]" 
+                    frameborder="0" 
+                    width="100%" 
+                    scrolling="no"
+                    @load="ajustarAlturaIframe($event)"
+                    class="preview-iframe"
+                  ></iframe>
+                </div>
               </div>
               <div v-else class="preview-error">
-                Erro ao gerar pré-visualização. 
-                <button type="button" class="btn-primary btn-sm" style="margin-left: 1rem;" @click="carregarPreview(idx)">🔄 Tentar Novamente</button>
+                <span class="preview-error-icon">⚠️</span>
+                <span>Erro ao gerar pré-visualização da evidência.</span>
+                <button type="button" class="btn-primary btn-sm" @click="carregarPreview(idx)">🔄 Tentar Novamente</button>
               </div>
             </div>
           </div>
@@ -211,10 +240,15 @@
       </div>
 
       <!-- Diff raw -->
-      <details class="section diff-section">
-        <summary><h2>Diff do Commit</h2></summary>
-        <pre class="diff-raw">{{ commit.diff_raw }}</pre>
-      </details>
+      <div class="section diff-section">
+        <div class="diff-section-header" @click="showCommitDiff = !showCommitDiff">
+          <h2>Diff Completo do Commit</h2>
+          <span class="collapse-icon-btn">{{ showCommitDiff ? '▼ Ocultar Diff' : '▶ Mostrar Diff' }}</span>
+        </div>
+        <div v-show="showCommitDiff" class="diff-raw-container">
+          <pre class="diff-raw">{{ commit.diff_raw }}</pre>
+        </div>
+      </div>
     </template>
   </div>
 </template>
@@ -251,6 +285,56 @@ const activeTabs = ref<Record<number, string>>({})
 const previews = ref<Record<number, string>>({})
 const loadingPreviews = ref<Record<number, boolean>>({})
 const statusCopia = ref<Record<number, boolean>>({})
+
+const showCommitDiff = ref(false)
+const exibindoDiff = ref<Record<number, Record<string, boolean>>>({})
+
+function alternarDiffArquivo(taskIdx: number, filePath: string) {
+  if (!exibindoDiff.value[taskIdx]) {
+    exibindoDiff.value[taskIdx] = {}
+  }
+  exibindoDiff.value[taskIdx][filePath] = !exibindoDiff.value[taskIdx][filePath]
+}
+
+function obterDiffArquivo(filePath: string): string {
+  if (!commit.value || !commit.value.diff_raw) return ''
+  const diffCompleto = commit.value.diff_raw
+  const linhas = diffCompleto.split('\n')
+  let capturando = false
+  const trecho: string[] = []
+  const caminhoNormalizado = filePath.replace(/\\/g, '/')
+  
+  for (const linha of linhas) {
+    if (linha.startsWith('diff --git')) {
+      if (capturando) break
+      if (linha.includes(caminhoNormalizado)) {
+        capturando = true
+        trecho.push(linha)
+      }
+    } else if (capturando) {
+      trecho.push(linha)
+    }
+  }
+  return trecho.join('\n')
+}
+
+function obterDiffLinhas(filePath: string) {
+  const diffText = obterDiffArquivo(filePath)
+  if (!diffText) return [{ type: 'info', text: 'Sem alterações ou arquivo não encontrado no diff.' }]
+  return diffText.split('\n').map(line => {
+    if (line.startsWith('+') && !line.startsWith('+++')) {
+      return { type: 'add', text: line }
+    } else if (line.startsWith('-') && !line.startsWith('---')) {
+      return { type: 'del', text: line }
+    } else if (line.startsWith('@@')) {
+      return { type: 'hunk', text: line }
+    } else if (line.startsWith('diff') || line.startsWith('index') || line.startsWith('---') || line.startsWith('+++')) {
+      return { type: 'meta', text: line }
+    } else {
+      return { type: 'normal', text: line }
+    }
+  })
+}
 
 async function copiarEvidencia(idx: number) {
   const htmlContent = previews.value[idx]
@@ -540,32 +624,49 @@ async function enviarTodasFila() {
   align-items: center;
   justify-content: space-between;
   background: var(--card-bg);
-  border: 2px solid var(--border);
-  box-shadow: var(--shadow);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   padding: 1.25rem 1.5rem;
   margin-bottom: 1.5rem;
   gap: 1rem;
+  border-radius: 12px;
 }
 .story-step { display: flex; align-items: center; gap: 0.75rem; flex: 1; }
-.step-icon { font-size: 1.75rem; opacity: 0.2; transition: opacity 0.2s; }
-.story-step.active .step-icon { opacity: 1; }
+.step-icon { font-size: 1.9rem; opacity: 0.4; transition: opacity 0.3s, transform 0.3s; }
+.story-step.active .step-icon { opacity: 1; transform: scale(1.05); }
 .story-step.completed .step-icon { opacity: 1; }
 .step-info { display: flex; flex-direction: column; }
-.step-title { font-weight: 700; font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
-.story-step.active .step-title { color: var(--text); }
-.story-step.completed .step-title { color: #3fb950; }
-.step-desc { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem; }
-.story-arrow { color: var(--accent); font-weight: 900; font-size: 1.1rem; }
+.step-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.story-step.active .step-title { color: #fff; }
+.story-step.completed .step-title { color: #4ade80; }
+.step-desc {
+  font-size: 0.82rem;
+  color: var(--text-subtle, #9ca3af);
+  margin-top: 0.2rem;
+  line-height: 1.4;
+}
+.story-step.active .step-desc { color: var(--text-muted); }
+.story-arrow { color: var(--accent-light); font-weight: 900; font-size: 1.1rem; opacity: 0.7; }
 
 /* ── Meta bar ── */
 .meta-bar {
   display: flex; flex-wrap: wrap; gap: 1.25rem; align-items: center;
   background: var(--card-bg);
-  border: 2px solid var(--border);
-  box-shadow: var(--shadow);
-  padding: 0.75rem 1rem;
-  font-size: 0.85rem; margin-bottom: 1.5rem;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 0.875rem 1.25rem;
+  font-size: 0.88rem;
+  margin-bottom: 1.5rem;
+  color: var(--text-muted);
+  line-height: 1.5;
 }
+.meta-bar b { color: var(--text); font-weight: 700; }
 .meta-bar-editing { gap: 0.75rem; }
 .meta-edit-btn { margin-left: auto; padding: 0.2rem 0.6rem; font-size: 0.8rem; }
 .meta-edit-form {
@@ -579,10 +680,10 @@ async function enviarTodasFila() {
 .section-header {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 1.25rem;
-  border-bottom: 2px solid var(--accent);
-  padding-bottom: 0.5rem;
+  border-bottom: 2px solid rgba(59, 130, 246, 0.5);
+  padding-bottom: 0.75rem;
 }
-.section-header h2 { font-size: 1.1rem; font-weight: 800; letter-spacing: -0.01em; }
+.section-header h2 { font-size: 1.15rem; font-weight: 800; letter-spacing: -0.01em; color: #fff; }
 .section-actions { display: flex; gap: 0.5rem; }
 
 .complexidade-box { margin-bottom: 1.25rem; }
@@ -591,43 +692,215 @@ async function enviarTodasFila() {
 /* ── Activity cards ── */
 .atividade-card {
   background: var(--card-bg);
-  border: 2px solid var(--border);
-  border-radius: 0;
-  margin-bottom: 1rem;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  margin-bottom: 1.25rem;
   overflow: hidden;
-  box-shadow: var(--shadow);
-  transition: box-shadow 0.15s, border-color 0.15s;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
+}
+.atividade-card:hover {
+  border-color: rgba(96, 165, 250, 0.35);
+  box-shadow: 0 8px 30px rgba(59, 130, 246, 0.1);
+  transform: translateY(-1px);
 }
 .atividade-card.enviada {
-  border-color: #3fb950;
-  box-shadow: 4px 4px 0 #3fb950;
+  border-color: rgba(34, 197, 94, 0.4);
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.08);
+}
+.atividade-card.enviada:hover {
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 8px 30px rgba(34, 197, 94, 0.12);
 }
 .atividade-header {
-  display: flex; align-items: center; gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-bottom: 2px solid var(--border);
-  background: rgba(0,122,204,0.04);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--card-border);
+  background: rgba(255, 255, 255, 0.02);
 }
-.atividade-card.enviada .atividade-header { background: rgba(63,185,80,0.04); }
-.atividade-codigo { font-family: monospace; font-size: 0.82rem; color: var(--text-muted); flex: 1; }
-.atividade-body { padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.atividade-card.enviada .atividade-header {
+  background: rgba(34, 197, 94, 0.04);
+}
+.atividade-header-checkbox {
+  all: revert !important;
+  width: 18px !important;
+  height: 18px !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  accent-color: var(--accent-light) !important;
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+}
+.atividade-codigo {
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.atividade-titulo-header {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  margin-left: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 400px;
+  flex: 1;
+}
+.atividade-body {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
 .atividade-body input, .atividade-body textarea { width: 100%; }
-.files-list { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-.file-chip {
-  font-family: monospace; font-size: 0.73rem;
-  border: 1px solid var(--accent); color: var(--accent);
-  padding: 2px 6px;
+
+/* ── Interactive File Diff ── */
+.files-list-interactive {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+.file-chip-container {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+.file-chip-container:hover {
+  border-color: rgba(96, 165, 250, 0.2);
+  background: rgba(255, 255, 255, 0.03);
+}
+.file-chip-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+}
+.file-chip-name {
+  font-family: 'Courier New', monospace;
+  font-size: 0.78rem;
+  color: #c1c7d4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80%;
+}
+.file-diff-btn {
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-active-diff {
+  background: rgba(96, 165, 250, 0.12) !important;
+  border-color: rgba(96, 165, 250, 0.3) !important;
+  color: #93c5fd !important;
+}
+.file-diff-preview {
+  background: #03050a;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 0.5rem 0.75rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  overflow-x: auto;
+  max-height: 250px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.diff-line {
+  white-space: pre;
+  padding: 1px 4px;
+  border-radius: 2px;
+  line-height: 1.4;
+}
+.diff-line-add {
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+}
+.diff-line-del {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+}
+.diff-line-hunk {
+  background: rgba(59, 130, 246, 0.1);
+  color: #93c5fd;
+  font-weight: 600;
+}
+.diff-line-meta {
+  color: #a78bfa;
+  font-weight: 600;
+}
+.diff-line-normal {
+  color: #d1d5db;
+}
+.diff-line-info {
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 0.5rem 0;
 }
 
 /* ── Diff section ── */
-.diff-section summary { cursor: pointer; list-style: none; }
-.diff-section summary h2 { display: inline; }
+.diff-section {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  margin-top: 1.5rem;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+.diff-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--card-border);
+  transition: background 0.2s;
+}
+.diff-section-header:hover {
+  background: rgba(96, 165, 250, 0.04);
+}
+.diff-section-header h2 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+}
+.collapse-icon-btn {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--accent-light);
+  background: rgba(96, 165, 250, 0.08);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+.diff-raw-container {
+  padding: 1rem;
+  background: #03050a;
+}
 .diff-raw {
-  background: #0a0a0a;
-  border: 2px solid rgba(238,238,238,0.15);
-  padding: 1rem; font-size: 0.78rem; overflow-x: auto; white-space: pre;
-  max-height: 500px; overflow-y: auto; margin-top: 0.75rem;
+  margin: 0;
+  font-size: 0.78rem;
+  overflow-x: auto;
+  white-space: pre;
+  max-height: 400px;
+  overflow-y: auto;
   font-family: 'Courier New', monospace;
+  color: #d1d5db;
 }
 
 /* ── Buttons ── */
@@ -711,43 +984,91 @@ async function enviarTodasFila() {
 }
 
 .atividade-preview-body {
-  padding: 1rem;
-  background: #ffffff;
-  border-top: 1px solid var(--border);
+  padding: 1.25rem;
+  background: transparent;
+  border-top: 1px solid var(--card-border);
 }
 .preview-loading {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   color: var(--text-muted);
-  font-size: 0.85rem;
-  padding: 2.5rem;
+  font-size: 0.875rem;
+  padding: 3rem 2rem;
   justify-content: center;
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.08);
 }
 .preview-container {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.875rem;
 }
 .preview-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
+  font-weight: 600;
+  padding: 0.625rem 0.875rem;
+  background: rgba(59, 130, 246, 0.06);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 8px;
+}
+.preview-header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #93c5fd;
   font-weight: 700;
+  font-size: 0.82rem;
   text-transform: uppercase;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 0.35rem;
+  letter-spacing: 0.05em;
+}
+.preview-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  display: inline-block;
+  box-shadow: 0 0 6px rgba(96, 165, 250, 0.6);
+  animation: pulse-dot 2s infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.preview-iframe-wrapper {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  background: #ffffff;
+}
+.preview-iframe {
+  border: none;
+  background: #ffffff;
+  width: 100%;
+  min-height: 200px;
+  display: block;
 }
 .preview-error {
-  color: #cf222e;
-  font-size: 0.85rem;
-  padding: 2rem;
-  text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.875rem;
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  background: rgba(239, 68, 68, 0.04);
+  border: 1px dashed rgba(239, 68, 68, 0.2);
+  border-radius: 10px;
+}
+.preview-error-icon {
+  font-size: 2rem;
+  opacity: 0.7;
 }
 </style>

@@ -856,12 +856,15 @@ def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)
 
     pulada = resultado == "PULADA_DUPLICADA"
     status_map = {
+        "15": "Backlog",
+        "16": "Backlog Prioritário",
         "17": "Enviado ao Munka",
         "18": "Desenvolvimento",
         "20": "Homologação",
         "21": "Concluído"
     }
     hist_status = status_map.get(req.status_id, "Cadastrada")
+
 
     already_exists = (
         db.query(models.Historico)
