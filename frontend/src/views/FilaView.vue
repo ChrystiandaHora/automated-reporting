@@ -46,7 +46,7 @@
                 class="badge" 
                 :class="job.tipo === 'analise' ? 'badge-blue' : 'badge-purple'"
               >
-                {{ job.tipo === 'analise' ? 'Análise AI' : 'Envio Munka' }}
+                {{ job.tipo === 'analise' ? 'Análise AI' : 'Envio Portal' }}
               </span>
               
               <span class="job-time">{{ formatarData(job.criado_em) }}</span>

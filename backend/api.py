@@ -17,7 +17,7 @@ load_dotenv()
 
 
 def _obter_caminho_config_persistente() -> str:
-    db_url = os.environ.get("DATABASE_URL", "sqlite:///munka.db")
+    db_url = os.environ.get("DATABASE_URL", "sqlite:///nexus.db")
     db_dir = "."
     if db_url.startswith("sqlite:///"):
         db_path = db_url[10:]
@@ -85,7 +85,11 @@ from model_rate_limiter import rate_limiter
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Munka API", version="2.0.0")
+app = FastAPI(
+    title="Nexus API",
+    description="Plataforma de Inteligência e Automação de Apontamentos (GitLab + Gemini AI + Portal de Faturamento)",
+    version="2.0.0",
+)
 
 app.add_middleware(
     CORSMiddleware,

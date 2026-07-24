@@ -1,4 +1,4 @@
-# Backend — Munka 2.0
+# Backend — Nexus
 
 API REST em Python com FastAPI, SQLAlchemy (SQLite), automação de portal via Playwright, processamento de tarefas assíncronas com Celery + Redis, e análise inteligente de diffs via Google Gemini AI.
 
@@ -133,7 +133,7 @@ O módulo `model_rate_limiter.py` realiza a gestão e o rastreamento em tempo re
 | `MUNKA_URL` | URL base do portal Munka | - |
 | `GITLAB_URL` | URL base da instância GitLab | - |
 | `GITLAB_PROJECT` | Projeto padrão do GitLab | - |
-| `DATABASE_URL` | String de conexão SQLAlchemy | `sqlite:///munka.db` |
+| `DATABASE_URL` | String de conexão SQLAlchemy | `sqlite:///nexus.db` |
 | `CELERY_BROKER_URL` | URL do Redis broker do Celery | `redis://redis:6379/0` |
 | `CELERY_RESULT_BACKEND` | URL do Redis result backend do Celery | `redis://redis:6379/0` |
 | `REDIS_URL` | Conexão Redis para o Rate Limiter | `redis://redis:6379/0` |

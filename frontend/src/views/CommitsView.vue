@@ -163,7 +163,7 @@ const helpItems = [
   { title: 'Importar Commit', text: 'Clique em "+ Importar Commit" e informe um ou mais SHAs ou URLs completos do GitLab (um por linha) para importação.' },
   { title: 'PRIVATE-TOKEN do GitLab', text: 'Token de acesso pessoal do GitLab. Gere em: GitLab → Preferências → Tokens de Acesso → Escopo "read_repository". Salve na página de Configuração.' },
   { title: 'Status dos commits', text: '"Analisado" (verde) indica que o Gemini processou o diff e gerou atividades de faturamento. "Pendente" (cinza) significa que o commit foi importado mas ainda não foi analisado.' },
-  { title: 'Resiliência', text: 'Utilizamos Redis Lock para garantir envios sequenciais ao Munka e aumentamos o timeout do Playwright para 90s para evitar erros de navegação em conexões lentas.' },
+  { title: 'Resiliência', text: 'O Nexus utiliza Redis Lock para garantir envios sequenciais ao portal de faturamento e otimizações do Playwright para evitar erros de navegação em conexões lentas.' },
 ]
 
 const store = useCommitsStore()

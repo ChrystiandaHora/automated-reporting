@@ -1,6 +1,6 @@
-# Munka 2.0
+# Nexus
 
-Ferramenta de automação de faturamento de entregas técnicas de software para o portal Munka (Saúde-GO). Importa commits do GitLab, analisa os diffs com Google Gemini AI, gerencia limites de cota de IA, e automatiza o cadastro e homologação de atividades no portal de faturamento via Playwright com suporte a filas assíncronas (Celery + Redis).
+Plataforma SaaS de convergência, inteligência e automação de apontamentos e faturamento de entregas técnicas de software. O **Nexus** atua como o elo entre repositórios de código (GitLab), inteligência artificial (Google Gemini AI) e os portais de lançamento. Importa commits do GitLab, analisa os diffs com Gemini AI, gerencia limites de cota de IA, e automatiza o cadastro e homologação de atividades nos portais via Playwright com suporte a filas assíncronas (Celery + Redis).
 
 ## Visão Geral do Fluxo
 

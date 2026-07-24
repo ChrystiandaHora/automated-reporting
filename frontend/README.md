@@ -1,4 +1,4 @@
-# Frontend — Munka 2.0
+# Frontend — Nexus
 
 Interface web moderna construída com Vue 3, TypeScript, Vite e Pinia para o sistema de automação de faturamento técnico e medição de software.
 

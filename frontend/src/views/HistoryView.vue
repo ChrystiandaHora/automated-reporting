@@ -101,7 +101,7 @@ import { useToastStore } from '../stores/toast'
 import HelpModal from '../components/HelpModal.vue'
 
 const helpItems = [
-  { title: 'O que é exibido aqui', text: 'Todas as atividades enviadas com sucesso ao portal Munka. Cada linha corresponde a uma atividade individual — um mesmo commit pode gerar múltiplas atividades com códigos diferentes.' },
+  { title: 'O que é exibido aqui', text: 'Todas as atividades enviadas com sucesso aos portais de faturamento. Cada linha corresponde a uma atividade individual — um mesmo commit pode gerar múltiplas atividades com códigos diferentes.' },
   { title: 'Código (coluna)', text: 'Código do catálogo de serviços identificado pelo Gemini (ex: 21a, 57b). Determina o tipo de serviço faturado e o valor por hora correspondente.' },
   { title: 'HPA', text: 'Horas Previstas para Execução da Atividade — quantidade de horas faturadas para aquela atividade, conforme o catálogo de serviços.' },
   { title: 'Navegar ao commit', text: 'Clique no hash (8 primeiros caracteres) na coluna Commit para abrir a página de detalhes do commit original.' },
