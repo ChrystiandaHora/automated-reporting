@@ -3,6 +3,9 @@
     <div class="page-header">
       <div class="title-row">
         <h1>Fila de Execução</h1>
+        <span v-if="concurrencyInfo" class="concurrency-badge" :title="`Fila de análises: ${concurrencyInfo.queues.analises} workers | Fila de envios: ${concurrencyInfo.queues.envios} workers`">
+          ⚡ Concorrência: {{ concurrencyInfo.queues.analises }} análises / {{ concurrencyInfo.queues.envios }} envios ({{ concurrencyInfo.cpu_cores }} Cores CPU)
+        </span>
       </div>
       <button class="btn-ghost btn-sm" @click="atualizarFila">↻ Atualizar</button>
     </div>
@@ -174,9 +177,11 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useFilaStore } from '../stores/fila'
+import { api, type Config } from '../api'
 
 const filaStore = useFilaStore()
 const logJobSelecionado = ref<any>(null)
+const concurrencyInfo = ref<Config['concurrency'] | null>(null)
 
 const gruposColapsados = ref<Record<string, boolean>>({})
 
@@ -213,6 +218,14 @@ const jobsAgrupados = computed(() => {
 
 onMounted(async () => {
   await filaStore.fetchJobs()
+  try {
+    const cfg = await api.config.obter()
+    if (cfg.concurrency) {
+      concurrencyInfo.value = cfg.concurrency
+    }
+  } catch (e) {
+    console.error("Erro ao carregar configuracoes de concorrencia:", e)
+  }
 })
 
 function atualizarFila() {
@@ -641,5 +654,16 @@ async function reenviarAtividade(job: any) {
 }
 .job-row:hover {
   background-color: rgba(255, 255, 255, 0.015) !important;
+}
+
+.concurrency-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.08);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  padding: 4px 10px;
+  border-radius: 99px;
+  margin-left: 0.75rem;
 }
 </style>

@@ -52,6 +52,7 @@ onUnmounted(() => {
           Fila
           <span v-if="activeJobsCount > 0" class="fila-badge">{{ activeJobsCount }}</span>
         </router-link>
+        <router-link to="/modelos">Modelos</router-link>
         <router-link to="/historico">Histórico</router-link>
         <router-link to="/config">Configuração</router-link>
       </nav>
@@ -218,10 +219,24 @@ body {
 /* ── Content ── */
 .content {
   flex: 1;
-  max-width: 1200px;
+  max-width: 80rem; /* max-w-7xl */
   width: 100%;
-  margin: 0 auto;
-  padding: 2.5rem 2rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1.5rem 1rem;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .content {
+    padding: 2rem 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .content {
+    padding: 2.5rem 2rem;
+  }
 }
 
 /* ── Shared page ── */

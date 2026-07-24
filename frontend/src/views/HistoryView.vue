@@ -39,6 +39,7 @@
             <thead>
               <tr>
                 <th>Data de Envio</th>
+                <th width="140">Commit</th>
                 <th>Título da Atividade</th>
                 <th width="100">Código</th>
                 <th width="80">HPA</th>
@@ -49,8 +50,13 @@
             <tbody>
               <tr v-for="item in grupo.items" :key="item.id">
                 <td class="col-date">{{ formatDate(item.enviado_em) }}</td>
+                <td class="col-commit">
+                  <router-link :to="`/commits/${item.commit_id || grupo.commit_id}`" class="sha-link" :title="item.commit_id || grupo.commit_id">
+                    {{ (item.commit_id || grupo.commit_id)?.slice(0, 8) ?? '-' }}
+                  </router-link>
+                </td>
                 <td class="col-title" :title="item.titulo">
-                  <router-link :to="`/commits/${grupo.commit_id}`" class="activity-link">
+                  <router-link :to="`/commits/${item.commit_id || grupo.commit_id}`" class="activity-link">
                     {{ item.titulo }}
                   </router-link>
                 </td>

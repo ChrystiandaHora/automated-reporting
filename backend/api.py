@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
+from concurrency import get_concurrency_config
 
 load_dotenv()
 
@@ -80,6 +81,7 @@ from automation import MunkaAutomation
 from celery_app import celery_app
 from celery.result import AsyncResult
 from celery_tasks import analisar_commit_task, enviar_atividade_task
+from model_rate_limiter import rate_limiter
 
 Base.metadata.create_all(bind=engine)
 
@@ -1087,6 +1089,7 @@ def obter_config():
         A JSON object with config values.
     """
     cfg = obter_config_valores()
+    concurrency_cfg = get_concurrency_config()
     return {
         "gemini_api_key": "***" if cfg.get("GEMINI_API_KEY") else "",
         "munka_url": cfg.get("MUNKA_URL", ""),
@@ -1106,6 +1109,12 @@ def obter_config():
             "gemini": bool(cfg.get("GEMINI_API_KEY")),
             "munka": bool(cfg.get("MUNKA_USER") and cfg.get("MUNKA_PASS")),
             "gitlab": bool(cfg.get("GITLAB_TOKEN")),
+        },
+        "concurrency": {
+            "cpu_cores": concurrency_cfg["cpu_cores"],
+            "total_system_limit": concurrency_cfg["total"],
+            "limit_per_queue": concurrency_cfg["queues"]["analises"],
+            "queues": concurrency_cfg["queues"],
         },
     }
 
@@ -1152,21 +1161,6 @@ def salvar_config(req: ConfiguracaoRequest):
 
 @app.post("/fila/analise", status_code=201)
 def enfileirar_analise(req: FilaAnaliseRequest, db: Session = Depends(get_db)):
-    # Limite de concorrência/fila de 5 análises na fila
-    active_jobs = (
-        db.query(models.Fila)
-        .filter(
-            models.Fila.tipo == "analise",
-            models.Fila.status.in_(["running", "pending"]),
-        )
-        .count()
-    )
-    if active_jobs + len(req.commit_ids) > 5:
-        raise HTTPException(
-            status_code=429,
-            detail=f"Fila de análises cheia. Máximo de 5 análises permitidas na fila (atualmente: {active_jobs}).",
-        )
-
     jobs_enfileirados = []
     for commit_id in req.commit_ids:
         commit = (
@@ -1203,18 +1197,6 @@ def enfileirar_analise(req: FilaAnaliseRequest, db: Session = Depends(get_db)):
 
 @app.post("/fila/envio", status_code=201)
 def enfileirar_envio(req: FilaEnvioRequest, db: Session = Depends(get_db)):
-    # 1. Limite de concorrência local de 5 envios simultâneos
-    running_jobs = (
-        db.query(models.Fila)
-        .filter(models.Fila.tipo == "envio", models.Fila.status == "running")
-        .count()
-    )
-    if running_jobs >= 5:
-        raise HTTPException(
-            status_code=429,
-            detail="Fila de envios cheia. Máximo de 5 envios simultâneos permitidos.",
-        )
-
     commit = (
         db.query(models.Commit)
         .filter(models.Commit.id.like(f"{req.commit_id}%"))
@@ -1321,3 +1303,50 @@ def remover_job_fila(job_id: int, db: Session = Depends(get_db)):
 
     db.delete(job)
     db.commit()
+
+
+# ─── Rate Limit & Model Monitoring Endpoints ───────────────────────────────
+
+class AtualizarModelLimitsRequest(BaseModel):
+    rpm_limit: Optional[int] = None
+    tpm_limit: Optional[int] = None
+    rpd_limit: Optional[int] = None
+
+
+class TestCallRequest(BaseModel):
+    model_id: str
+
+
+@app.get("/modelos/limits")
+def obter_limites_modelos():
+    """Retorna a listagem de modelos habilitados e suas métricas de uso em tempo real."""
+    return rate_limiter.get_all_models_status()
+
+
+@app.put("/modelos/limits/{model_id}")
+def atualizar_limites_modelo(model_id: str, req: AtualizarModelLimitsRequest):
+    """Atualiza as configurações de limites de requisições/tokens para um determinado modelo."""
+    ok = rate_limiter.update_model_limits(
+        model_id=model_id,
+        rpm_limit=req.rpm_limit,
+        tpm_limit=req.tpm_limit,
+        rpd_limit=req.rpd_limit,
+    )
+    if not ok:
+        raise HTTPException(status_code=404, detail="Modelo não encontrado")
+    return {"ok": True}
+
+
+@app.post("/modelos/test-call")
+def testar_chamada_modelo(req: TestCallRequest):
+    """Simula uma requisição para testar a atualização dinâmica do contador de métricas."""
+    rate_limiter.record_call(req.model_id, tokens=1500)
+    return {"ok": True, "metrics": rate_limiter.get_metrics(req.model_id)}
+
+
+@app.post("/modelos/reset")
+def resetar_metricas_modelos():
+    """Reseta todos os contadores de requisições e tokens."""
+    rate_limiter.reset_metrics()
+    return {"ok": True}
+

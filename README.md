@@ -1,124 +1,184 @@
 # Munka 2.0
 
-Ferramenta de automação de faturamento de entregas técnicas de software para o portal Munka (Saúde-GO). Importa commits do GitLab, analisa os diffs com Google Gemini AI e automatiza o cadastro e homologação de atividades no portal de faturamento.
+Ferramenta de automação de faturamento de entregas técnicas de software para o portal Munka (Saúde-GO). Importa commits do GitLab, analisa os diffs com Google Gemini AI, gerencia limites de cota de IA, e automatiza o cadastro e homologação de atividades no portal de faturamento via Playwright com suporte a filas assíncronas (Celery + Redis).
 
-## Visão geral do fluxo
+## Visão Geral do Fluxo
 
 ```
-GitLab → diff do commit
-    ↓
-Google Gemini AI → identifica atividades, códigos e HPA do catálogo
-    ↓
-Usuário revisa e edita as atividades no frontend Vue
-    ↓
-Playwright → automatiza o cadastro + evidência + homologação no portal Munka
+GitLab API → Importação de commits + diffs unificados
+     ↓
+Análise Gemini AI (Síncrona ou em Fila Celery)
+     ↳ Identificação de atividades, complexidade, código do catálogo e HPA
+     ↳ Painel de Rate Limit (RPM / TPM / RPD) com suporte a retries inteligentes
+     ↓
+Interface Web (Vue 3 + TypeScript)
+     ↳ Revisão, edição de atividades e agrupamento para envios em lote
+     ↳ Central de monitoramento de tarefas na fila assíncrona
+     ↓
+Playwright Headless → Automação no portal Munka
+     ↳ Cadastro automático da tarefa
+     ↳ Renderização e anexo de evidência técnica HTML/PNG
+     ↳ Homologação da atividade e salvamento no histórico
 ```
 
 ## Pré-requisitos
 
 - [Docker](https://docs.docker.com/get-docker/) e [Docker Compose](https://docs.docker.com/compose/)
-- Arquivo `.env` configurado (ver seção abaixo)
+- Python 3.12+ e Node.js 18+ (caso queira rodar sem Docker)
+- Instância do [Redis](https://redis.io/) (para desenvolvimento local sem Docker)
+- Arquivo `.env` configurado na raiz do projeto (veja modelo abaixo)
 
-## Quick Start (Docker)
+## Quick Start (Docker Compose)
 
 ```bash
 # 1. Clone o repositório
-git clone <url-do-repositório> && cd munka
+git clone <url-do-repositorio> && cd automated-reporting
 
 # 2. Configure as variáveis de ambiente
 cp .env.example .env
-# Edite .env com suas credenciais
+# Edite o arquivo .env com suas credenciais (Gemini, GitLab, Munka)
 
-# 3. Suba tudo com um comando
+# 3. Inicie a aplicação completa via Docker Compose
 docker-compose up --build
-
-# Acesse:
-# Frontend:  http://localhost
-# Backend:   http://localhost:8000
-# Swagger:   http://localhost:8000/docs
 ```
+
+### Portas e Acessos do Sistema
+
+| Serviço | URL | Descrição |
+|---|---|---|
+| **Frontend Web** | `http://localhost:5000` | Interface SPA para gestão de commits, fila, modelos e histórico |
+| **Backend REST API** | `http://localhost:3000` | Endpoints FastAPI |
+| **Documentação (Swagger)** | `http://localhost:3000/docs` | Interface OpenAPI interativa |
+| **Celery Flower** | `http://localhost:3090` | Dashboard de monitoramento de workers Celery e tarefas |
+| **Redis** | `localhost:3080` | Broker de mensagens e backend do Rate Limiter |
 
 ## Variáveis de Ambiente (`.env`)
 
-| Variável | Descrição | Exemplo |
-|---|---|---|
-| `GEMINI_API_KEY` | Chave da API do Google Gemini (aistudio.google.com) | `AIza...` |
-| `MUNKA_URL` | URL base do portal Munka | `https://munka.suaorganizacao.com` |
-| `MUNKA_USER` | Usuário de login no portal Munka | `joao.silva` |
-| `MUNKA_PASS` | Senha do portal Munka | `minhasenha` |
-| `GITLAB_TOKEN` | PRIVATE-TOKEN do GitLab (escopo: read_repository) | `glpat-...` |
-| `GITLAB_URL` | URL base do GitLab da organização | `https://gitlab.suaorganizacao.com` |
-| `GITLAB_PROJECT` | Projeto GitLab padrão (namespace/nome) | `grupo/projeto` |
+```env
+# Google Gemini AI
+GEMINI_API_KEY=AIzaSy...
 
-## Migração de Dados Antigos
+# Portal Munka
+MUNKA_URL=https://munka.saude.go.gov.br
+MUNKA_USER=seu.usuario
+MUNKA_PASS=sua.senha
+MUNKA_PROJETO=NOME_DO_PROJETO
+MUNKA_PRODUTO=NOME_DO_PRODUTO
+MUNKA_CARGO=9
+MUNKA_NIVEL=3
+MUNKA_RESPONSAVEL=Nome do Desenvolvedor
+MUNKA_STATUS_ID=17
+MUNKA_DATA_INICIO=08:00
+MUNKA_DATA_FIM=18:00
 
-Se você usava a versão anterior (Streamlit com arquivos em `commits/`), migre para o banco SQLite com:
+# GitLab
+GITLAB_TOKEN=glpat-...
+GITLAB_URL=https://gitlab.saude.go.gov.br
+GITLAB_PROJECT=grupo/projeto
 
-```bash
-cd backend && ../.venv/bin/python3 migrate.py
-```
-
-O script lê automaticamente os arquivos `commits/diff_commits_*.txt`, seus caches `.json` e o `historico.csv` da raiz do projeto.
-
-## Desenvolvimento Local (sem Docker)
-
-```bash
-# Instala dependências Python no ambiente virtual
-.venv/bin/pip install -r backend/requirements.txt
-.venv/bin/playwright install chromium
-
-# Instala dependências do frontend
-npm install --prefix frontend
-
-# Sobe backend e frontend em paralelo
-./start.sh
-
-# Backend:  http://localhost:8000
-# Frontend: http://localhost:5173
+# Redis & Celery (Docker envs pré-configurados)
+REDIS_URL=redis://redis:6379/0
+CELERY_BROKER_URL=redis://redis:6379/0
+CELERY_RESULT_BACKEND=redis://redis:6379/0
 ```
 
 ## Estrutura do Projeto
 
 ```
-munka/
-├── backend/          # FastAPI + SQLAlchemy + Playwright
-│   ├── api.py        # Endpoints REST
-│   ├── automation.py # Automação Playwright → portal Munka
-│   ├── gemini_service.py  # Análise de diff com Gemini AI
-│   ├── gitlab_service.py  # Cliente API do GitLab
-│   ├── database.py   # Configuração SQLite (SQLAlchemy)
-│   ├── models.py     # Modelos ORM (Commit, Analise, Historico)
-│   ├── migrate.py    # Migração de dados antigos
-│   └── Docs/         # Base de conhecimento do Gemini (preencher manualmente)
+automated-reporting/
+├── backend/                  # API FastAPI + Celery + Playwright + SQLite
+│   ├── api.py                # Endpoints REST e streaming SSE
+│   ├── automation.py         # Script de automação Playwright no portal Munka
+│   ├── celery_app.py         # Configuração Celery e roteamento de filas
+│   ├── celery_tasks.py       # Workers assíncronos para análise Gemini e envio Munka
+│   ├── concurrency.py        # Algoritmo de cálculo de trabalhadores baseado na CPU
+│   ├── model_rate_limiter.py # Monitoramento em tempo real do Rate Limit dos modelos Gemini
+│   ├── gemini_service.py     # Integração com Google Gemini AI
+│   ├── gitlab_service.py     # Cliente HTTP para API do GitLab
+│   ├── evidence_generator.py # Emissor de relatórios de evidências técnicas
+│   ├── diff_renderer.py      # Gerador de imagens de diffs em PNG
+│   ├── database.py           # Conexão SQLite / SQLAlchemy
+│   ├── models.py             # Modelos de dados (Commit, Analise, Historico, Fila)
+│   ├── migrate.py            # Migrador de arquivos legados JSON/CSV → SQLite
+│   └── Docs/                 # Documentos de catálogo e regras de medição
 │
-├── frontend/         # Vue 3 + Vite + Pinia + TypeScript
-│   ├── src/views/    # Páginas: Commits, CommitDetail, History, Config
-│   ├── src/stores/   # Estado global (Pinia)
-│   └── src/api/      # Cliente HTTP (Axios)
+├── frontend/                 # Interface Web Vue 3 + TypeScript + Vite
+│   ├── src/
+│   │   ├── api/              # Cliente Axios tipado
+│   │   ├── components/       # Modais de ajuda e gerenciador de Toasts visuais
+│   │   ├── stores/           # Gerenciamento de estado Pinia (Commits, Fila, Toasts)
+│   │   ├── views/            # Visualizações SPA:
+│   │   │   ├── CommitsView.vue      # Importação e busca de commits
+│   │   │   ├── CommitDetailView.vue # Detalhe do commit, análise e envio
+│   │   │   ├── AnalisarView.vue    # Análise em lote de múltiplos commits
+│   │   │   ├── FilaView.vue        # Painel de acompanhamento da fila Celery
+│   │   │   ├── ModelosView.vue     # Monitoramento do Rate Limit de IA
+│   │   │   ├── HistoryView.vue     # Tabela de atividades homologadas
+│   │   │   └── ConfigView.vue      # Gestão de credenciais e .env
+│   │   └── App.vue           # Layout com navegação e badge de atualizações git
+│   ├── nginx.conf            # Reverse proxy de produção para o frontend
+│   └── Dockerfile            # Container Nginx com multi-stage build
 │
-├── docker-compose.yml
-├── .env              # Credenciais (não versionar)
-└── start.sh          # Script de desenvolvimento local
+├── docker-compose.yml        # Orquestração (Frontend, Backend, Workers Celery, Redis, Flower)
+├── .env.example              # Modelo de variáveis de ambiente
+└── start.sh                  # Script de inicialização para desenvolvimento local
 ```
 
-## Base de Conhecimento (`backend/Docs/`)
+## Desenvolvimento Local (sem Docker)
 
-A pasta `backend/Docs/` contém os arquivos que o Gemini usa como contexto para classificar as atividades de faturamento. Os arquivos estão incluídos no repositório como **templates em branco** — preencha-os com o conteúdo real antes de usar a análise:
+### 1. Iniciar Redis local
+Certifique-se de que um servidor Redis está rodando na porta 6379 (ou altere no `.env`).
 
-| Arquivo | Conteúdo esperado |
-|---|---|
-| `regras-medicao.md` | Regras de medição, tabela HPA por complexidade e prompt de contexto |
-| `catalogo-servicos.md` | Catálogo completo de serviços com entregáveis e atividades |
+### 2. Configurar e rodar o Backend
+```bash
+# Criar ambiente virtual
+python3 -m venv .venv
+source .venv/bin/activate
 
-> Sem o conteúdo nesses arquivos, o endpoint `POST /commits/{sha}/analisar` produzirá análises vazias ou incorretas.
+# Instalar dependências e Playwright
+pip install -r backend/requirements.txt
+playwright install chromium
+
+# Subir a API FastAPI
+cd backend
+uvicorn api:app --reload --port 8000
+```
+
+### 3. Rodar Workers Celery (em abas/terminais separados)
+```bash
+# Worker para fila de análises Gemini
+celery -A celery_app worker --loglevel=info -Q analises
+
+# Worker para fila de envios Munka (Playwright)
+celery -A celery_app worker --loglevel=info -Q envios
+```
+
+### 4. Rodar o Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+# Acesse: http://localhost:5173
+```
+
+Alternativamente, utilize o script `./start.sh` na raiz do projeto para inicializar o ambiente de desenvolvimento local.
+
+## Migração de Dados Legados
+
+Se possui registros antigos armazenados em `commits/` ou `historico.csv`, execute o migrador automático para SQLite:
+
+```bash
+cd backend && python3 migrate.py
+```
 
 ## Tecnologias
 
 | Camada | Stack |
 |---|---|
-| Frontend | Vue 3 + Vite + Pinia + TypeScript |
-| Backend | Python 3.12 + FastAPI + SQLAlchemy |
-| Banco de dados | SQLite (volume Docker persistente) |
-| Automação web | Playwright (Chromium headless) |
-| IA | Google Gemini (gemini-2.5-flash) |
-| Containerização | Docker + Nginx |
+| **Frontend** | Vue 3, Vite, Pinia, TypeScript, Axios |
+| **Backend** | Python 3.12, FastAPI, SQLAlchemy |
+| **Processamento Assíncrono** | Celery, Redis, Flower |
+| **Banco de dados** | SQLite (Persistência via volume Docker) |
+| **Automação Web** | Playwright (Chromium headless) |
+| **Inteligência Artificial** | Google Gemini (2.5 Flash Lite, 3.1 Flash Lite, 3.5 Flash) |
+| **Containerização** | Docker, Docker Compose, Nginx |

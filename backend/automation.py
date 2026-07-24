@@ -79,8 +79,8 @@ class MunkaAutomation:
         username_input.fill(self.username)
         password_input.fill(self.password)
         self._log("Efetuando login...")
-        submit_btn.click()
-        page.wait_for_selector("#content, .navbar, table, .dashboard", state="visible", timeout=15000)
+        submit_btn.click(no_wait_after=True)
+        page.wait_for_selector("#content, .navbar, table, .dashboard", state="visible", timeout=25000)
         self._log("Login realizado com sucesso!")
 
     def _preencher_select2_ajax(self, page, field_id, search_term, force_ui=False):
@@ -485,6 +485,7 @@ class MunkaAutomation:
             context = browser.new_context(viewport={"width": 1280, "height": 800})
             page = context.new_page()
             page.set_default_navigation_timeout(90000)
+            page.set_default_timeout(60000)
 
             # 1. Login
             self._login(page)
@@ -621,17 +622,20 @@ class MunkaAutomation:
 
             self._log("Salvando cadastro da tarefa...")
             save_btn = page.locator("button[type='submit'], input[type='submit']").first
-            save_btn.click()
+            save_btn.click(no_wait_after=True)
             
             # Aguarda a transação ser processada pelo servidor Munka
             self._log("Aguardando redirecionamento pós-salvamento...")
             try:
-                page.wait_for_url("**/tarefamodelview/list/**", timeout=15000)
+                page.wait_for_url("**/tarefamodelview/list/**", timeout=25000)
             except Exception:
                 try:
                     page.wait_for_url("**/", timeout=5000)
                 except Exception:
-                    page.wait_for_load_state("networkidle")
+                    try:
+                        page.wait_for_selector("table.table-bordered, div.container-fluid.espacamento", state="visible", timeout=10000)
+                    except Exception:
+                        page.wait_for_load_state("domcontentloaded")
 
             browser.close()
             self._log("Tarefa cadastrada com sucesso!")
@@ -699,6 +703,7 @@ class MunkaAutomation:
             context = browser.new_context(viewport={"width": 1280, "height": 800})
             page = context.new_page()
             page.set_default_navigation_timeout(90000)
+            page.set_default_timeout(60000)
 
             # 1. Login
             self._login(page)
@@ -810,12 +815,12 @@ class MunkaAutomation:
 
             self._log("Salvando alterações da homologação...")
             save_btn = page.locator("button[type='submit'], input[type='submit']").first
-            save_btn.click()
+            save_btn.click(no_wait_after=True)
             
             # Aguarda a transação ser processada pelo servidor Munka
             self._log("Aguardando confirmação do salvamento...")
             try:
-                page.wait_for_url("**/tarefamodelview/list/**", timeout=15000)
+                page.wait_for_url("**/tarefamodelview/list/**", timeout=25000)
             except Exception:
                 try:
                     page.wait_for_url("**/", timeout=5000)
@@ -930,6 +935,7 @@ class MunkaAutomation:
             context = browser.new_context(viewport={"width": 1280, "height": 800})
             page = context.new_page()
             page.set_default_navigation_timeout(90000)
+            page.set_default_timeout(60000)
 
             # 1. Login
             self._login(page)
@@ -1046,17 +1052,20 @@ class MunkaAutomation:
 
                 self._log("Salvando cadastro da tarefa...")
                 save_btn = page.locator("button[type='submit'], input[type='submit']").first
-                save_btn.click()
+                save_btn.click(no_wait_after=True)
 
                 # Aguarda a submissão completar
                 self._log("Aguardando processamento do cadastro...")
                 try:
-                    page.wait_for_url("**/tarefamodelview/list/**", timeout=15000)
+                    page.wait_for_url("**/tarefamodelview/list/**", timeout=25000)
                 except Exception:
                     try:
                         page.wait_for_url("**/", timeout=5000)
                     except Exception:
-                        page.wait_for_load_state("networkidle")
+                        try:
+                            page.wait_for_selector("table.table-bordered, div.container-fluid.espacamento", state="visible", timeout=10000)
+                        except Exception:
+                            page.wait_for_load_state("domcontentloaded")
             
             # --- FASE 2: EDITAR E ANEXAR EVIDÊNCIAS DIRETAMENTE ---
             # Se já estivermos na listagem, não precisamos recarregar. Se não, navegamos até lá.
@@ -1094,8 +1103,8 @@ class MunkaAutomation:
                 self._log(f"Erro ao extrair ID da tarefa do link de edicao: {ex}")
 
             self._log("Clicando no botão 'Editar'...")
-            edit_btn.click()
-            page.wait_for_selector("form, #nome", state="visible", timeout=15000)
+            edit_btn.click(no_wait_after=True)
+            page.wait_for_selector("form, #nome", state="visible", timeout=20000)
 
             # Mudar status final para o configurado ANTES de preencher a execução
             self._log(f"Configurando status final para: '{status_id}'...")
@@ -1170,16 +1179,19 @@ class MunkaAutomation:
 
             self._log("Salvando alterações finais da homologação...")
             save_btn = page.locator("button[type='submit'], input[type='submit']").first
-            save_btn.click()
+            save_btn.click(no_wait_after=True)
 
             self._log("Aguardando finalização do processo no Munka...")
             try:
-                page.wait_for_url("**/tarefamodelview/list/**", timeout=15000)
+                page.wait_for_url("**/tarefamodelview/list/**", timeout=25000)
             except Exception:
                 try:
                     page.wait_for_url("**/", timeout=5000)
                 except Exception:
-                    page.wait_for_load_state("networkidle")
+                    try:
+                        page.wait_for_selector("table.table-bordered, div.container-fluid.espacamento", state="visible", timeout=10000)
+                    except Exception:
+                        page.wait_for_load_state("domcontentloaded")
 
             browser.close()
             self._log("Fluxo completo finalizado com sucesso!")
