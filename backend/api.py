@@ -972,13 +972,27 @@ def listar_historico(db: Session = Depends(get_db)):
 
     Returns:
         A JSON array where each element contains ``id``, ``commit_id``,
-        ``titulo``, ``codigo``, ``hpa``, ``status``, and ``enviado_em``.
+        ``titulo``, ``codigo``, ``hpa``, ``status``, ``enviado_em``, and joined
+        commit details if available.
     """
     itens = (
-        db.query(models.Historico).order_by(models.Historico.enviado_em.desc()).all()
+        db.query(models.Historico, models.Commit)
+        .outerjoin(models.Commit, models.Historico.commit_id == models.Commit.id)
+        .order_by(models.Historico.enviado_em.desc())
+        .all()
     )
-    return [
-        {
+    res = []
+    for h, c in itens:
+        commit_data_autor = None
+        if c:
+            if c.diff_raw:
+                match_data = re.search(r"^Date:\s*(.+)$", c.diff_raw, re.MULTILINE)
+                if match_data:
+                    commit_data_autor = match_data.group(1).strip()
+            if not commit_data_autor:
+                commit_data_autor = c.importado_em
+
+        res.append({
             "id": h.id,
             "commit_id": h.commit_id,
             "titulo": h.titulo,
@@ -986,9 +1000,13 @@ def listar_historico(db: Session = Depends(get_db)):
             "hpa": h.hpa,
             "status": h.status,
             "enviado_em": h.enviado_em,
-        }
-        for h in itens
-    ]
+            "commit_data": c.data if c else None,
+            "commit_data_autor": commit_data_autor,
+            "commit_autor": c.autor if c else None,
+            "commit_mensagem": c.mensagem if c else None,
+        })
+    return res
+
 
 
 @app.delete("/historico/{item_id}", status_code=204)

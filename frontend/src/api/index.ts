@@ -48,6 +48,10 @@ export interface HistoricoItem {
   hpa: number
   status: string
   enviado_em: string
+  commit_data?: string
+  commit_data_autor?: string
+  commit_autor?: string
+  commit_mensagem?: string
 }
 
 export interface Config {

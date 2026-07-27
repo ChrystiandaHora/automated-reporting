@@ -398,7 +398,7 @@ async function importar() {
   align-items: baseline;
   gap: 0.5rem;
   padding: 0.75rem 1.25rem;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--header-group-bg);
   border: 1px solid var(--card-border);
   border-bottom: none;
   border-radius: 10px 10px 0 0;
@@ -407,7 +407,7 @@ async function importar() {
 
 .date-text {
   font-weight: 800;
-  color: #fff;
+  color: var(--text);
   font-size: 0.95rem;
 }
 
@@ -431,7 +431,7 @@ async function importar() {
   display: flex;
   align-items: center;
   padding: 0.875rem 1.25rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid var(--border);
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -441,7 +441,7 @@ async function importar() {
 }
 
 .commit-row:hover {
-  background: rgba(96, 165, 250, 0.04);
+  background: var(--accent-glow);
 }
 
 .commit-avatar {
@@ -456,8 +456,8 @@ async function importar() {
   font-weight: 800;
   margin-right: 1rem;
   flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .commit-info {
@@ -546,9 +546,9 @@ async function importar() {
 .sha-box {
   font-family: 'Courier New', monospace;
   font-size: 0.8rem;
-  color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--sha-box-color);
+  background: var(--sha-box-bg);
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 0.3rem 0.6rem;
   letter-spacing: 0.04em;
@@ -561,7 +561,7 @@ async function importar() {
 
 .btn-danger {
   background: #f85149;
-  color: var(--text);
+  color: #ffffff;
   border: 2px solid var(--border);
   border-radius: 0;
   padding: 0.5rem 1.1rem;
@@ -571,6 +571,11 @@ async function importar() {
   letter-spacing: 0.02em;
   box-shadow: 3px 3px 0 var(--border);
   transition: transform 0.1s, box-shadow 0.1s;
+}
+.btn-danger:hover {
+  transform: translateY(-2px) translateX(-2px);
+  box-shadow: 5px 5px 0 var(--border);
+  background: #ff6b6b;
 }
 .btn-danger:hover {
   transform: translateY(-2px) translateX(-2px);

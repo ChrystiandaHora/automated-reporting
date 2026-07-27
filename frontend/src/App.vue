@@ -194,6 +194,30 @@ onUnmounted(() => {
   --warning: #F59E0B;
   --error: #EF4444;
   --topbar-bg: rgba(15, 23, 42, 0.85);
+
+  --badge-code-bg: rgba(96, 165, 250, 0.12);
+  --badge-code-color: #93C5FD;
+  --badge-code-border: rgba(96, 165, 250, 0.3);
+
+  --badge-hpa-bg: rgba(251, 191, 36, 0.12);
+  --badge-hpa-color: #FCD34D;
+  --badge-hpa-border: rgba(251, 191, 36, 0.3);
+
+  --badge-green-bg: rgba(16, 185, 129, 0.15);
+  --badge-green-color: #34D399;
+  --badge-green-border: rgba(16, 185, 129, 0.3);
+
+  --badge-orange-bg: rgba(245, 158, 11, 0.15);
+  --badge-orange-color: #FBBF24;
+  --badge-orange-border: rgba(245, 158, 11, 0.3);
+
+  --badge-purple-bg: rgba(168, 85, 247, 0.15);
+  --badge-purple-color: #C084FC;
+  --badge-purple-border: rgba(168, 85, 247, 0.3);
+
+  --header-group-bg: rgba(255, 255, 255, 0.03);
+  --sha-box-bg: rgba(255, 255, 255, 0.05);
+  --sha-box-color: #94A3B8;
   
   font-family: 'Outfit', 'Inter', system-ui, sans-serif;
   background: var(--bg);
@@ -205,19 +229,43 @@ onUnmounted(() => {
   --bg: #F8FAFC;
   --card-bg: #FFFFFF;
   --card-border: #E2E8F0;
-  --border: #E2E8F0;
+  --border: #CBD5E1;
   --text: #0F172A;
-  --text-muted: #64748B;
-  --text-subtle: #94A3B8;
+  --text-muted: #475569;
+  --text-subtle: #64748B;
   --accent: #2563EB;
-  --accent-light: #3B82F6;
+  --accent-light: #1D4ED8;
   --accent-cyan: #0284C7;
   --accent-grad: linear-gradient(135deg, #2563EB 0%, #6366f1 50%, #8b5cf6 100%);
-  --accent-glow: rgba(37, 99, 235, 0.15);
-  --success: #10B981;
-  --warning: #F59E0B;
-  --error: #EF4444;
-  --topbar-bg: rgba(248, 250, 252, 0.85);
+  --accent-glow: rgba(37, 99, 235, 0.12);
+  --success: #059669;
+  --warning: #D97706;
+  --error: #DC2626;
+  --topbar-bg: rgba(248, 250, 252, 0.95);
+
+  --badge-code-bg: #EFF6FF;
+  --badge-code-color: #1E40AF;
+  --badge-code-border: #BFDBFE;
+
+  --badge-hpa-bg: #FEF3C7;
+  --badge-hpa-color: #92400E;
+  --badge-hpa-border: #FDE68A;
+
+  --badge-green-bg: #D1FAE5;
+  --badge-green-color: #065F46;
+  --badge-green-border: #A7F3D0;
+
+  --badge-orange-bg: #FFEDD5;
+  --badge-orange-color: #9A3412;
+  --badge-orange-border: #FDBA74;
+
+  --badge-purple-bg: #F3E8FF;
+  --badge-purple-color: #6B21A8;
+  --badge-purple-border: #E9D5FF;
+
+  --header-group-bg: #F1F5F9;
+  --sha-box-bg: #F1F5F9;
+  --sha-box-color: #1E293B;
 }
 
 body {
@@ -476,11 +524,11 @@ body {
   text-transform: uppercase;
   line-height: 1;
 }
-.badge-green  { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
-.badge-gray   { background: rgba(148, 163, 184, 0.12); color: var(--text-muted); border: 1px solid var(--border); }
-.badge-blue   { background: var(--accent-glow); color: var(--accent); border: 1px solid var(--accent); }
-.badge-orange { background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3); }
-.badge-purple { background: rgba(168, 85, 247, 0.15); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.3); }
+.badge-green  { background: var(--badge-green-bg); color: var(--badge-green-color); border: 1px solid var(--badge-green-border); }
+.badge-gray   { background: var(--header-group-bg); color: var(--text-muted); border: 1px solid var(--border); }
+.badge-blue   { background: var(--badge-code-bg); color: var(--badge-code-color); border: 1px solid var(--badge-code-border); }
+.badge-orange { background: var(--badge-orange-bg); color: var(--badge-orange-color); border: 1px solid var(--badge-orange-border); }
+.badge-purple { background: var(--badge-purple-bg); color: var(--badge-purple-color); border: 1px solid var(--badge-purple-border); }
 
 /* ── Inputs ── */
 input, textarea, select {

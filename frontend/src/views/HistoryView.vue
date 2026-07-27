@@ -17,66 +17,86 @@
       Nenhuma atividade enviada ainda.
     </div>
 
-    <div v-else class="history-grouped">
-      <!-- Percorre os commits agrupados no histórico -->
-      <div v-for="grupo in historicoAgrupado" :key="grupo.commit_id" class="commit-group">
-        <!-- Cabeçalho do Commit no Histórico -->
-        <div class="commit-group-header" @click="alternarGrupo(grupo.commit_id)" style="cursor: pointer; user-select: none;">
-          <div class="commit-group-info">
-            <span class="collapse-icon">{{ isGrupoColapsado(grupo.commit_id) ? '▶' : '▼' }}</span>
-            <span class="commit-label">Commit:</span>
-            <router-link :to="`/commits/${grupo.commit_id}`" class="sha-link" @click.stop>
-              {{ grupo.commit_id?.slice(0, 12) ?? '-' }}
-            </router-link>
-            <span class="group-time">Último envio: {{ formatDate(grupo.enviado_em) }}</span>
-          </div>
-          <span class="job-count-badge">{{ grupo.items.length }} atividade{{ grupo.items.length > 1 ? 's' : '' }}</span>
+    <div v-else class="history-list-grouped">
+      <!-- Percorre os dias agrupados por data (data do commit ou envio) -->
+      <div v-for="grupo in historicoAgrupado" :key="grupo.data" class="date-group">
+        
+        <!-- Cabeçalho do dia: "23 Jun, 2026 - 3 atividades" -->
+        <div class="date-group-header">
+          <span class="date-text">{{ grupo.data }}</span>
+          <span class="commit-count-text">{{ grupo.items.length }} atividade{{ grupo.items.length > 1 ? 's' : '' }}</span>
         </div>
 
-        <!-- Tabela das atividades do Commit -->
-        <div v-show="!isGrupoColapsado(grupo.commit_id)" class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Data de Envio</th>
-                <th width="140">Commit</th>
-                <th>Título da Atividade</th>
-                <th width="100">Código</th>
-                <th width="80">HPA</th>
-                <th width="120">Status</th>
-                <th width="80" style="text-align: center;">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in grupo.items" :key="item.id">
-                <td class="col-date">{{ formatDate(item.enviado_em) }}</td>
-                <td class="col-commit">
-                  <router-link :to="`/commits/${item.commit_id || grupo.commit_id}`" class="sha-link" :title="item.commit_id || grupo.commit_id">
-                    {{ (item.commit_id || grupo.commit_id)?.slice(0, 8) ?? '-' }}
-                  </router-link>
-                </td>
-                <td class="col-title" :title="item.titulo">
-                  <router-link :to="`/commits/${item.commit_id || grupo.commit_id}`" class="activity-link">
-                    {{ item.titulo }}
-                  </router-link>
-                </td>
-                <td><code>{{ item.codigo }}</code></td>
-                <td><span class="hpa-badge">{{ item.hpa }}h</span></td>
-                <td><span class="badge badge-green">{{ item.status }}</span></td>
-                <td>
-                  <div class="action-cell">
-                    <button class="btn-delete-item" @click="abrirModalConfirmacao(item.id)" title="Remover do histórico">
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                      </svg>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <!-- Lista de atividades enviadas desse dia -->
+        <div class="date-group-items">
+          <div 
+            v-for="item in grupo.items" 
+            :key="item.id" 
+            class="history-row"
+          >
+            <!-- Lado Esquerdo: Avatar do Autor do Commit -->
+            <div 
+              class="history-avatar" 
+              :style="{ backgroundColor: obterCorAvatar(item.commit_autor || 'Sistema') }"
+              :title="item.commit_autor || 'Autor não informado'"
+            >
+              {{ obterIniciais(item.commit_autor || 'SI') }}
+            </div>
+
+            <!-- Centro: Título da atividade, Badges e Informações do Commit -->
+            <div class="history-info">
+              <div class="history-title-container">
+                <span class="history-title" :title="item.titulo">
+                  {{ item.titulo }}
+                </span>
+                
+                <!-- Badges: Código, HPA e Status -->
+                <div class="history-row-badges">
+                  <span class="badge badge-code"><code>{{ item.codigo }}</code></span>
+                  <span class="hpa-badge">{{ item.hpa }}h</span>
+                  <span class="badge badge-green">{{ item.status }}</span>
+                </div>
+              </div>
+
+              <div class="history-sub-info">
+                <span v-if="item.commit_mensagem" class="history-commit-msg" :title="item.commit_mensagem">
+                  Commit: {{ item.commit_mensagem }}
+                </span>
+                <span class="history-time-info">
+                  Enviado {{ obterTempoRelativo(item.enviado_em) }} ({{ formatDate(item.enviado_em) }})
+                </span>
+              </div>
+            </div>
+
+            <!-- Lado Direito: Link para o Commit e Ações -->
+            <div class="history-actions" @click.stop>
+              <!-- SHA Box Link -->
+              <router-link 
+                v-if="item.commit_id" 
+                :to="`/commits/${item.commit_id}`" 
+                class="sha-box-link"
+                :title="`Ver detalhes do commit ${item.commit_id}`"
+              >
+                {{ item.commit_id.slice(0, 8) }}
+              </router-link>
+
+              <!-- Botão Excluir -->
+              <button 
+                class="action-btn delete-btn" 
+                @click="abrirModalConfirmacao(item.id)"
+                title="Remover do histórico"
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10" stroke="#f85149" fill="none" />
+                  <line x1="15" y1="9" x2="9" y2="15" stroke="#f85149" />
+                  <line x1="9" y1="9" x2="15" y2="15" stroke="#f85149" />
+                </svg>
+              </button>
+            </div>
+
+          </div>
         </div>
+
       </div>
     </div>
 
@@ -101,10 +121,10 @@ import { useToastStore } from '../stores/toast'
 import HelpModal from '../components/HelpModal.vue'
 
 const helpItems = [
-  { title: 'O que é exibido aqui', text: 'Todas as atividades enviadas com sucesso aos portais de faturamento. Cada linha corresponde a uma atividade individual — um mesmo commit pode gerar múltiplas atividades com códigos diferentes.' },
+  { title: 'O que é exibido aqui', text: 'Todas as atividades enviadas com sucesso aos portais de faturamento. Organizadas por data de commit e envio de forma cronológica.' },
   { title: 'Código (coluna)', text: 'Código do catálogo de serviços identificado pelo Gemini (ex: 21a, 57b). Determina o tipo de serviço faturado e o valor por hora correspondente.' },
   { title: 'HPA', text: 'Horas Previstas para Execução da Atividade — quantidade de horas faturadas para aquela atividade, conforme o catálogo de serviços.' },
-  { title: 'Navegar ao commit', text: 'Clique no hash (8 primeiros caracteres) na coluna Commit para abrir a página de detalhes do commit original.' },
+  { title: 'Navegar ao commit', text: 'Clique no botão com o hash do commit (SHA) para abrir a página de detalhes do commit original.' },
 ]
 
 const items = ref<HistoricoItem[]>([])
@@ -113,39 +133,6 @@ const toastStore = useToastStore()
 
 const itemParaDeletar = ref<number | null>(null)
 const exibindoModalConfirmacao = ref(false)
-
-const gruposColapsados = ref<Record<string, boolean>>({})
-
-function alternarGrupo(commitId: string) {
-  gruposColapsados.value[commitId] = !gruposColapsados.value[commitId]
-}
-
-function isGrupoColapsado(commitId: string) {
-  return !!gruposColapsados.value[commitId]
-}
-
-const historicoAgrupado = computed(() => {
-  const grupos: Record<string, { commit_id: string; enviado_em: string; items: HistoricoItem[] }> = {}
-  
-  for (const item of items.value) {
-    const key = item.commit_id || 'sem-commit'
-    if (!grupos[key]) {
-      grupos[key] = {
-        commit_id: item.commit_id,
-        enviado_em: item.enviado_em,
-        items: []
-      }
-    }
-    grupos[key].items.push(item)
-  }
-  
-  // Ordena os grupos pela data de envio mais recente do primeiro item do grupo
-  return Object.values(grupos).sort((a, b) => {
-    const timeA = new Date(a.enviado_em).getTime()
-    const timeB = new Date(b.enviado_em).getTime()
-    return timeB - timeA
-  })
-})
 
 onMounted(async () => {
   await carregarHistorico()
@@ -160,6 +147,126 @@ async function carregarHistorico() {
   }
 }
 
+function formatarDataCabecalho(dataStr: string): string {
+  if (!dataStr) return 'Outras datas'
+  const parts = dataStr.split('/')
+  if (parts.length === 3) {
+    const dia = parseInt(parts[0], 10)
+    const mesIdx = parseInt(parts[1], 10) - 1
+    const ano = parts[2]
+    const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+    const mesNome = meses[mesIdx] || parts[1]
+    return `${dia} ${mesNome}, ${ano}`
+  }
+  return dataStr
+}
+
+function obterDataParaAgrupamento(item: HistoricoItem): string {
+  // 1. Prioriza data_autor do commit
+  if (item.commit_data_autor) {
+    try {
+      const d = new Date(item.commit_data_autor)
+      if (!isNaN(d.getTime())) {
+        const dia = String(d.getDate()).padStart(2, '0')
+        const mes = String(d.getMonth() + 1).padStart(2, '0')
+        const ano = d.getFullYear()
+        return `${dia}/${mes}/${ano}`
+      }
+    } catch {
+      // fallback
+    }
+  }
+  // 2. Data formatada do commit (DD/MM/YYYY)
+  if (item.commit_data) {
+    return item.commit_data
+  }
+  // 3. Data de envio da atividade (enviado_em)
+  if (item.enviado_em) {
+    try {
+      const d = new Date(item.enviado_em)
+      if (!isNaN(d.getTime())) {
+        const dia = String(d.getDate()).padStart(2, '0')
+        const mes = String(d.getMonth() + 1).padStart(2, '0')
+        const ano = d.getFullYear()
+        return `${dia}/${mes}/${ano}`
+      }
+    } catch {
+      // fallback
+    }
+  }
+  return 'Outras datas'
+}
+
+function obterTime(item: HistoricoItem): number {
+  if (item.commit_data_autor) {
+    const t = new Date(item.commit_data_autor).getTime()
+    if (!isNaN(t)) return t
+  }
+  if (item.commit_data) {
+    const parts = item.commit_data.split('/')
+    if (parts.length === 3) {
+      const t = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])).getTime()
+      if (!isNaN(t)) return t
+    }
+  }
+  if (item.enviado_em) {
+    const t = new Date(item.enviado_em).getTime()
+    if (!isNaN(t)) return t
+  }
+  return 0
+}
+
+function obterIniciais(nome?: string): string {
+  if (!nome) return '?'
+  const parts = nome.trim().split(/\s+/)
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  }
+  return parts[0].slice(0, 2).toUpperCase()
+}
+
+function obterCorAvatar(nome?: string): string {
+  if (!nome) return '#777'
+  let hash = 0
+  for (let i = 0; i < nome.length; i++) {
+    hash = nome.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const colors = [
+    '#007acc', // Blue
+    '#3fb950', // Green
+    '#f85149', // Red
+    '#d29922', // Orange/Yellow
+    '#bc8cff', // Purple
+    '#1f6feb', // Light Blue
+    '#30b6e6'  // Cyan
+  ]
+  const index = Math.abs(hash) % colors.length
+  return colors[index]
+}
+
+function obterTempoRelativo(isoStr?: string): string {
+  if (!isoStr) return 'há algum tempo'
+  try {
+    const d = new Date(isoStr)
+    const agora = new Date()
+    const diffMs = agora.getTime() - d.getTime()
+    const diffSec = Math.floor(diffMs / 1000)
+    const diffMin = Math.floor(diffSec / 60)
+    const diffHour = Math.floor(diffMin / 60)
+    const diffDay = Math.floor(diffHour / 24)
+
+    if (diffSec < 60) return 'agora mesmo'
+    if (diffMin === 1) return 'há 1 minuto'
+    if (diffMin < 60) return `há ${diffMin} minutos`
+    if (diffHour === 1) return 'há 1 hora'
+    if (diffHour < 24) return `há ${diffHour} horas`
+    if (diffDay === 1) return 'ontem'
+    return `há ${diffDay} dias`
+  } catch {
+    return 'há algum tempo'
+  }
+}
+
 function formatDate(iso: string) {
   if (!iso) return '-'
   try {
@@ -169,6 +276,34 @@ function formatDate(iso: string) {
     return iso
   }
 }
+
+const historicoAgrupado = computed(() => {
+  const grupos: Record<string, HistoricoItem[]> = {}
+  
+  for (const item of items.value) {
+    const dataAgrupamento = obterDataParaAgrupamento(item)
+    const dataFormatada = formatarDataCabecalho(dataAgrupamento)
+    if (!grupos[dataFormatada]) {
+      grupos[dataFormatada] = []
+    }
+    grupos[dataFormatada].push(item)
+  }
+  
+  for (const chave of Object.keys(grupos)) {
+    grupos[chave].sort((a, b) => obterTime(b) - obterTime(a))
+  }
+  
+  const chavesOrdenadas = Object.keys(grupos).sort((a, b) => {
+    const timeA = obterTime(grupos[a][0])
+    const timeB = obterTime(grupos[b][0])
+    return timeB - timeA
+  })
+  
+  return chavesOrdenadas.map(chave => ({
+    data: chave,
+    items: grupos[chave]
+  }))
+})
 
 function abrirModalConfirmacao(id: number) {
   itemParaDeletar.value = id
@@ -196,190 +331,249 @@ async function confirmarExclusao() {
 
 <style scoped>
 .title-row { display: flex; align-items: center; gap: 0.5rem; }
-.table-wrapper {
-  overflow-x: auto;
-  border: 1px solid var(--card-border);
-  border-radius: 0 0 12px 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  border-top: none;
-}
-table { width: 100%; border-collapse: collapse; }
-th {
-  text-align: left;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  background: rgba(59, 130, 246, 0.04);
-}
-td { padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.875rem; }
-tr:hover td { background: rgba(96, 165, 250, 0.03); }
-tr:last-child td { border-bottom: none; }
-.sha-link {
-  font-family: 'Courier New', monospace;
-  color: var(--accent-light);
-  text-decoration: none;
-  font-size: 0.82rem;
-  background: rgba(96, 165, 250, 0.06);
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid rgba(96, 165, 250, 0.2);
-  transition: all 0.2s ease;
-}
-.sha-link:hover { background: rgba(96, 165, 250, 0.15); color: #bfdbfe; }
-.activity-link { color: var(--text); text-decoration: none; font-weight: 600; transition: color 0.2s; }
-.activity-link:hover { color: var(--accent-light); }
-code {
-  font-size: 0.78rem;
-  border: 1px solid rgba(96, 165, 250, 0.3);
-  color: #93c5fd;
-  background: rgba(96, 165, 250, 0.06);
-  padding: 2px 6px;
-  font-family: 'Courier New', monospace;
-  border-radius: 4px;
-}
-.hpa-badge {
-  font-family: 'Courier New', monospace;
-  font-weight: 700;
-  color: #fcd34d;
-  background: rgba(251, 191, 36, 0.08);
-  border: 1px solid rgba(251, 191, 36, 0.25);
-  padding: 2px 8px;
-  font-size: 0.82rem;
-  border-radius: 6px;
-}
-.action-cell {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.btn-delete-item {
-  background: transparent;
-  border: none;
-  color: rgba(248, 113, 113, 0.7);
-  cursor: pointer;
-  padding: 5px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s;
-}
-.btn-delete-item:hover {
-  color: #f87171;
-  background: rgba(239, 68, 68, 0.08);
-  transform: scale(1.05);
-}
-.col-date {
-  white-space: nowrap;
-  color: var(--text-muted);
-  font-size: 0.82rem;
-}
-.col-title {
-  max-width: 320px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.btn-danger {
-  background: rgba(239, 68, 68, 0.9);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 0.5rem 1.1rem;
-  font-weight: 700;
-  cursor: pointer;
-  font-size: 0.88rem;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
-}
-.btn-danger:hover {
-  background: #ef4444;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3);
-}
+
 .history-count-badge {
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--header-group-bg);
   padding: 3px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
   border-radius: 99px;
   margin-left: 0.5rem;
   vertical-align: middle;
 }
+
 .btn-sm {
   padding: 0.3rem 0.75rem;
   font-size: 0.8rem;
 }
 
-/* Agrupamento do histórico */
-.history-grouped {
+/* Agrupamento por Data (idêntico a CommitsView) */
+.history-list-grouped {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   margin-top: 1rem;
 }
-.commit-group {
+
+.date-group {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--card-border);
-  background: var(--card-bg);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
-.commit-group-header {
+
+.date-group-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--header-group-bg);
+  border: 1px solid var(--card-border);
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  font-size: 0.88rem;
+}
+
+.date-text {
+  font-weight: 800;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.commit-count-text {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.date-group-items {
+  border: 1px solid var(--card-border);
+  border-top: none;
+  background: var(--card-bg);
+  display: flex;
+  flex-direction: column;
+  border-radius: 0 0 10px 10px;
+  overflow: hidden;
+}
+
+.history-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 0.875rem 1.25rem;
-  background: rgba(255, 255, 255, 0.02);
-  border-bottom: 1px solid var(--card-border);
-  cursor: pointer;
+  border-bottom: 1px solid var(--border);
   transition: background 0.15s;
 }
-.commit-group-header:hover {
-  background: rgba(96, 165, 250, 0.04);
+
+.history-row:last-child {
+  border-bottom: none;
 }
-.commit-group-info {
+
+.history-row:hover {
+  background: var(--accent-glow);
+}
+
+.history-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  margin-right: 1rem;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.history-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.history-title-container {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  min-width: 0;
-  flex: 1;
+  flex-wrap: wrap;
 }
-.collapse-icon {
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  width: 12px;
-  display: inline-block;
-}
-.commit-label {
+
+.history-title {
+  font-size: 0.95rem;
   font-weight: 700;
-  font-size: 0.8rem;
-  color: var(--text-subtle, #9ca3af);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 450px;
 }
-.group-time {
+
+.history-row-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.badge-code code {
+  font-size: 0.75rem;
+  border: 1px solid var(--badge-code-border);
+  color: var(--badge-code-color);
+  background: var(--badge-code-bg);
+  padding: 1px 5px;
+  font-family: 'Courier New', monospace;
+  border-radius: 4px;
+}
+
+.hpa-badge {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: var(--badge-hpa-color);
+  background: var(--badge-hpa-bg);
+  border: 1px solid var(--badge-hpa-border);
+  padding: 1px 6px;
+  font-size: 0.75rem;
+  border-radius: 6px;
+}
+
+.history-sub-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.history-commit-msg {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 350px;
+  color: var(--text-muted);
+}
+
+.history-time-info {
   font-size: 0.78rem;
   color: var(--text-muted);
-  margin-left: 0.5rem;
 }
-.job-count-badge {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.04);
-  padding: 3px 9px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 99px;
-  margin-left: 1rem;
+
+.history-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   flex-shrink: 0;
+  margin-left: 1rem;
+}
+
+.sha-box-link {
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  color: var(--sha-box-color);
+  background: var(--sha-box-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.sha-box-link:hover {
+  background: var(--accent-glow);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.action-btn {
+  background: var(--bg);
+  border: 2px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  transition: border-color 0.12s, color 0.12s, transform 0.1s;
+}
+
+.delete-btn {
+  border: none;
+  background: transparent;
+  padding: 0.25rem;
+  color: #f85149;
+  opacity: 0.85;
+  transition: opacity 0.12s, transform 0.1s;
+}
+
+.delete-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+  color: #ff6b6b;
+}
+
+.btn-danger {
+  background: #f85149;
+  color: #ffffff;
+  border: 2px solid var(--border);
+  border-radius: 0;
+  padding: 0.5rem 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.88rem;
+  letter-spacing: 0.02em;
+  box-shadow: 3px 3px 0 var(--border);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.btn-danger:hover {
+  transform: translateY(-2px) translateX(-2px);
+  box-shadow: 5px 5px 0 var(--border);
+  background: #ff6b6b;
 }
 </style>
