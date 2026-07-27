@@ -43,15 +43,16 @@ class RelatorioFaturamento(BaseModel):
         description="Lista de atividades técnicas independentes identificadas no diff"
     )
 
+from model_rate_limiter import rate_limiter
+
 MAP_MODELOS = {
-    "Gemini 2.5 Flash": "gemini-2.5-flash",
-    "Gemini 3.5 Flash": "gemini-3.5-flash",
     "Gemini 2.5 Flash Lite": "gemini-2.5-flash-lite",
-    "Gemini 3 Flash": "gemini-3-flash",
     "Gemini 3.1 Flash Lite": "gemini-3.1-flash-lite",
+    "Gemini 3.5 Flash": "gemini-3.5-flash",
+    "Gemini 3.5 Flash Lite": "gemini-3.5-flash-lite",
 }
 
-def analisar_diff(diff_content: str, prompt_path: str = "Docs/regras-medicao.md", catalogo_path: str = "Docs/catalogo-servicos.md", modelo: str = "Gemini 2.5 Flash") -> RelatorioFaturamento:
+def analisar_diff(diff_content: str, prompt_path: str = "Docs/regras-medicao.md", catalogo_path: str = "Docs/catalogo-servicos.md", modelo: str = "Gemini 2.5 Flash Lite") -> RelatorioFaturamento:
     """Send a Git diff to Gemini and return a structured billing report.
 
     Reads the measurement rules from ``prompt_path`` and the service catalogue
@@ -93,10 +94,10 @@ def analisar_diff(diff_content: str, prompt_path: str = "Docs/regras-medicao.md"
     )
 
     # Executa a geração de conteúdo com fallback para contornar erros de 503 (alta demanda)
-    model_id = MAP_MODELOS.get(modelo, modelo) or "gemini-2.5-flash"
+    model_id = MAP_MODELOS.get(modelo, modelo) or "gemini-2.5-flash-lite"
     
-    # Lista de fallbacks padrão
-    fallbacks = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-3.5-flash", "gemini-2.5-pro"]
+    # Lista de fallbacks padrão entre os modelos habilitados
+    fallbacks = ["gemini-2.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-3.5-flash-lite"]
     modelos_para_tentar = [model_id] + [f for f in fallbacks if f != model_id]
     
     # Limpa duplicatas mantendo a ordem
@@ -105,7 +106,6 @@ def analisar_diff(diff_content: str, prompt_path: str = "Docs/regras-medicao.md"
 
     for nome_modelo in modelos_para_tentar:
         try:
-
             response = client.models.generate_content(
                 model=nome_modelo,
                 contents=[
@@ -120,6 +120,17 @@ def analisar_diff(diff_content: str, prompt_path: str = "Docs/regras-medicao.md"
                     temperature=0.1
                 )
             )
+
+            # Rastreia a chamada no rate_limiter
+            tokens_usados = 0
+            if hasattr(response, "usage_metadata") and response.usage_metadata:
+                tokens_usados = getattr(response.usage_metadata, "total_token_count", 0) or 0
+            if not tokens_usados and hasattr(response, "text") and response.text:
+                # Estimativa fallback de tokens (~4 caracteres por token)
+                tokens_usados = (len(diff_content) + len(response.text)) // 4
+            
+            rate_limiter.record_call(nome_modelo, tokens_usados)
+
             # Sucesso: Converte e retorna
             dados_json = json.loads(response.text)
             return RelatorioFaturamento(**dados_json)
@@ -127,6 +138,7 @@ def analisar_diff(diff_content: str, prompt_path: str = "Docs/regras-medicao.md"
             msg_erro = str(e)
             # Se for erro de cota, taxa de requisições ou sobrecarga (503, 429, overloaded, etc.), tenta o próximo modelo
             if any(k in msg_erro.lower() for k in ["503", "429", "overloaded", "demand", "quota", "exhausted", "limit"]):
+                rate_limiter.record_call(nome_modelo, 0)
                 ultimo_erro = e
                 continue
             else:
@@ -135,3 +147,4 @@ def analisar_diff(diff_content: str, prompt_path: str = "Docs/regras-medicao.md"
 
     # Se todos falharem
     raise ultimo_erro
+

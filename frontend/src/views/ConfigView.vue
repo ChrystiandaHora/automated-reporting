@@ -26,6 +26,10 @@
           <span class="status-dot-sm"></span>
           <span>GitLab {{ cfg.status.gitlab ? 'Conectado' : 'Não configurado' }}</span>
         </div>
+        <div v-if="cfg.concurrency" class="status-item status-info">
+          <span class="status-dot-sm"></span>
+          <span>⚡ Concorrência: {{ cfg.concurrency.total_system_limit }} total ({{ cfg.concurrency.queues.analises }} análises / {{ cfg.concurrency.queues.envios }} envios)</span>
+        </div>
       </div>
 
       <div class="config-grid">
@@ -64,6 +68,31 @@
           <input v-model="form.munka_data_inicio" placeholder="Ex: 08:00" />
           <label>Data/Hora de Fim Padrão (Ex: 18:00 ou DD/MM/YYYY 18:00)</label>
           <input v-model="form.munka_data_fim" placeholder="Ex: 18:00" />
+        </div>
+
+        <div class="config-section" v-if="cfg.concurrency">
+          <h3>Processamento Assíncrono</h3>
+          <div class="concurrency-info">
+            <div class="info-row">
+              <span class="info-label">CPU Cores Detectados:</span>
+              <span class="info-value">{{ cfg.concurrency.cpu_cores }} Cores</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Capacidade Total do Sistema:</span>
+              <span class="info-value highlight">{{ cfg.concurrency.total_system_limit }} processos simultâneos</span>
+            </div>
+            <div class="info-row sub">
+              <span class="info-label">• Fila de Análise de Commits:</span>
+              <span class="info-value">{{ cfg.concurrency.queues.analises }} workers</span>
+            </div>
+            <div class="info-row sub">
+              <span class="info-label">• Fila de Lançamento no Munka:</span>
+              <span class="info-value">{{ cfg.concurrency.queues.envios }} workers</span>
+            </div>
+          </div>
+          <p class="concurrency-note">
+            Calculado automaticamente por <code>Math.floor(CPU_CORES * 0.70)</code> (mínimo global de 4 processos) e compartilhado entre as filas.
+          </p>
         </div>
       </div>
 
@@ -182,6 +211,11 @@ async function salvar() {
   color: #f87171;
   background: rgba(239, 68, 68, 0.08);
 }
+.status-info {
+  border-color: rgba(96, 165, 250, 0.4);
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.08);
+}
 
 .config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
 
@@ -205,5 +239,53 @@ async function salvar() {
   border-bottom: 1px solid rgba(96, 165, 250, 0.2);
   padding-bottom: 0.625rem;
 }
+
+.concurrency-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.info-row.sub {
+  font-size: 0.8rem;
+  color: var(--text-muted, #94a3b8);
+  padding-left: 0.5rem;
+}
+
+.info-label {
+  font-weight: 500;
+}
+
+.info-value {
+  font-weight: 700;
+}
+
+.info-value.highlight {
+  color: #60a5fa;
+  font-size: 0.95rem;
+}
+
+.concurrency-note {
+  font-size: 0.75rem;
+  color: var(--text-muted, #94a3b8);
+  margin-top: 0.5rem;
+  line-height: 1.4;
+}
+
+.concurrency-note code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
 .success { color: #4ade80; margin-top: 1rem; font-weight: 600; }
 </style>

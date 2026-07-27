@@ -119,16 +119,15 @@ const route = useRoute()
 const commitsStore = useCommitsStore()
 const filaStore = useFilaStore()
 
-const selectedModel = ref('Gemini 2.5 Flash')
+const selectedModel = ref('Gemini 2.5 Flash Lite')
 const selecionados = ref<string[]>([])
 const enfileirando = ref(false)
 
 const models = [
-  { name: 'Gemini 2.5 Flash', badge: 'Recomendado', badgeClass: 'badge-blue', desc: 'Melhor equilíbrio entre velocidade, inteligência e custo. Ideal para a maioria dos commits.' },
-  { name: 'Gemini 3.5 Flash', badge: 'Alta Performance', badgeClass: 'badge-purple', desc: 'Modelo topo de linha mais recente. Máxima precisão na classificação de atividades.' },
   { name: 'Gemini 2.5 Flash Lite', badge: 'Super Rápido', badgeClass: 'badge-green', desc: 'Mais leve e veloz. Indicado para análises rápidas em commits de baixa complexidade.' },
-  { name: 'Gemini 3 Flash', badge: 'Nova Geração', badgeClass: 'badge-orange', desc: 'Próxima geração com raciocínio apurado.' },
-  { name: 'Gemini 3.1 Flash Lite', badge: 'Ultra Eficiente', badgeClass: 'badge-gray', desc: 'Modelo compacto de última geração com alta eficiência operacional.' }
+  { name: 'Gemini 3.1 Flash Lite', badge: 'Ultra Eficiente', badgeClass: 'badge-gray', desc: 'Modelo compacto de última geração com alta eficiência operacional.' },
+  { name: 'Gemini 3.5 Flash', badge: 'Alta Performance', badgeClass: 'badge-purple', desc: 'Modelo topo de linha mais recente. Máxima precisão na classificação de atividades.' },
+  { name: 'Gemini 3.5 Flash Lite', badge: 'Recomendado', badgeClass: 'badge-blue', desc: 'Equilíbrio ideal entre velocidade e precisão de análise.' }
 ]
 
 onMounted(async () => {

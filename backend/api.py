@@ -11,12 +11,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
+from concurrency import get_concurrency_config
 
 load_dotenv()
 
 
 def _obter_caminho_config_persistente() -> str:
-    db_url = os.environ.get("DATABASE_URL", "sqlite:///munka.db")
+    db_url = os.environ.get("DATABASE_URL", "sqlite:///nexus.db")
     db_dir = "."
     if db_url.startswith("sqlite:///"):
         db_path = db_url[10:]
@@ -80,10 +81,15 @@ from automation import MunkaAutomation
 from celery_app import celery_app
 from celery.result import AsyncResult
 from celery_tasks import analisar_commit_task, enviar_atividade_task
+from model_rate_limiter import rate_limiter
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Munka API", version="2.0.0")
+app = FastAPI(
+    title="Nexus API",
+    description="Plataforma de Inteligência e Automação de Apontamentos (GitLab + Gemini AI + Portal de Faturamento)",
+    version="2.0.0",
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -966,13 +972,27 @@ def listar_historico(db: Session = Depends(get_db)):
 
     Returns:
         A JSON array where each element contains ``id``, ``commit_id``,
-        ``titulo``, ``codigo``, ``hpa``, ``status``, and ``enviado_em``.
+        ``titulo``, ``codigo``, ``hpa``, ``status``, ``enviado_em``, and joined
+        commit details if available.
     """
     itens = (
-        db.query(models.Historico).order_by(models.Historico.enviado_em.desc()).all()
+        db.query(models.Historico, models.Commit)
+        .outerjoin(models.Commit, models.Historico.commit_id == models.Commit.id)
+        .order_by(models.Historico.enviado_em.desc())
+        .all()
     )
-    return [
-        {
+    res = []
+    for h, c in itens:
+        commit_data_autor = None
+        if c:
+            if c.diff_raw:
+                match_data = re.search(r"^Date:\s*(.+)$", c.diff_raw, re.MULTILINE)
+                if match_data:
+                    commit_data_autor = match_data.group(1).strip()
+            if not commit_data_autor:
+                commit_data_autor = c.importado_em
+
+        res.append({
             "id": h.id,
             "commit_id": h.commit_id,
             "titulo": h.titulo,
@@ -980,9 +1000,13 @@ def listar_historico(db: Session = Depends(get_db)):
             "hpa": h.hpa,
             "status": h.status,
             "enviado_em": h.enviado_em,
-        }
-        for h in itens
-    ]
+            "commit_data": c.data if c else None,
+            "commit_data_autor": commit_data_autor,
+            "commit_autor": c.autor if c else None,
+            "commit_mensagem": c.mensagem if c else None,
+        })
+    return res
+
 
 
 @app.delete("/historico/{item_id}", status_code=204)
@@ -1087,6 +1111,7 @@ def obter_config():
         A JSON object with config values.
     """
     cfg = obter_config_valores()
+    concurrency_cfg = get_concurrency_config()
     return {
         "gemini_api_key": "***" if cfg.get("GEMINI_API_KEY") else "",
         "munka_url": cfg.get("MUNKA_URL", ""),
@@ -1106,6 +1131,12 @@ def obter_config():
             "gemini": bool(cfg.get("GEMINI_API_KEY")),
             "munka": bool(cfg.get("MUNKA_USER") and cfg.get("MUNKA_PASS")),
             "gitlab": bool(cfg.get("GITLAB_TOKEN")),
+        },
+        "concurrency": {
+            "cpu_cores": concurrency_cfg["cpu_cores"],
+            "total_system_limit": concurrency_cfg["total"],
+            "limit_per_queue": concurrency_cfg["queues"]["analises"],
+            "queues": concurrency_cfg["queues"],
         },
     }
 
@@ -1152,21 +1183,6 @@ def salvar_config(req: ConfiguracaoRequest):
 
 @app.post("/fila/analise", status_code=201)
 def enfileirar_analise(req: FilaAnaliseRequest, db: Session = Depends(get_db)):
-    # Limite de concorrência/fila de 5 análises na fila
-    active_jobs = (
-        db.query(models.Fila)
-        .filter(
-            models.Fila.tipo == "analise",
-            models.Fila.status.in_(["running", "pending"]),
-        )
-        .count()
-    )
-    if active_jobs + len(req.commit_ids) > 5:
-        raise HTTPException(
-            status_code=429,
-            detail=f"Fila de análises cheia. Máximo de 5 análises permitidas na fila (atualmente: {active_jobs}).",
-        )
-
     jobs_enfileirados = []
     for commit_id in req.commit_ids:
         commit = (
@@ -1203,18 +1219,6 @@ def enfileirar_analise(req: FilaAnaliseRequest, db: Session = Depends(get_db)):
 
 @app.post("/fila/envio", status_code=201)
 def enfileirar_envio(req: FilaEnvioRequest, db: Session = Depends(get_db)):
-    # 1. Limite de concorrência local de 5 envios simultâneos
-    running_jobs = (
-        db.query(models.Fila)
-        .filter(models.Fila.tipo == "envio", models.Fila.status == "running")
-        .count()
-    )
-    if running_jobs >= 5:
-        raise HTTPException(
-            status_code=429,
-            detail="Fila de envios cheia. Máximo de 5 envios simultâneos permitidos.",
-        )
-
     commit = (
         db.query(models.Commit)
         .filter(models.Commit.id.like(f"{req.commit_id}%"))
@@ -1321,3 +1325,50 @@ def remover_job_fila(job_id: int, db: Session = Depends(get_db)):
 
     db.delete(job)
     db.commit()
+
+
+# ─── Rate Limit & Model Monitoring Endpoints ───────────────────────────────
+
+class AtualizarModelLimitsRequest(BaseModel):
+    rpm_limit: Optional[int] = None
+    tpm_limit: Optional[int] = None
+    rpd_limit: Optional[int] = None
+
+
+class TestCallRequest(BaseModel):
+    model_id: str
+
+
+@app.get("/modelos/limits")
+def obter_limites_modelos():
+    """Retorna a listagem de modelos habilitados e suas métricas de uso em tempo real."""
+    return rate_limiter.get_all_models_status()
+
+
+@app.put("/modelos/limits/{model_id}")
+def atualizar_limites_modelo(model_id: str, req: AtualizarModelLimitsRequest):
+    """Atualiza as configurações de limites de requisições/tokens para um determinado modelo."""
+    ok = rate_limiter.update_model_limits(
+        model_id=model_id,
+        rpm_limit=req.rpm_limit,
+        tpm_limit=req.tpm_limit,
+        rpd_limit=req.rpd_limit,
+    )
+    if not ok:
+        raise HTTPException(status_code=404, detail="Modelo não encontrado")
+    return {"ok": True}
+
+
+@app.post("/modelos/test-call")
+def testar_chamada_modelo(req: TestCallRequest):
+    """Simula uma requisição para testar a atualização dinâmica do contador de métricas."""
+    rate_limiter.record_call(req.model_id, tokens=1500)
+    return {"ok": True, "metrics": rate_limiter.get_metrics(req.model_id)}
+
+
+@app.post("/modelos/reset")
+def resetar_metricas_modelos():
+    """Reseta todos os contadores de requisições e tokens."""
+    rate_limiter.reset_metrics()
+    return {"ok": True}
+

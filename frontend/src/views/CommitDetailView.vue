@@ -86,7 +86,7 @@
               Enviar Selecionadas ({{ selecionadas.length }})
             </button>
             <button v-if="analiseStore.analise" class="btn-primary" :disabled="analiseStore.analisando || enviandoAtividade" @click="enviarTodasFila">
-              Enviar Todas ao Munka
+              Enviar Todas ao Portal
             </button>
           </div>
         </div>
@@ -127,7 +127,7 @@
                 :disabled="!!enviandoIndividual[idx]"
                 @click="enviarUma(idx)"
               >
-                {{ enviandoIndividual[idx] ? 'Enfileirando...' : (atv.enviado ? 'Re-enviar' : 'Enviar ao Munka') }}
+                {{ enviandoIndividual[idx] ? 'Enfileirando...' : (atv.enviado ? 'Re-enviar' : 'Enviar ao Portal') }}
               </button>
             </div>
 

@@ -20,7 +20,7 @@ def analisar_commit_task(
     commit_id: str,
     diff_raw: str,
     forcar: bool = False,
-    modelo: str = "Gemini 2.5 Flash",
+    modelo: str = "Gemini 2.5 Flash Lite",
     fila_id: int = None,
 ):
     from database import SessionLocal
@@ -254,18 +254,15 @@ def enviar_atividade_task(
             log_callback=log,
         )
         log(f"Executando fluxo completo (Cadastro + Evidência)...")
-        log(f"Aguardando liberação da fila de conexões do portal Munka...")
-        with redis_client.lock("munka_envio_lock", timeout=180, blocking_timeout=600):
-            log(f"Conexão liberada! Acessando o portal Munka...")
-            resultado, task_id = auto.cadastrar_e_homologar_completo(
-                task_data=atividade,
-                image_path=None,
-                product_name=cfg.get("MUNKA_PRODUTO", ""),
-                project_name=cfg.get("MUNKA_PROJETO", ""),
-                dev_profile=dev_profile,
-                commit_metadata=commit_metadata,
-                custom_evidence_html=evidencia_html,
-            )
+        resultado, task_id = auto.cadastrar_e_homologar_completo(
+            task_data=atividade,
+            image_path=None,
+            product_name=cfg.get("MUNKA_PRODUTO", ""),
+            project_name=cfg.get("MUNKA_PROJETO", ""),
+            dev_profile=dev_profile,
+            commit_metadata=commit_metadata,
+            custom_evidence_html=evidencia_html,
+        )
 
         pulada = resultado == "PULADA_DUPLICADA"
         status_id = cfg.get("MUNKA_STATUS_ID", "17")

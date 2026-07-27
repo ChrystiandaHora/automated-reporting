@@ -11,7 +11,7 @@ services:
     build: ./backend
     env_file: .env
     environment:
-      DATABASE_URL: sqlite:////data/munka.db
+      DATABASE_URL: sqlite:////data/nexus.db
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
     volumes:
@@ -26,30 +26,32 @@ services:
     build: ./backend
     env_file: .env
     environment:
-      DATABASE_URL: sqlite:////data/munka.db
+      DATABASE_URL: sqlite:////data/nexus.db
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
       PYTHONPATH: /app
+      CELERY_QUEUE: analises
     volumes:
       - munka_data:/data
     depends_on:
       - redis
-    command: celery -A celery_app worker --loglevel=info -Q analises --concurrency=1
+    command: celery -A celery_app worker --loglevel=info -Q analises
     restart: unless-stopped
 
   celery_worker_envios:
     build: ./backend
     env_file: .env
     environment:
-      DATABASE_URL: sqlite:////data/munka.db
+      DATABASE_URL: sqlite:////data/nexus.db
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
       PYTHONPATH: /app
+      CELERY_QUEUE: envios
     volumes:
       - munka_data:/data
     depends_on:
       - redis
-    command: celery -A celery_app worker --loglevel=info -Q envios --concurrency=4
+    command: celery -A celery_app worker --loglevel=info -Q envios
     restart: unless-stopped
 
   celery_flower:

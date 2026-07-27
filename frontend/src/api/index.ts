@@ -48,6 +48,10 @@ export interface HistoricoItem {
   hpa: number
   status: string
   enviado_em: string
+  commit_data?: string
+  commit_data_autor?: string
+  commit_autor?: string
+  commit_mensagem?: string
 }
 
 export interface Config {
@@ -65,6 +69,15 @@ export interface Config {
   munka_data_inicio?: string
   munka_data_fim?: string
   status: { gemini: boolean; munka: boolean; gitlab: boolean }
+  concurrency?: {
+    cpu_cores: number
+    total_system_limit: number
+    limit_per_queue: number
+    queues: {
+      analises: number
+      envios: number
+    }
+  }
 }
 
 export interface CommitUpdate {
@@ -106,6 +119,23 @@ export interface ProjetoAtualizacao {
   has_update: boolean
   behind_count: number
   error?: string
+}
+
+export interface ModelStatus {
+  id: string
+  name: string
+  category: string
+  rpm: number
+  rpm_limit: number
+  rpm_pct: number
+  tpm: number
+  tpm_limit: number
+  tpm_pct: number
+  rpd: number
+  rpd_limit: number
+  rpd_pct: number
+  max_pct: number
+  status: 'ok' | 'warning' | 'danger'
 }
 
 export const api = {
@@ -158,7 +188,16 @@ export const api = {
     remover: (id: number) => http.delete(`/fila/${id}`).then(r => r.data),
   },
   projeto: {
-    verificarAtualizacao: () => http.get<ProjetoAtualizacao>('/projeto/atualizacao').then(r => r.data),
+    verificarAtualizacao: () => http.get<any>('/projeto/atualizacao').then(r => r.data),
+  },
+  modelos: {
+    limits: () => http.get<ModelStatus[]>('/modelos/limits').then(r => r.data),
+    atualizarLimits: (modelId: string, limits: { rpm_limit?: number; tpm_limit?: number; rpd_limit?: number }) =>
+      http.put<{ ok: boolean }>(`/modelos/limits/${modelId}`, limits).then(r => r.data),
+    testCall: (modelId: string) =>
+      http.post<{ ok: boolean; metrics: any }>('/modelos/test-call', { model_id: modelId }).then(r => r.data),
+    reset: () => http.post<{ ok: boolean }>('/modelos/reset').then(r => r.data),
   },
 }
+
 
