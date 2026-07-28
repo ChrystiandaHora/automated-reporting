@@ -8,7 +8,7 @@
           {{ items.length }} atividade{{ items.length > 1 ? 's' : '' }}
         </span>
       </div>
-      <button class="btn-ghost btn-sm" @click="carregarHistorico">↻ Atualizar</button>
+      <button class="btn-ghost btn-sm" @click="carregarHistorico()">↻ Atualizar</button>
     </div>
 
     <div v-if="loading" class="loading">Carregando...</div>
@@ -54,7 +54,9 @@
                 <div class="history-row-badges">
                   <span class="badge badge-code"><code>{{ item.codigo }}</code></span>
                   <span class="hpa-badge">{{ item.hpa }}h</span>
-                  <span class="badge badge-green">{{ item.status }}</span>
+                  <span class="badge" :class="item.tem_data_fim === false || item.status?.includes('Sem Data Fim') || item.status?.includes('Incompleta') ? 'badge-orange' : 'badge-green'">
+                    {{ item.tem_data_fim === false ? '⚠️ Sem Data Fim' : item.status }}
+                  </span>
                 </div>
               </div>
 
@@ -79,6 +81,15 @@
               >
                 {{ item.commit_id.slice(0, 8) }}
               </router-link>
+
+              <!-- Botão Re-enviar / Retry -->
+              <button 
+                class="btn-ghost btn-sm btn-reenviar-history" 
+                @click="reenviarItemHistorico(item)"
+                title="Re-enviar esta atividade ao portal Munka"
+              >
+                ↻ Re-enviar
+              </button>
 
               <!-- Botão Excluir -->
               <button 
@@ -115,9 +126,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { api, type HistoricoItem } from '../api'
 import { useToastStore } from '../stores/toast'
+import { useFilaStore } from '../stores/fila'
 import HelpModal from '../components/HelpModal.vue'
 
 const helpItems = [
@@ -130,20 +142,56 @@ const helpItems = [
 const items = ref<HistoricoItem[]>([])
 const loading = ref(true)
 const toastStore = useToastStore()
+const filaStore = useFilaStore()
+
+let timerHistorico: any = null
 
 const itemParaDeletar = ref<number | null>(null)
 const exibindoModalConfirmacao = ref(false)
 
+async function reenviarItemHistorico(item: HistoricoItem) {
+  if (!item.commit_id) {
+    toastStore.addToast('Commit ID não encontrado para esta atividade', 'error')
+    return
+  }
+  if (confirm(`Deseja re-enviar a atividade "${item.titulo}" ao portal?`)) {
+    try {
+      // Busca a análise do commit para encontrar o índice correto da atividade pelo título
+      const analise = await api.analise.obter(item.commit_id)
+      const idx = analise.atividades.findIndex((a: any) => a.titulo === item.titulo)
+      if (idx === -1) {
+        toastStore.addToast(`Atividade "${item.titulo}" não encontrada na análise do commit`, 'error')
+        return
+      }
+      await filaStore.enfileirarEnvio(item.commit_id, idx)
+      toastStore.addToast('Envio adicionado à fila com sucesso!', 'success')
+    } catch (e: any) {
+      toastStore.addToast(`Erro ao enfileirar re-envio: ${e.message || e}`, 'error')
+    }
+  }
+}
+
 onMounted(async () => {
   await carregarHistorico()
+  timerHistorico = setInterval(async () => {
+    await carregarHistorico(true)
+  }, 30000)
 })
 
-async function carregarHistorico() {
-  loading.value = true
+onUnmounted(() => {
+  if (timerHistorico) {
+    clearInterval(timerHistorico)
+    timerHistorico = null
+  }
+})
+
+async function carregarHistorico(quiet: boolean | Event = false) {
+  const isQuiet = typeof quiet === 'boolean' ? quiet : false
+  if (!isQuiet) loading.value = true
   try {
     items.value = await api.historico.listar()
   } finally {
-    loading.value = false
+    if (!isQuiet) loading.value = false
   }
 }
 
@@ -540,6 +588,20 @@ async function confirmarExclusao() {
   justify-content: center;
   padding: 0.35rem;
   transition: border-color 0.12s, color 0.12s, transform 0.1s;
+}
+
+.btn-reenviar-history {
+  color: var(--accent, #58a6ff);
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  border: 1px solid var(--border);
+}
+
+.btn-reenviar-history:hover {
+  background: var(--accent-glow, rgba(88, 166, 255, 0.1));
+  border-color: var(--accent, #58a6ff);
 }
 
 .delete-btn {

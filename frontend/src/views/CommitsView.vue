@@ -28,6 +28,85 @@
       </div>
     </div>
 
+    <!-- Painel de KPIs de Tarefas por Tipo -->
+    <div v-if="store.stats" class="kpi-panel">
+      <div class="kpi-panel-header">
+        <div class="kpi-panel-title">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+          <h2>Indicadores de Tarefas por Tipo</h2>
+        </div>
+
+        <!-- Filtro Mês a Mês -->
+        <div class="kpi-filter-box">
+          <label for="mes-filtro" class="kpi-filter-label">Mês:</label>
+          <select id="mes-filtro" v-model="mesSelecionado" class="kpi-select">
+            <option value="todos">Todos os Meses</option>
+            <option v-for="m in store.stats.months" :key="m" :value="m">
+              {{ formatarMesExtenso(m) }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Resumo Geral -->
+      <div class="kpi-summary-cards">
+        <div class="kpi-card highlight">
+          <span class="kpi-card-label">Total de Tarefas</span>
+          <span class="kpi-card-val">{{ statsExibidas.total_tasks }}</span>
+          <span class="kpi-card-sub">atividades identificadas</span>
+        </div>
+        <div class="kpi-card highlight-green">
+          <span class="kpi-card-label">Total Horas HPA</span>
+          <span class="kpi-card-val">{{ statsExibidas.total_hpa }}h</span>
+          <span class="kpi-card-sub">faturamento previsto</span>
+        </div>
+        <div class="kpi-card highlight-purple">
+          <span class="kpi-card-label">Tipos Distintos</span>
+          <span class="kpi-card-val">{{ Object.keys(statsExibidas.codes).length }}</span>
+          <span class="kpi-card-sub">códigos de serviço</span>
+        </div>
+      </div>
+
+      <!-- Quantificação por Código de Serviço (ex: 21a - 10, 21b - 3) -->
+      <div class="kpi-codes-section">
+        <div class="kpi-section-title">Quantificação por Tipo de Serviço:</div>
+        
+        <div v-if="Object.keys(statsExibidas.codes).length === 0" class="kpi-empty">
+          Nenhuma atividade registrada para o período selecionado.
+        </div>
+
+        <div v-else class="kpi-codes-grid">
+          <div 
+            v-for="(info, code) in statsExibidas.codes" 
+            :key="code"
+            class="kpi-code-card"
+          >
+            <div class="kpi-code-header">
+              <span class="badge badge-code"><code>{{ code }}</code></span>
+              <span class="kpi-code-count">{{ info.count }} tarefa{{ info.count > 1 ? 's' : '' }}</span>
+            </div>
+            <div class="kpi-code-footer">
+              <span class="kpi-code-hpa">{{ info.hpa }}h HPA</span>
+              <span class="kpi-code-pct" v-if="statsExibidas.total_tasks > 0">
+                {{ Math.round((info.count / statsExibidas.total_tasks) * 100) }}%
+              </span>
+            </div>
+            <!-- Barra de Progresso Visual -->
+            <div class="kpi-progress-bar">
+              <div 
+                class="kpi-progress-fill" 
+                :style="{ width: `${statsExibidas.total_tasks > 0 ? (info.count / statsExibidas.total_tasks) * 100 : 0}%` }"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div v-if="store.loading" class="loading">Carregando commits...</div>
 
     <div v-else-if="store.commits.length === 0" class="empty">
@@ -172,6 +251,30 @@ const showImport = ref(false)
 const importing = ref(false)
 const importError = ref('')
 const form = ref({ commit_hashes: '' })
+
+const mesSelecionado = ref<string>('todos')
+
+const statsExibidas = computed(() => {
+  if (!store.stats) {
+    return { codes: {}, total_tasks: 0, total_hpa: 0 }
+  }
+  if (mesSelecionado.value === 'todos') {
+    return store.stats.totals
+  }
+  return store.stats.by_month[mesSelecionado.value] || { codes: {}, total_tasks: 0, total_hpa: 0 }
+})
+
+function formatarMesExtenso(mesAno: string): string {
+  if (!mesAno || !mesAno.includes('/')) return mesAno
+  const [mes, ano] = mesAno.split('/')
+  const meses = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ]
+  const mesIdx = parseInt(mes, 10) - 1
+  const nomeMes = meses[mesIdx] || mes
+  return `${nomeMes} de ${ano} (${mesAno})`
+}
 
 onMounted(async () => {
   await store.fetchCommits()
@@ -577,9 +680,201 @@ async function importar() {
   box-shadow: 5px 5px 0 var(--border);
   background: #ff6b6b;
 }
-.btn-danger:hover {
-  transform: translateY(-2px) translateX(-2px);
-  box-shadow: 5px 5px 0 var(--border);
-  background: #ff6b6b;
+
+/* Painel de KPIs */
+.kpi-panel {
+  background: var(--card-bg, #161b22);
+  border: 1px solid var(--border, #30363d);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.kpi-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border, #30363d);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.kpi-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--accent, #58a6ff);
+}
+
+.kpi-panel-title h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text, #f0f6fc);
+}
+
+.kpi-filter-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.kpi-filter-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-muted, #8b949e);
+}
+
+.kpi-select {
+  background: var(--bg, #0d1117);
+  color: var(--text, #c9d1d9);
+  border: 1px solid var(--border, #30363d);
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.kpi-select:focus, .kpi-select:hover {
+  border-color: var(--accent, #58a6ff);
+}
+
+.kpi-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.kpi-card {
+  background: var(--bg, #0d1117);
+  border: 1px solid var(--border, #30363d);
+  border-radius: 8px;
+  padding: 0.9rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+}
+
+.kpi-card.highlight { border-left: 4px solid var(--accent, #58a6ff); }
+.kpi-card.highlight-green { border-left: 4px solid #3fb950; }
+.kpi-card.highlight-purple { border-left: 4px solid #bc8cff; }
+
+.kpi-card-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted, #8b949e);
+  letter-spacing: 0.05em;
+}
+
+.kpi-card-val {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text, #f0f6fc);
+  margin: 0.2rem 0;
+}
+
+.kpi-card-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted, #8b949e);
+}
+
+.kpi-codes-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.kpi-section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted, #8b949e);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.kpi-empty {
+  font-size: 0.88rem;
+  color: var(--text-muted, #8b949e);
+  padding: 1rem 0;
+  font-style: italic;
+}
+
+.kpi-codes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.8rem;
+}
+
+.kpi-code-card {
+  background: var(--bg, #0d1117);
+  border: 1px solid var(--border, #30363d);
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  transition: all 0.15s;
+}
+
+.kpi-code-card:hover {
+  border-color: var(--accent, #58a6ff);
+  transform: translateY(-2px);
+}
+
+.kpi-code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kpi-code-count {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--text, #f0f6fc);
+}
+
+.kpi-code-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--text-muted, #8b949e);
+}
+
+.kpi-code-hpa {
+  font-weight: 600;
+}
+
+.kpi-code-pct {
+  font-weight: 700;
+  color: var(--accent, #58a6ff);
+}
+
+.kpi-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 0.2rem;
+}
+
+.kpi-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #58a6ff, #388bfd);
+  border-radius: 2px;
+  transition: width 0.3s ease;
 }
 </style>

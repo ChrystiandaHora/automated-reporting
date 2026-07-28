@@ -31,6 +31,7 @@ export interface Atividade {
   is_media?: boolean
   complexidade?: string
   enviado?: boolean
+  data_fim_missing?: boolean
 }
 
 export interface Analise {
@@ -47,6 +48,7 @@ export interface HistoricoItem {
   codigo: string
   hpa: number
   status: string
+  tem_data_fim?: boolean
   enviado_em: string
   commit_data?: string
   commit_data_autor?: string
@@ -138,10 +140,34 @@ export interface ModelStatus {
   status: 'ok' | 'warning' | 'danger'
 }
 
+export interface CodeStat {
+  count: number
+  hpa: number
+}
+
+export interface MonthStat {
+  codes: Record<string, CodeStat>
+  total_tasks: number
+  total_hpa: number
+}
+
+export interface CommitStatsResponse {
+  months: string[]
+  by_month: Record<string, MonthStat>
+  totals: {
+    codes: Record<string, CodeStat>
+    total_tasks: number
+    total_hpa: number
+  }
+}
+
 export const api = {
   commits: {
     listar: () => http.get<CommitSummary[]>('/commits').then(r => r.data),
+    stats: () => http.get<CommitStatsResponse>('/commits/stats').then(r => r.data),
     obter: (sha: string) => http.get<any>(`/commits/${sha}`).then(r => r.data),
+    verificarDataFim: (sha: string) =>
+      http.get<{ commit_id: string; atividades: { titulo: string; codigo_id: string; enviado: boolean; has_data_fim: boolean; data_fim_missing: boolean }[] }>(`/commits/${sha}/check-data-fim`).then(r => r.data),
     importar: (payload: { gitlab_url?: string; token?: string; project_path?: string; commit_hash: string }) =>
       http.post<{ id: string; ja_existia: boolean }>('/commits/importar', payload).then(r => r.data),
     atualizar: (sha: string, payload: CommitUpdate) =>

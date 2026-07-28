@@ -119,15 +119,16 @@
               <span class="badge badge-blue">{{ atv.etapa }}</span>
               <span class="atividade-codigo">{{ atv.codigo_id }} · {{ atv.hpa }}h</span>
               <span class="atividade-titulo-header" :title="atv.titulo || 'Atividade sem Título'">{{ atv.titulo || 'Atividade sem Título' }}</span>
-              <span v-if="atv.enviado" class="badge badge-green" style="margin-left: auto; margin-right: 1.25rem;">✔ Enviada</span>
+              <span v-if="atv.enviado && !atv.data_fim_missing" class="badge badge-green" style="margin-left: auto; margin-right: 1.25rem;">✔ Enviada</span>
+              <span v-else-if="atv.enviado && atv.data_fim_missing" class="badge badge-orange" style="margin-left: auto; margin-right: 1.25rem;">⚠️ Sem Data Fim</span>
               <span v-else class="badge badge-orange" style="margin-left: auto; margin-right: 1.25rem;">Pendente</span>
               <button
                 class="btn-sm"
-                :class="atv.enviado ? 'btn-ghost' : 'btn-primary'"
+                :class="(atv.enviado || atv.data_fim_missing) ? 'btn-ghost' : 'btn-primary'"
                 :disabled="!!enviandoIndividual[idx]"
                 @click="enviarUma(idx)"
               >
-                {{ enviandoIndividual[idx] ? 'Enfileirando...' : (atv.enviado ? 'Re-enviar' : 'Enviar ao Portal') }}
+                {{ enviandoIndividual[idx] ? 'Enfileirando...' : ((atv.enviado || atv.data_fim_missing) ? 'Re-enviar' : 'Enviar ao Portal') }}
               </button>
             </div>
 
@@ -254,7 +255,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAnaliseStore } from '../stores/commits'
 import { useFilaStore } from '../stores/fila'
@@ -510,6 +511,27 @@ function recalcularHpa(atv: any) {
   }
 }
 
+let timerCheckDataFim: any = null
+
+async function executarChecagemDataFim() {
+  if (!sha || !analiseStore.analise || !analiseStore.analise.atividades) return
+  try {
+    const res = await api.commits.verificarDataFim(sha)
+    if (res && res.atividades) {
+      const statusMap = new Map(res.atividades.map(a => [a.titulo, a]))
+      for (const atv of analiseStore.analise.atividades) {
+        const st = statusMap.get(atv.titulo)
+        if (st) {
+          atv.enviado = st.enviado
+          atv.data_fim_missing = st.data_fim_missing
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Erro na checagem periódica de data_fim:', e)
+  }
+}
+
 onMounted(async () => {
   try {
     commit.value = await api.commits.obter(sha)
@@ -517,6 +539,18 @@ onMounted(async () => {
     loadingCommit.value = false
   }
   await analiseStore.fetchAnalise(sha)
+  await executarChecagemDataFim()
+
+  timerCheckDataFim = setInterval(async () => {
+    await executarChecagemDataFim()
+  }, 30000)
+})
+
+onUnmounted(() => {
+  if (timerCheckDataFim) {
+    clearInterval(timerCheckDataFim)
+    timerCheckDataFim = null
+  }
 })
 
 async function salvar() {

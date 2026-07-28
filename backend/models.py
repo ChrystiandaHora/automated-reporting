@@ -1,5 +1,34 @@
-from sqlalchemy import Column, String, Text, Float, Integer, ForeignKey
+from sqlalchemy import Column, String, Text, Float, Integer, ForeignKey, Boolean
 from database import Base
+
+class Historico(Base):
+    """Registra cada atividade enviada com sucesso ao portal Munka.
+
+    Um commit pode gerar múltiplos registros de histórico, um por atividade
+    enviada. Registros são inseridos apenas após o Playwright confirmar o
+    cadastro e homologação da tarefa no portal.
+
+    Attributes:
+        id: Identificador autoincremental, chave primária.
+        commit_id: SHA do commit de origem da atividade.
+        titulo: Título formal da atividade cadastrada no Munka.
+        codigo: Código do catálogo de serviços (ex: 21a, 57b).
+        hpa: Horas Previstas para Execução da Atividade faturadas.
+        status: Status final da atividade (ex: Homologada).
+        enviado_em: Timestamp ISO do envio bem-sucedido.
+        tem_data_fim: Booleano indicando se a data de fim foi gravada com sucesso.
+    """
+
+    __tablename__ = "historico"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    commit_id = Column(String, ForeignKey("commits.id"))
+    titulo = Column(String)
+    codigo = Column(String)
+    hpa = Column(Float)
+    status = Column(String)
+    enviado_em = Column(String)
+    tem_data_fim = Column(Boolean, default=True)
 
 
 class Commit(Base):
@@ -53,32 +82,7 @@ class Analise(Base):
     analisado_em = Column(String)
 
 
-class Historico(Base):
-    """Registra cada atividade enviada com sucesso ao portal Munka.
 
-    Um commit pode gerar múltiplos registros de histórico, um por atividade
-    enviada. Registros são inseridos apenas após o Playwright confirmar o
-    cadastro e homologação da tarefa no portal.
-
-    Attributes:
-        id: Identificador autoincremental, chave primária.
-        commit_id: SHA do commit de origem da atividade.
-        titulo: Título formal da atividade cadastrada no Munka.
-        codigo: Código do catálogo de serviços (ex: 21a, 57b).
-        hpa: Horas Previstas para Execução da Atividade faturadas.
-        status: Status final da atividade (ex: Homologada).
-        enviado_em: Timestamp ISO do envio bem-sucedido.
-    """
-
-    __tablename__ = "historico"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    commit_id = Column(String, ForeignKey("commits.id"))
-    titulo = Column(String)
-    codigo = Column(String)
-    hpa = Column(Float)
-    status = Column(String)
-    enviado_em = Column(String)
 
 
 class Fila(Base):

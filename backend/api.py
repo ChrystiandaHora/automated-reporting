@@ -72,7 +72,7 @@ def obter_config_valores() -> dict:
     return config_valores
 
 
-from database import engine, get_db, Base, SessionLocal
+from database import engine, get_db, Base, SessionLocal, _aplicar_migracoes
 import models
 from gitlab_service import obter_metadados_commit, obter_diff_commit
 from gemini_service import analisar_diff
@@ -84,6 +84,7 @@ from celery_tasks import analisar_commit_task, enviar_atividade_task
 from model_rate_limiter import rate_limiter
 
 Base.metadata.create_all(bind=engine)
+_aplicar_migracoes(engine)
 
 app = FastAPI(
     title="Nexus API",
@@ -370,6 +371,82 @@ def listar_commits(db: Session = Depends(get_db)):
     return result
 
 
+@app.get("/commits/stats")
+def obter_estatisticas_commits(db: Session = Depends(get_db)):
+    """Retorna o quantitativo de tarefas por código de serviço agregadas por mês e no total."""
+    commits = db.query(models.Commit).all()
+
+    by_month = {}
+    totals_codes = {}
+    total_tasks_global = 0
+    total_hpa_global = 0.0
+
+    for c in commits:
+        analise = db.query(models.Analise).filter_by(commit_id=c.id).first()
+        if not analise:
+            continue
+
+        mes_ano = "Outros"
+        if c.diff_raw:
+            match_data = re.search(r"^Date:\s*(.+)$", c.diff_raw, re.MULTILINE)
+            if match_data:
+                try:
+                    dt = datetime.strptime(match_data.group(1).strip(), "%d/%m/%Y %H:%M:%S")
+                    mes_ano = dt.strftime("%m/%Y")
+                except Exception:
+                    pass
+
+        if mes_ano == "Outros" and c.data:
+            parts = c.data.split("/")
+            if len(parts) == 3:
+                mes_ano = f"{parts[1]}/{parts[2]}"
+
+        if mes_ano == "Outros" and c.importado_em:
+            try:
+                dt = datetime.fromisoformat(c.importado_em)
+                mes_ano = dt.strftime("%m/%Y")
+            except Exception:
+                pass
+
+        try:
+            atividades = json.loads(analise.atividades_json)
+        except Exception:
+            continue
+
+        if mes_ano not in by_month:
+            by_month[mes_ano] = {"codes": {}, "total_tasks": 0, "total_hpa": 0.0}
+
+        for atv in atividades:
+            codigo = atv.get("codigo_id") or atv.get("codigo") or "não_definido"
+            hpa = float(atv.get("hpa", 0) or 0)
+
+            if codigo not in by_month[mes_ano]["codes"]:
+                by_month[mes_ano]["codes"][codigo] = {"count": 0, "hpa": 0.0}
+            by_month[mes_ano]["codes"][codigo]["count"] += 1
+            by_month[mes_ano]["codes"][codigo]["hpa"] = round(by_month[mes_ano]["codes"][codigo]["hpa"] + hpa, 2)
+            by_month[mes_ano]["total_tasks"] += 1
+            by_month[mes_ano]["total_hpa"] = round(by_month[mes_ano]["total_hpa"] + hpa, 2)
+
+            if codigo not in totals_codes:
+                totals_codes[codigo] = {"count": 0, "hpa": 0.0}
+            totals_codes[codigo]["count"] += 1
+            totals_codes[codigo]["hpa"] = round(totals_codes[codigo]["hpa"] + hpa, 2)
+            total_tasks_global += 1
+            total_hpa_global = round(total_hpa_global + hpa, 2)
+
+    months_sorted = sorted(list(by_month.keys()), reverse=True)
+
+    return {
+        "months": months_sorted,
+        "by_month": by_month,
+        "totals": {
+            "codes": totals_codes,
+            "total_tasks": total_tasks_global,
+            "total_hpa": total_hpa_global,
+        },
+    }
+
+
 @app.post("/commits/importar", status_code=201)
 def importar_commit(req: ImportarRequest, db: Session = Depends(get_db)):
     """Import a GitLab commit into the local database.
@@ -540,6 +617,56 @@ def obter_commit(sha: str, db: Session = Depends(get_db)):
         "atividades_enviadas": atividades_enviadas,
         "hpa_total": hpa_total,
         "hpa_enviado": hpa_enviado,
+    }
+
+
+@app.get("/commits/{sha}/check-data-fim")
+def verificar_data_fim_commit(sha: str, db: Session = Depends(get_db)):
+    """Verifica se cada atividade de um commit possui a data_fim gravada no portal/histórico."""
+    commit = db.query(models.Commit).filter(models.Commit.id.like(f"{sha}%")).first()
+    if not commit:
+        raise HTTPException(status_code=404, detail="Commit não encontrado")
+
+    analise = db.query(models.Analise).filter_by(commit_id=commit.id).first()
+    if not analise:
+        return {"commit_id": commit.id, "atividades": []}
+
+    try:
+        atividades = json.loads(analise.atividades_json)
+    except Exception:
+        atividades = []
+
+    historicos = db.query(models.Historico).filter_by(commit_id=commit.id).all()
+    historicos_por_titulo = {h.titulo: h for h in historicos}
+
+    res_atividades = []
+    for atv in atividades:
+        titulo = atv.get("titulo", "")
+        hist = historicos_por_titulo.get(titulo)
+
+        atv_enviado = bool(atv.get("enviado"))
+        if hist:
+            enviado = True
+            status_str = str(hist.status or "")
+            if "Sem Data Fim" in status_str or "Incompleta" in status_str or status_str in ("Cadastrada", "Backlog", "Backlog Prioritário"):
+                has_data_fim = False
+            else:
+                has_data_fim = True
+        else:
+            enviado = atv_enviado
+            has_data_fim = False
+
+        res_atividades.append({
+            "titulo": titulo,
+            "codigo_id": atv.get("codigo_id", ""),
+            "enviado": enviado,
+            "has_data_fim": has_data_fim,
+            "data_fim_missing": enviado and not has_data_fim
+        })
+
+    return {
+        "commit_id": commit.id,
+        "atividades": res_atividades
     }
 
 
@@ -999,6 +1126,7 @@ def listar_historico(db: Session = Depends(get_db)):
             "codigo": h.codigo,
             "hpa": h.hpa,
             "status": h.status,
+            "tem_data_fim": h.tem_data_fim if getattr(h, "tem_data_fim", None) is not None else True,
             "enviado_em": h.enviado_em,
             "commit_data": c.data if c else None,
             "commit_data_autor": commit_data_autor,

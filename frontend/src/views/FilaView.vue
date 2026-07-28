@@ -130,12 +130,14 @@
                 </div>
               </div>
 
-              <!-- Opção de Reenviar em caso de falha de envio -->
-              <div v-if="job.tipo === 'envio' && job.status === 'error'" class="mudar-modelo-box">
-                <span class="mudar-modelo-label">Esta atividade falhou no envio. Deseja tentar novamente?</span>
+              <!-- Opção de Reenviar em caso de término ou falha de envio -->
+              <div v-if="job.tipo === 'envio' && (job.status === 'error' || job.status === 'completed')" class="mudar-modelo-box">
+                <span class="mudar-modelo-label">
+                  {{ job.status === 'completed' ? 'Atividade concluída. Deseja re-enviar ao portal?' : 'Esta atividade falhou no envio. Deseja tentar novamente?' }}
+                </span>
                 <div class="mudar-modelo-control">
                   <button class="btn-primary-mudar" @click="reenviarAtividade(job)">
-                    Reenviar Envio
+                    {{ job.status === 'completed' ? 'Re-enviar Envio' : 'Tentar Novamente' }}
                   </button>
                 </div>
               </div>
@@ -328,7 +330,8 @@ async function reprocessarComOutroModelo(job: any) {
 }
 
 async function reenviarAtividade(job: any) {
-  if (confirm('Deseja realmente remover esta tentativa com erro e enfileirar o envio novamente?')) {
+  const acao = job.status === 'completed' ? 're-enviar esta atividade ao portal' : 'remover a tentativa com erro e tentar novamente'
+  if (confirm(`Deseja realmente ${acao}?`)) {
     try {
       await filaStore.removerJob(job.id)
       await filaStore.enfileirarEnvio(job.commit_id, job.atividade_idx)

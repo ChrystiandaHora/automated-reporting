@@ -1,6 +1,6 @@
 import os
 import shutil
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///nexus.db")
@@ -54,6 +54,52 @@ _migrar_banco_antigo_se_necessario(DATABASE_URL)
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+
+def _aplicar_migracoes(engine_ref):
+    """Detecta colunas definidas nos models mas ausentes no banco e as adiciona.
+
+    Percorre todas as tabelas registradas no metadata do SQLAlchemy, compara as
+    colunas definidas no modelo Python com as colunas reais no banco SQLite e
+    executa ALTER TABLE ADD COLUMN para cada coluna faltante.
+    """
+    insp = inspect(engine_ref)
+    with engine_ref.connect() as conn:
+        for table_name, table in Base.metadata.tables.items():
+            if not insp.has_table(table_name):
+                continue
+
+            colunas_existentes = {c["name"] for c in insp.get_columns(table_name)}
+
+            for col in table.columns:
+                if col.name in colunas_existentes:
+                    continue
+
+                # Mapeia o tipo SQLAlchemy para tipo SQL compatível com SQLite
+                col_type = col.type.compile(dialect=engine_ref.dialect)
+                default_clause = ""
+                if col.default is not None:
+                    val = col.default.arg
+                    if isinstance(val, bool):
+                        default_clause = f" DEFAULT {1 if val else 0}"
+                    elif isinstance(val, (int, float)):
+                        default_clause = f" DEFAULT {val}"
+                    elif isinstance(val, str):
+                        default_clause = f" DEFAULT '{val}'"
+
+                sql = f"ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type}{default_clause}"
+                try:
+                    conn.execute(text(sql))
+                    conn.commit()
+                    print(
+                        f"[Nexus Migration] ADD COLUMN: {table_name}.{col.name} ({col_type}){default_clause}",
+                        flush=True,
+                    )
+                except Exception as e:
+                    print(
+                        f"[Nexus Migration] SKIP: {table_name}.{col.name} — {e}",
+                        flush=True,
+                    )
 
 
 def get_db():

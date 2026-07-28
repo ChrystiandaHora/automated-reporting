@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { api, type CommitSummary, type Analise, type HistoricoItem, type CommitUpdate } from '../api'
+import { api, type CommitSummary, type Analise, type HistoricoItem, type CommitUpdate, type CommitStatsResponse } from '../api'
 
 export const useCommitsStore = defineStore('commits', () => {
   const commits = ref<CommitSummary[]>([])
   const historico = ref<HistoricoItem[]>([])
+  const stats = ref<CommitStatsResponse | null>(null)
   const loading = ref(false)
   const error = ref('')
 
@@ -13,10 +14,19 @@ export const useCommitsStore = defineStore('commits', () => {
     error.value = ''
     try {
       commits.value = await api.commits.listar()
+      await fetchStats()
     } catch (e: any) {
       error.value = e.response?.data?.detail ?? String(e)
     } finally {
       loading.value = false
+    }
+  }
+
+  async function fetchStats() {
+    try {
+      stats.value = await api.commits.stats()
+    } catch (e) {
+      console.error('Erro ao buscar estatísticas de commits:', e)
     }
   }
 
@@ -33,6 +43,7 @@ export const useCommitsStore = defineStore('commits', () => {
   async function deletar(sha: string) {
     await api.commits.deletar(sha)
     commits.value = commits.value.filter(c => c.id !== sha)
+    await fetchStats()
   }
 
   async function atualizarMetadados(sha: string, payload: CommitUpdate) {
@@ -41,7 +52,7 @@ export const useCommitsStore = defineStore('commits', () => {
     if (idx !== -1) Object.assign(commits.value[idx], payload)
   }
 
-  return { commits, historico, loading, error, fetchCommits, fetchHistorico, importar, deletar, atualizarMetadados }
+  return { commits, historico, stats, loading, error, fetchCommits, fetchStats, fetchHistorico, importar, deletar, atualizarMetadados }
 })
 
 export const useAnaliseStore = defineStore('analise', () => {

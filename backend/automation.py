@@ -394,25 +394,30 @@ class MunkaAutomation:
                 sha_input.wait_for(state="attached", timeout=5000)
                 current_sha_val = sha_input.input_value().strip()
 
-                self._log(f"Valor atual de evidencia_commit_sha no portal: '{current_sha_val}'")
+                # Checa também se data_fim foi preenchido
+                data_fim_input = page.locator("#data_fim")
+                current_data_fim_val = data_fim_input.input_value().strip() if data_fim_input.count() > 0 else ""
+
+                self._log(f"Valor no portal -> commit_sha: '{current_sha_val}', data_fim: '{current_data_fim_val}'")
 
                 # Compara usando substring case-insensitive
                 target_sha_clean = target_sha.strip().lower()
                 target_sha_short = target_sha_clean[:8]
                 current_sha_val_lower = current_sha_val.lower()
 
-                if target_sha_clean in current_sha_val_lower or target_sha_short in current_sha_val_lower:
-                    self._log(f"Duplicidade confirmada! A tarefa com o SHA/URL '{target_sha}' já está cadastrada no portal.")
+                # Se o SHA bate E data_fim está preenchida, a tarefa foi concluída com sucesso
+                if (target_sha_clean in current_sha_val_lower or target_sha_short in current_sha_val_lower) and current_data_fim_val:
+                    self._log(f"Duplicidade confirmada! A tarefa com o SHA/URL '{target_sha}' já está cadastrada e finalizada no portal.")
                     return True, None
 
-                # Se o SHA estiver vazio ou "sem_sha", consideramos esta tarefa como incompleta
-                if not current_sha_val or current_sha_val.lower() == "sem_sha":
+                # Se o SHA for "sem_sha", ou o SHA bater mas data_fim estiver vazia, a tarefa é incompleta!
+                if not current_sha_val or current_sha_val.lower() == "sem_sha" or not current_data_fim_val:
                     incomplete_edit_url = edit_url
             except Exception as e:
                 self._log(f"Erro ao verificar tarefa na URL {edit_url}: {e}. Continuando verificação...")
 
         if incomplete_edit_url:
-            self._log(f"Tarefa incompleta encontrada (mesmo título '{task_title_clean}', sem SHA). Reusando URL de edição: {incomplete_edit_url}")
+            self._log(f"Tarefa incompleta encontrada (mesmo título '{task_title_clean}', sem data_fim ou SHA). Reusando URL de edição: {incomplete_edit_url}")
             return False, incomplete_edit_url
 
         self._log("Nenhuma tarefa correspondente ao título e SHA encontrados. Prosseguindo com cadastro.")
@@ -827,6 +832,54 @@ class MunkaAutomation:
                 except Exception:
                     page.wait_for_load_state("networkidle")
 
+            # --- VERIFICAÇÃO PÓS-SALVAMENTO: Checa se a data_fim foi gravada ---
+            self._log(f"Iniciando verificação pós-salvamento do campo data_fim para '{task_title}'...")
+            try:
+                page.goto(f"{self.base_url}/tarefamodelview/list/?", wait_until="domcontentloaded")
+                page.wait_for_selector("table.table-bordered", state="visible", timeout=15000)
+                row = page.locator("table.table-bordered tbody tr").filter(has_text=task_title).first
+                row.wait_for(timeout=10000)
+                edit_btn = row.locator("a[href*='tarefamodelview/edit']").first
+                edit_btn.click(no_wait_after=True)
+
+                page.wait_for_selector("form, #nome", state="visible", timeout=15000)
+                if not page.locator("#data_fim").is_visible():
+                    painel_execucao = page.locator('[id="3_href"]')
+                    if painel_execucao.count() > 0:
+                        painel_execucao.click()
+                        page.locator("#data_fim").wait_for(state="visible", timeout=5000)
+
+                val_data_fim = page.locator("#data_fim").input_value().strip()
+                if not val_data_fim:
+                    self._log("ATENÇÃO: data_fim vazia após o salvamento! O conteúdo interno não foi gravado corretamente. Re-preenchendo e salvando...")
+                    page.locator("#data_fim").fill(data_fim)
+                    page.locator("#data_fim").press("Tab")
+
+                    page.locator("#horas_executadas").fill(str(act.get("hpa", "1.0")))
+
+                    iframe = page.frame_locator("#evidencias_ifr")
+                    tinymce_body = iframe.locator("body#tinymce")
+                    tinymce_body.wait_for(state="visible", timeout=10000)
+                    tinymce_body.evaluate("(el, html) => { el.innerHTML = html; }", evidence_text)
+
+                    page.locator("#evidencia_commit_sha").fill(commit_val)
+
+                    page.evaluate(select2_script)
+                    page.wait_for_timeout(100)
+
+                    page.keyboard.press("Escape")
+                    page.evaluate("() => { if (typeof $ !== 'undefined') { $('.my_select2, select').select2('close'); } }")
+                    page.wait_for_timeout(200)
+
+                    save_btn = page.locator("button[type='submit'], input[type='submit']").first
+                    save_btn.click(no_wait_after=True)
+                    page.wait_for_load_state("domcontentloaded")
+                    self._log("Re-salvamento da tarefa concluído!")
+                else:
+                    self._log(f"Verificação concluída com sucesso! data_fim '{val_data_fim}' gravada corretamente.")
+            except Exception as chk_e:
+                self._log(f"Verificação de data_fim concluída com aviso: {chk_e}")
+
             browser.close()
             self._log("Evidências anexadas e homologação concluída!")
 
@@ -1192,6 +1245,58 @@ class MunkaAutomation:
                         page.wait_for_selector("table.table-bordered, div.container-fluid.espacamento", state="visible", timeout=10000)
                     except Exception:
                         page.wait_for_load_state("domcontentloaded")
+
+            # --- VERIFICAÇÃO PÓS-SALVAMENTO: Checa se a data_fim foi gravada ---
+            self._log(f"Iniciando verificação pós-salvamento do campo data_fim para '{task_title}'...")
+            try:
+                if task_id:
+                    edit_url = f"{self.base_url}/tarefamodelview/edit/{task_id}"
+                    page.goto(edit_url, wait_until="domcontentloaded")
+                else:
+                    page.goto(f"{self.base_url}/tarefamodelview/list/?", wait_until="domcontentloaded")
+                    page.wait_for_selector("table.table-bordered", state="visible", timeout=15000)
+                    row = page.locator("table.table-bordered tbody tr").filter(has_text=task_title).first
+                    row.wait_for(timeout=10000)
+                    edit_btn = row.locator("a[href*='tarefamodelview/edit']").first
+                    edit_btn.click(no_wait_after=True)
+
+                page.wait_for_selector("form, #nome", state="visible", timeout=15000)
+                if not page.locator("#data_fim").is_visible():
+                    painel_execucao = page.locator('[id="3_href"]')
+                    if painel_execucao.count() > 0:
+                        painel_execucao.click()
+                        page.locator("#data_fim").wait_for(state="visible", timeout=5000)
+
+                val_data_fim = page.locator("#data_fim").input_value().strip()
+                if not val_data_fim:
+                    self._log("ATENÇÃO: data_fim vazia após o salvamento! O conteúdo interno não foi gravado corretamente. Re-preenchendo e salvando...")
+                    page.locator("#data_fim").fill(data_fim)
+                    page.locator("#data_fim").press("Tab")
+
+                    page.locator("#horas_executadas").fill(str(task_data.get("hpa", "1.0")))
+
+                    iframe = page.frame_locator("#evidencias_ifr")
+                    tinymce_body = iframe.locator("body#tinymce")
+                    tinymce_body.wait_for(state="visible", timeout=10000)
+                    tinymce_body.evaluate("(el, html) => { el.innerHTML = html; }", evidence_text)
+
+                    page.locator("#evidencia_commit_sha").fill(commit_val)
+
+                    page.evaluate(select2_script)
+                    page.wait_for_timeout(100)
+
+                    page.keyboard.press("Escape")
+                    page.evaluate("() => { if (typeof $ !== 'undefined') { $('.my_select2, select').select2('close'); } }")
+                    page.wait_for_timeout(200)
+
+                    save_btn = page.locator("button[type='submit'], input[type='submit']").first
+                    save_btn.click(no_wait_after=True)
+                    page.wait_for_load_state("domcontentloaded")
+                    self._log("Re-salvamento da tarefa concluído!")
+                else:
+                    self._log(f"Verificação concluída com sucesso! data_fim '{val_data_fim}' gravada corretamente.")
+            except Exception as chk_e:
+                self._log(f"Verificação de data_fim concluída com aviso: {chk_e}")
 
             browser.close()
             self._log("Fluxo completo finalizado com sucesso!")

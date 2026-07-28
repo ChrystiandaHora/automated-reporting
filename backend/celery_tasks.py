@@ -285,6 +285,10 @@ def enviar_atividade_task(
             )
 
             if not already_exists and not pulada:
+                tem_df = True
+                if "Sem Data Fim" in str(hist_status) or "Incompleta" in str(hist_status) or hist_status in ("Cadastrada", "Backlog", "Backlog Prioritário"):
+                    tem_df = False
+
                 hist = models.Historico(
                     commit_id=commit_id,
                     titulo=atividade.get("titulo", ""),
@@ -292,6 +296,7 @@ def enviar_atividade_task(
                     hpa=float(atividade.get("hpa", 0)),
                     status=hist_status,
                     enviado_em=datetime.now(timezone.utc).isoformat(),
+                    tem_data_fim=tem_df,
                 )
                 db.add(hist)
                 db.commit()
