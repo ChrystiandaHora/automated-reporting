@@ -775,11 +775,14 @@ class MunkaAutomation:
 
             self._log(f"Preenchendo Data de Fim: '{data_fim}'...")
             page.locator("#data_fim").fill(data_fim)
+            page.evaluate(f"() => {{ if (typeof $ !== 'undefined') {{ $('#data_fim').val('{data_fim}').trigger('change'); }} }}")
             page.locator("#data_fim").press("Tab")
 
             # Horas Executadas
-            self._log(f"Preenchendo Horas Executadas: '{act.get('hpa', '1.0')}' HPA...")
-            page.locator("#horas_executadas").fill(str(act.get("hpa", "1.0")))
+            hpa_str = str(act.get("hpa", "1.0"))
+            self._log(f"Preenchendo Horas Executadas: '{hpa_str}' HPA...")
+            page.locator("#horas_executadas").fill(hpa_str)
+            page.evaluate(f"() => {{ if (typeof $ !== 'undefined') {{ $('#horas_executadas').val('{hpa_str}').trigger('change'); }} }}")
 
             # Evidências (TinyMCE)
             if custom_evidence_html:
@@ -797,40 +800,69 @@ class MunkaAutomation:
                     f"do commit SHA {commit_metadata.get('sha', 'sem_sha')}. Ver anexo.</p>"
                 )
             
-            self._log("Injetando conteúdo HTML no editor TinyMCE de evidências...")
-            iframe = page.frame_locator("#evidencias_ifr")
-            tinymce_body = iframe.locator("body#tinymce")
-            # Aguarda o TinyMCE de evidências carregar para evitar pular em branco
-            tinymce_body.wait_for(state="visible", timeout=10000)
-            tinymce_body.evaluate(
-                "(el, html) => { el.innerHTML = html; }", evidence_text
-            )
+            self._log("Injetando e sincronizando conteúdo no editor TinyMCE de evidências...")
+            try:
+                iframe = page.frame_locator("#evidencias_ifr")
+                tinymce_body = iframe.locator("body#tinymce")
+                tinymce_body.wait_for(state="visible", timeout=10000)
+                tinymce_body.evaluate("(el, html) => { el.innerHTML = html; }", evidence_text)
+            except Exception as e_tiny:
+                self._log(f"Aviso ao injetar no iframe do TinyMCE: {e_tiny}")
+
+            # Sincroniza com a API do TinyMCE e com o textarea #evidencias para garantir o POST do formulário
+            page.evaluate("""(html) => {
+                if (typeof tinymce !== 'undefined') {
+                    if (tinymce.get('evidencias')) {
+                        tinymce.get('evidencias').setContent(html);
+                        tinymce.get('evidencias').save();
+                    } else if (tinymce.activeEditor) {
+                        tinymce.activeEditor.setContent(html);
+                        tinymce.activeEditor.save();
+                    }
+                    if (typeof tinymce.triggerSave === 'function') {
+                        tinymce.triggerSave();
+                    }
+                }
+                if (typeof $ !== 'undefined') {
+                    var $ev = $('#evidencias');
+                    if ($ev.length) {
+                        $ev.val(html).trigger('change');
+                    }
+                } else {
+                    var el = document.getElementById('evidencias');
+                    if (el) { el.value = html; }
+                }
+            }""", evidence_text)
 
             # Evidência commit SHA (URL completa ou fallback para SHA)
             commit_val = commit_metadata.get("url") or commit_metadata.get("sha", "sem_sha")
             self._log(f"Preenchendo Commit SHA/URL: '{commit_val}'...")
             page.locator("#evidencia_commit_sha").fill(commit_val)
+            page.evaluate(f"() => {{ if (typeof $ !== 'undefined') {{ $('#evidencia_commit_sha').val('{commit_val}').trigger('change'); }} }}")
 
-            # Evidencia Anexo removido conforme solicitado
-
-            # Salvar edição (garantindo fechamento de overlays do Select2)
+            # Salvar edição (garantindo fechamento de overlays e sincronização do TinyMCE)
             page.keyboard.press("Escape")
-            page.evaluate("() => { if (typeof $ !== 'undefined') { $('.my_select2, select').select2('close'); } }")
-            page.wait_for_timeout(100)
+            page.evaluate("""() => {
+                if (typeof tinymce !== 'undefined' && typeof tinymce.triggerSave === 'function') {
+                    tinymce.triggerSave();
+                }
+                if (typeof $ !== 'undefined') {
+                    $('.my_select2, select').select2('close');
+                }
+            }""")
+            page.wait_for_timeout(200)
 
             self._log("Salvando alterações da homologação...")
-            save_btn = page.locator("button[type='submit'], input[type='submit']").first
-            save_btn.click(no_wait_after=True)
-            
-            # Aguarda a transação ser processada pelo servidor Munka
-            self._log("Aguardando confirmação do salvamento...")
+            save_btn = page.locator("form#model_form button[type='submit'], form#model_form input[type='submit'], form button[type='submit'], form input[type='submit']").first
             try:
-                page.wait_for_url("**/tarefamodelview/list/**", timeout=25000)
+                with page.expect_navigation(timeout=30000):
+                    save_btn.click()
             except Exception:
                 try:
-                    page.wait_for_url("**/", timeout=5000)
+                    save_btn.click()
+                    page.wait_for_load_state("networkidle", timeout=10000)
                 except Exception:
-                    page.wait_for_load_state("networkidle")
+                    page.wait_for_timeout(3000)
 
             # --- VERIFICAÇÃO PÓS-SALVAMENTO: Checa se a data_fim foi gravada ---
             self._log(f"Iniciando verificação pós-salvamento do campo data_fim para '{task_title}'...")
@@ -840,7 +872,14 @@ class MunkaAutomation:
                 row = page.locator("table.table-bordered tbody tr").filter(has_text=task_title).first
                 row.wait_for(timeout=10000)
                 edit_btn = row.locator("a[href*='tarefamodelview/edit']").first
-                edit_btn.click(no_wait_after=True)
+                href = edit_btn.get_attribute("href") or ""
+                match = re.search(r"tarefamodelview/edit/(\d+)", href)
+                if match:
+                    edit_url = f"{self.base_url}/tarefamodelview/edit/{match.group(1)}"
+                    page.goto(edit_url, wait_until="domcontentloaded")
+                else:
+                    edit_btn.click()
+                    page.wait_for_selector("form, #nome", state="visible", timeout=15000)
 
                 page.wait_for_selector("form, #nome", state="visible", timeout=15000)
                 if not page.locator("#data_fim").is_visible():
@@ -851,29 +890,65 @@ class MunkaAutomation:
 
                 val_data_fim = page.locator("#data_fim").input_value().strip()
                 if not val_data_fim:
-                    self._log("ATENÇÃO: data_fim vazia após o salvamento! O conteúdo interno não foi gravado corretamente. Re-preenchendo e salvando...")
+                    self._log("ATENÇÃO: data_fim vazia após o salvamento! Re-preenchendo, sincronizando TinyMCE e salvando com aguardo de navegação...")
                     page.locator("#data_fim").fill(data_fim)
+                    page.evaluate(f"() => {{ if (typeof $ !== 'undefined') {{ $('#data_fim').val('{data_fim}').trigger('change'); }} }}")
                     page.locator("#data_fim").press("Tab")
 
-                    page.locator("#horas_executadas").fill(str(act.get("hpa", "1.0")))
+                    page.locator("#horas_executadas").fill(hpa_str)
+                    page.evaluate(f"() => {{ if (typeof $ !== 'undefined') {{ $('#horas_executadas').val('{hpa_str}').trigger('change'); }} }}")
 
-                    iframe = page.frame_locator("#evidencias_ifr")
-                    tinymce_body = iframe.locator("body#tinymce")
-                    tinymce_body.wait_for(state="visible", timeout=10000)
-                    tinymce_body.evaluate("(el, html) => { el.innerHTML = html; }", evidence_text)
+                    try:
+                        iframe = page.frame_locator("#evidencias_ifr")
+                        tinymce_body = iframe.locator("body#tinymce")
+                        tinymce_body.wait_for(state="visible", timeout=10000)
+                        tinymce_body.evaluate("(el, html) => { el.innerHTML = html; }", evidence_text)
+                    except Exception:
+                        pass
+
+                    page.evaluate("""(html) => {
+                        if (typeof tinymce !== 'undefined') {
+                            if (tinymce.get('evidencias')) {
+                                tinymce.get('evidencias').setContent(html);
+                                tinymce.get('evidencias').save();
+                            } else if (tinymce.activeEditor) {
+                                tinymce.activeEditor.setContent(html);
+                                tinymce.activeEditor.save();
+                            }
+                            if (typeof tinymce.triggerSave === 'function') {
+                                tinymce.triggerSave();
+                            }
+                        }
+                        if (typeof $ !== 'undefined') {
+                            var $ev = $('#evidencias');
+                            if ($ev.length) { $ev.val(html).trigger('change'); }
+                        }
+                    }""", evidence_text)
 
                     page.locator("#evidencia_commit_sha").fill(commit_val)
+                    page.evaluate(f"() => {{ if (typeof $ !== 'undefined') {{ $('#evidencia_commit_sha').val('{commit_val}').trigger('change'); }} }}")
 
                     page.evaluate(select2_script)
                     page.wait_for_timeout(100)
 
                     page.keyboard.press("Escape")
-                    page.evaluate("() => { if (typeof $ !== 'undefined') { $('.my_select2, select').select2('close'); } }")
+                    page.evaluate("""() => {
+                        if (typeof tinymce !== 'undefined' && typeof tinymce.triggerSave === 'function') {
+                            tinymce.triggerSave();
+                        }
+                        if (typeof $ !== 'undefined') {
+                            $('.my_select2, select').select2('close');
+                        }
+                    }""")
                     page.wait_for_timeout(200)
 
-                    save_btn = page.locator("button[type='submit'], input[type='submit']").first
-                    save_btn.click(no_wait_after=True)
-                    page.wait_for_load_state("domcontentloaded")
+                    save_btn = page.locator("form#model_form button[type='submit'], form#model_form input[type='submit'], form button[type='submit'], form input[type='submit']").first
+                    try:
+                        with page.expect_navigation(timeout=30000):
+                            save_btn.click()
+                    except Exception:
+                        save_btn.click()
+                        page.wait_for_load_state("networkidle", timeout=10000)
                     self._log("Re-salvamento da tarefa concluído!")
                 else:
                     self._log(f"Verificação concluída com sucesso! data_fim '{val_data_fim}' gravada corretamente.")
@@ -1188,11 +1263,14 @@ class MunkaAutomation:
 
             self._log(f"Preenchendo Data de Fim: '{data_fim}'...")
             page.locator("#data_fim").fill(data_fim)
+            page.evaluate(f"() => {{ if (typeof $ !== 'undefined') {{ $('#data_fim').val('{data_fim}').trigger('change'); }} }}")
             page.locator("#data_fim").press("Tab")
 
             # Horas Executadas
-            self._log(f"Preenchendo Horas Executadas: '{task_data.get('hpa', '1.0')}' HPA...")
-            page.locator("#horas_executadas").fill(str(task_data.get("hpa", "1.0")))
+            hpa_str = str(task_data.get("hpa", "1.0"))
+            self._log(f"Preenchendo Horas Executadas: '{hpa_str}' HPA...")
+            page.locator("#horas_executadas").fill(hpa_str)
+            page.evaluate(f"() => {{ if (typeof $ !== 'undefined') {{ $('#horas_executadas').val('{hpa_str}').trigger('change'); }} }}")
 
             # Evidências (TinyMCE)
             if custom_evidence_html:
@@ -1210,41 +1288,69 @@ class MunkaAutomation:
                     f"do commit SHA {commit_metadata.get('sha', 'sem_sha')}. Ver anexo.</p>"
                 )
 
-            self._log("Injetando conteúdo HTML no editor TinyMCE de evidências...")
-            iframe = page.frame_locator("#evidencias_ifr")
-            tinymce_body = iframe.locator("body#tinymce")
-            tinymce_body.wait_for(state="visible", timeout=10000)
-            tinymce_body.evaluate("(el, html) => { el.innerHTML = html; }", evidence_text)
+            self._log("Injetando e sincronizando conteúdo no editor TinyMCE de evidências...")
+            try:
+                iframe = page.frame_locator("#evidencias_ifr")
+                tinymce_body = iframe.locator("body#tinymce")
+                tinymce_body.wait_for(state="visible", timeout=10000)
+                tinymce_body.evaluate("(el, html) => { el.innerHTML = html; }", evidence_text)
+            except Exception as e_tiny:
+                self._log(f"Aviso ao injetar no iframe do TinyMCE: {e_tiny}")
+
+            # Sincroniza com a API do TinyMCE e com o textarea #evidencias para garantir o POST do formulário
+            page.evaluate("""(html) => {
+                if (typeof tinymce !== 'undefined') {
+                    if (tinymce.get('evidencias')) {
+                        tinymce.get('evidencias').setContent(html);
+                        tinymce.get('evidencias').save();
+                    } else if (tinymce.activeEditor) {
+                        tinymce.activeEditor.setContent(html);
+                        tinymce.activeEditor.save();
+                    }
+                    if (typeof tinymce.triggerSave === 'function') {
+                        tinymce.triggerSave();
+                    }
+                }
+                if (typeof $ !== 'undefined') {
+                    var $ev = $('#evidencias');
+                    if ($ev.length) {
+                        $ev.val(html).trigger('change');
+                    }
+                } else {
+                    var el = document.getElementById('evidencias');
+                    if (el) { el.value = html; }
+                }
+            }""", evidence_text)
 
             # Evidência commit SHA (URL completa ou fallback para SHA)
             commit_val = commit_metadata.get("url") or commit_metadata.get("sha", "sem_sha")
             self._log(f"Preenchendo Commit SHA/URL: '{commit_val}'...")
             page.locator("#evidencia_commit_sha").fill(commit_val)
+            page.evaluate(f"() => {{ if (typeof $ !== 'undefined') {{ $('#evidencia_commit_sha').val('{commit_val}').trigger('change'); }} }}")
 
-            # Evidencia Anexo removido conforme solicitado
-
-            # Status já definido anteriormente no início do fluxo de edição
-
-            # Salvar Alterações
+            # Salvar Alterações (garantindo fechamento de overlays e sincronização do TinyMCE)
             page.keyboard.press("Escape")
-            page.evaluate("() => { if (typeof $ !== 'undefined') { $('.my_select2, select').select2('close'); } }")
+            page.evaluate("""() => {
+                if (typeof tinymce !== 'undefined' && typeof tinymce.triggerSave === 'function') {
+                    tinymce.triggerSave();
+                }
+                if (typeof $ !== 'undefined') {
+                    $('.my_select2, select').select2('close');
+                }
+            }""")
             page.wait_for_timeout(200)
 
             self._log("Salvando alterações finais da homologação...")
-            save_btn = page.locator("button[type='submit'], input[type='submit']").first
-            save_btn.click(no_wait_after=True)
-
-            self._log("Aguardando finalização do processo no Munka...")
+            save_btn = page.locator("form#model_form button[type='submit'], form#model_form input[type='submit'], form button[type='submit'], form input[type='submit']").first
             try:
-                page.wait_for_url("**/tarefamodelview/list/**", timeout=25000)
+                with page.expect_navigation(timeout=30000):
+                    save_btn.click()
             except Exception:
                 try:
-                    page.wait_for_url("**/", timeout=5000)
+                    save_btn.click()
+                    page.wait_for_load_state("networkidle", timeout=10000)
                 except Exception:
-                    try:
-                        page.wait_for_selector("table.table-bordered, div.container-fluid.espacamento", state="visible", timeout=10000)
-                    except Exception:
-                        page.wait_for_load_state("domcontentloaded")
+                    page.wait_for_timeout(3000)
 
             # --- VERIFICAÇÃO PÓS-SALVAMENTO: Checa se a data_fim foi gravada ---
             self._log(f"Iniciando verificação pós-salvamento do campo data_fim para '{task_title}'...")
@@ -1258,7 +1364,14 @@ class MunkaAutomation:
                     row = page.locator("table.table-bordered tbody tr").filter(has_text=task_title).first
                     row.wait_for(timeout=10000)
                     edit_btn = row.locator("a[href*='tarefamodelview/edit']").first
-                    edit_btn.click(no_wait_after=True)
+                    href = edit_btn.get_attribute("href") or ""
+                    match = re.search(r"tarefamodelview/edit/(\d+)", href)
+                    if match:
+                        edit_url = f"{self.base_url}/tarefamodelview/edit/{match.group(1)}"
+                        page.goto(edit_url, wait_until="domcontentloaded")
+                    else:
+                        edit_btn.click()
+                        page.wait_for_selector("form, #nome", state="visible", timeout=15000)
 
                 page.wait_for_selector("form, #nome", state="visible", timeout=15000)
                 if not page.locator("#data_fim").is_visible():
@@ -1269,29 +1382,65 @@ class MunkaAutomation:
 
                 val_data_fim = page.locator("#data_fim").input_value().strip()
                 if not val_data_fim:
-                    self._log("ATENÇÃO: data_fim vazia após o salvamento! O conteúdo interno não foi gravado corretamente. Re-preenchendo e salvando...")
+                    self._log("ATENÇÃO: data_fim vazia após o salvamento! Re-preenchendo, sincronizando TinyMCE e salvando com aguardo de navegação...")
                     page.locator("#data_fim").fill(data_fim)
+                    page.evaluate(f"() => {{ if (typeof $ !== 'undefined') {{ $('#data_fim').val('{data_fim}').trigger('change'); }} }}")
                     page.locator("#data_fim").press("Tab")
 
-                    page.locator("#horas_executadas").fill(str(task_data.get("hpa", "1.0")))
+                    page.locator("#horas_executadas").fill(hpa_str)
+                    page.evaluate(f"() => {{ if (typeof $ !== 'undefined') {{ $('#horas_executadas').val('{hpa_str}').trigger('change'); }} }}")
 
-                    iframe = page.frame_locator("#evidencias_ifr")
-                    tinymce_body = iframe.locator("body#tinymce")
-                    tinymce_body.wait_for(state="visible", timeout=10000)
-                    tinymce_body.evaluate("(el, html) => { el.innerHTML = html; }", evidence_text)
+                    try:
+                        iframe = page.frame_locator("#evidencias_ifr")
+                        tinymce_body = iframe.locator("body#tinymce")
+                        tinymce_body.wait_for(state="visible", timeout=10000)
+                        tinymce_body.evaluate("(el, html) => { el.innerHTML = html; }", evidence_text)
+                    except Exception:
+                        pass
+
+                    page.evaluate("""(html) => {
+                        if (typeof tinymce !== 'undefined') {
+                            if (tinymce.get('evidencias')) {
+                                tinymce.get('evidencias').setContent(html);
+                                tinymce.get('evidencias').save();
+                            } else if (tinymce.activeEditor) {
+                                tinymce.activeEditor.setContent(html);
+                                tinymce.activeEditor.save();
+                            }
+                            if (typeof tinymce.triggerSave === 'function') {
+                                tinymce.triggerSave();
+                            }
+                        }
+                        if (typeof $ !== 'undefined') {
+                            var $ev = $('#evidencias');
+                            if ($ev.length) { $ev.val(html).trigger('change'); }
+                        }
+                    }""", evidence_text)
 
                     page.locator("#evidencia_commit_sha").fill(commit_val)
+                    page.evaluate(f"() => {{ if (typeof $ !== 'undefined') {{ $('#evidencia_commit_sha').val('{commit_val}').trigger('change'); }} }}")
 
                     page.evaluate(select2_script)
                     page.wait_for_timeout(100)
 
                     page.keyboard.press("Escape")
-                    page.evaluate("() => { if (typeof $ !== 'undefined') { $('.my_select2, select').select2('close'); } }")
+                    page.evaluate("""() => {
+                        if (typeof tinymce !== 'undefined' && typeof tinymce.triggerSave === 'function') {
+                            tinymce.triggerSave();
+                        }
+                        if (typeof $ !== 'undefined') {
+                            $('.my_select2, select').select2('close');
+                        }
+                    }""")
                     page.wait_for_timeout(200)
 
-                    save_btn = page.locator("button[type='submit'], input[type='submit']").first
-                    save_btn.click(no_wait_after=True)
-                    page.wait_for_load_state("domcontentloaded")
+                    save_btn = page.locator("form#model_form button[type='submit'], form#model_form input[type='submit'], form button[type='submit'], form input[type='submit']").first
+                    try:
+                        with page.expect_navigation(timeout=30000):
+                            save_btn.click()
+                    except Exception:
+                        save_btn.click()
+                        page.wait_for_load_state("networkidle", timeout=10000)
                     self._log("Re-salvamento da tarefa concluído!")
                 else:
                     self._log(f"Verificação concluída com sucesso! data_fim '{val_data_fim}' gravada corretamente.")
