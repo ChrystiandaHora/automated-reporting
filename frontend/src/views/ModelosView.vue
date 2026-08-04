@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { api, type ModelStatus } from '../api'
 
 const modelos = ref<ModelStatus[]>([])
@@ -7,6 +7,9 @@ const loading = ref(true)
 const autoRefresh = ref(true)
 const testingModelId = ref<string | null>(null)
 let refreshInterval: any = null
+
+const editModalRef = ref<HTMLElement | null>(null)
+const previousActiveElement = ref<HTMLElement | null>(null)
 
 // Modal de Edição de Limites
 const editingModel = ref<ModelStatus | null>(null)
@@ -59,6 +62,46 @@ async function resetarMetricas() {
   }
 }
 
+function handleEditKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    fecharEdicao()
+  }
+  if (e.key === 'Tab' && editModalRef.value) {
+    const focusable = editModalRef.value.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+    if (focusable.length === 0) return
+    const first = focusable[0] as HTMLElement
+    const last = focusable[focusable.length - 1] as HTMLElement
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        last.focus()
+        e.preventDefault()
+      }
+    } else {
+      if (document.activeElement === last) {
+        first.focus()
+        e.preventDefault()
+      }
+    }
+  }
+}
+
+watch(editingModel, (newVal) => {
+  if (newVal) {
+    previousActiveElement.value = document.activeElement as HTMLElement
+    document.addEventListener('keydown', handleEditKeydown)
+    nextTick(() => {
+      const input = editModalRef.value?.querySelector('input') as HTMLElement
+      input?.focus()
+    })
+  } else {
+    document.removeEventListener('keydown', handleEditKeydown)
+    if (previousActiveElement.value) {
+      previousActiveElement.value.focus()
+      previousActiveElement.value = null
+    }
+  }
+})
+
 function abrirEdicao(model: ModelStatus) {
   editingModel.value = model
   editForm.value = {
@@ -103,7 +146,7 @@ onUnmounted(() => {
       <div class="header-text">
         <h1 class="page-title">
           Limites de taxa por modelo
-          <span class="info-icon" title="Máximo de uso por modelo em comparação com o limite estabelecido">ⓘ</span>
+          <button class="info-icon" type="button" aria-label="Informações sobre limite de uso: Máximo de uso por modelo em comparação com o limite estabelecido" title="Máximo de uso por modelo em comparação com o limite estabelecido" style="border: none; background: transparent; color: inherit; cursor: help; font-size: 1rem; opacity: 0.6;">ⓘ</button>
         </h1>
         <p class="page-subtitle">
           Monitoramento em tempo real do volume de requisições (RPM), consumo de tokens (TPM) e uso diário (RPD).
@@ -241,23 +284,23 @@ onUnmounted(() => {
 
     <!-- Modal para Editar Limites -->
     <div v-if="editingModel" class="modal-backdrop" @click.self="fecharEdicao">
-      <div class="modal-card glass-card">
-        <h2>Configurar Limites - {{ editingModel.name }}</h2>
+      <div ref="editModalRef" class="modal-card glass-card" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+        <h2 id="edit-modal-title">Configurar Limites - {{ editingModel.name }}</h2>
         <p class="modal-desc">Ajuste os parâmetros máximos de taxa para este modelo de API.</p>
 
         <div class="form-group">
-          <label>RPM Máximo (Requisições / Minuto):</label>
-          <input type="number" v-model.number="editForm.rpm_limit" min="1" />
+          <label for="edit-rpm-limit">RPM Máximo (Requisições / Minuto):</label>
+          <input id="edit-rpm-limit" type="number" v-model.number="editForm.rpm_limit" min="1" />
         </div>
 
         <div class="form-group">
-          <label>TPM Máximo (Tokens / Minuto):</label>
-          <input type="number" v-model.number="editForm.tpm_limit" min="1000" step="1000" />
+          <label for="edit-tpm-limit">TPM Máximo (Tokens / Minuto):</label>
+          <input id="edit-tpm-limit" type="number" v-model.number="editForm.tpm_limit" min="1000" step="1000" />
         </div>
 
         <div class="form-group">
-          <label>RPD Máximo (Requisições / Dia):</label>
-          <input type="number" v-model.number="editForm.rpd_limit" min="1" />
+          <label for="edit-rpd-limit">RPD Máximo (Requisições / Dia):</label>
+          <input id="edit-rpd-limit" type="number" v-model.number="editForm.rpd_limit" min="1" />
         </div>
 
         <div class="modal-actions">

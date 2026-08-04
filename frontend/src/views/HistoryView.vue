@@ -113,8 +113,8 @@
 
     <!-- Modal de Confirmação de Exclusão -->
     <div v-if="exibindoModalConfirmacao" class="modal-overlay" @click.self="fecharModalConfirmacao">
-      <div class="modal">
-        <h2>Confirmar Exclusão</h2>
+      <div ref="confirmModalRef" class="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+        <h2 id="confirm-modal-title">Confirmar Exclusão</h2>
         <p>Tem certeza de que deseja remover esta atividade do histórico? Esta ação não pode ser desfeita.</p>
         <div class="modal-actions">
           <button class="btn-ghost" @click="fecharModalConfirmacao">Cancelar</button>
@@ -126,7 +126,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { api, type HistoricoItem } from '../api'
 import { useToastStore } from '../stores/toast'
 import { useFilaStore } from '../stores/fila'
@@ -148,6 +148,49 @@ let timerHistorico: any = null
 
 const itemParaDeletar = ref<number | null>(null)
 const exibindoModalConfirmacao = ref(false)
+
+const confirmModalRef = ref<HTMLElement | null>(null)
+const previousActiveElement = ref<HTMLElement | null>(null)
+
+function handleConfirmKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    fecharModalConfirmacao()
+  }
+  if (e.key === 'Tab' && confirmModalRef.value) {
+    const focusable = confirmModalRef.value.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+    if (focusable.length === 0) return
+    const first = focusable[0] as HTMLElement
+    const last = focusable[focusable.length - 1] as HTMLElement
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        last.focus()
+        e.preventDefault()
+      }
+    } else {
+      if (document.activeElement === last) {
+        first.focus()
+        e.preventDefault()
+      }
+    }
+  }
+}
+
+watch(exibindoModalConfirmacao, (newVal) => {
+  if (newVal) {
+    previousActiveElement.value = document.activeElement as HTMLElement
+    document.addEventListener('keydown', handleConfirmKeydown)
+    nextTick(() => {
+      const btn = confirmModalRef.value?.querySelector('.modal-actions button') as HTMLElement
+      btn?.focus()
+    })
+  } else {
+    document.removeEventListener('keydown', handleConfirmKeydown)
+    if (previousActiveElement.value) {
+      previousActiveElement.value.focus()
+      previousActiveElement.value = null
+    }
+  }
+})
 
 async function reenviarItemHistorico(item: HistoricoItem) {
   if (!item.commit_id) {

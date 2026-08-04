@@ -1,15 +1,49 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, computed, ref } from 'vue'
+import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useFilaStore } from './stores/fila'
 import { api } from './api'
 import ToastManager from './components/ToastManager.vue'
 
 type ThemeMode = 'dark' | 'light' | 'auto'
 
+const route = useRoute()
 const filaStore = useFilaStore()
 
 const activeJobsCount = computed(() => {
   return filaStore.jobs.filter(j => j.status === 'pending' || j.status === 'running').length
+})
+
+const routeTitles: Record<string, string> = {
+  '/commits': 'Commits',
+  '/analisar': 'Analisar',
+  '/fila': 'Fila de Execução',
+  '/modelos': 'Modelos',
+  '/historico': 'Histórico',
+  '/config': 'Configuração'
+}
+
+// Atualiza o título da aba do navegador incluindo a contagem de tarefas ativas na fila
+watch([activeJobsCount, () => route.path], ([count, path]) => {
+  let pageTitle = 'Nexus'
+  if (path && routeTitles[path]) {
+    pageTitle = `${routeTitles[path]} - Nexus`
+  } else if (path && path.startsWith('/commits/')) {
+    pageTitle = `Detalhes do Commit - Nexus`
+  }
+
+  if (count > 0) {
+    document.title = `(${count}) ${pageTitle}`
+  } else {
+    document.title = pageTitle
+  }
+}, { immediate: true })
+
+watch(activeJobsCount, async (count) => {
+  if (count === 0 && isWakeLockActive.value) {
+    await releaseWakeLock()
+    localStorage.setItem('nexus-anti-sleep', 'false')
+  }
 })
 
 const hasProjectUpdate = ref(false)
@@ -57,6 +91,54 @@ async function checarAtualizacaoProjeto() {
   }
 }
 
+const isWakeLockActive = ref(false)
+let wakeLockSentinel: any = null
+
+async function requestWakeLock() {
+  if ('wakeLock' in navigator) {
+    try {
+      wakeLockSentinel = await (navigator as any).wakeLock.request('screen')
+      isWakeLockActive.value = true
+      wakeLockSentinel.addEventListener('release', () => {
+        isWakeLockActive.value = false
+      })
+    } catch (err: any) {
+      console.warn('Wake Lock request failed:', err)
+      isWakeLockActive.value = false
+    }
+  } else {
+    isWakeLockActive.value = true
+  }
+}
+
+async function releaseWakeLock() {
+  if (wakeLockSentinel) {
+    try {
+      await wakeLockSentinel.release()
+      wakeLockSentinel = null
+    } catch (e) {
+      console.warn('Wake Lock release error:', e)
+    }
+  }
+  isWakeLockActive.value = false
+}
+
+async function toggleWakeLock() {
+  if (isWakeLockActive.value) {
+    await releaseWakeLock()
+    localStorage.setItem('nexus-anti-sleep', 'false')
+  } else {
+    await requestWakeLock()
+    localStorage.setItem('nexus-anti-sleep', 'true')
+  }
+}
+
+function handleVisibilityChange() {
+  if (document.visibilityState === 'visible' && localStorage.getItem('nexus-anti-sleep') !== 'false') {
+    requestWakeLock()
+  }
+}
+
 onMounted(() => {
   const modoSalvo = localStorage.getItem('nexus-theme-mode') as ThemeMode | null
   if (modoSalvo && ['dark', 'light', 'auto'].includes(modoSalvo)) {
@@ -64,6 +146,13 @@ onMounted(() => {
   } else {
     setMode('auto')
   }
+
+  // Ativa por padrão o Modo Anti-Sleep para garantir que o PC não durma durante execuções
+  const antiSleepSalvo = localStorage.getItem('nexus-anti-sleep')
+  if (antiSleepSalvo !== 'false') {
+    requestWakeLock()
+  }
+  document.addEventListener('visibilitychange', handleVisibilityChange)
 
   // Verifica o horário local a cada minuto para atualizar o tema automático sem recarregar
   timerInterval = window.setInterval(atualizarTemaAuto, 60000)
@@ -73,6 +162,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+  releaseWakeLock()
   if (timerInterval !== null) {
     clearInterval(timerInterval)
   }
@@ -82,9 +173,10 @@ onUnmounted(() => {
 
 <template>
   <div class="app">
-    <header class="topbar">
+    <a href="#main-content" class="skip-link">Pular para o conteúdo principal</a>
+    <header class="topbar" role="banner">
       <div class="brand">
-        <svg class="brand-icon" viewBox="0 0 36 36" fill="none">
+        <svg class="brand-icon" viewBox="0 0 36 36" fill="none" aria-hidden="true" focusable="false">
           <rect width="36" height="36" rx="10" fill="url(#brand-grad)" />
           <path d="M11 26V10L25 26V10" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
           <circle cx="18" cy="18" r="2.5" fill="#38bdf8" />
@@ -100,17 +192,18 @@ onUnmounted(() => {
         <span 
           v-if="hasProjectUpdate" 
           class="project-update-badge" 
+          role="status"
           :title="`Nova atualização disponível! ${projectBehindCount} commit(s) atrás. Execute 'git pull' no terminal para atualizar o projeto.`"
         >
           Update {{ projectBehindCount > 0 ? `(${projectBehindCount})` : '' }}
         </span>
       </div>
 
-      <nav class="nav">
+      <nav class="nav" aria-label="Navegação principal">
         <router-link to="/commits">Commits</router-link>
         <router-link to="/fila">
           Fila
-          <span v-if="activeJobsCount > 0" class="fila-badge">{{ activeJobsCount }}</span>
+          <span v-if="activeJobsCount > 0" class="fila-badge" aria-live="polite" :aria-label="`${activeJobsCount} tarefas ativas`">{{ activeJobsCount }}</span>
         </router-link>
         <router-link to="/modelos">Modelos</router-link>
         <router-link to="/historico">Histórico</router-link>
@@ -118,14 +211,29 @@ onUnmounted(() => {
       </nav>
 
       <div class="topbar-actions">
-        <div class="theme-segmented">
+        <button 
+          class="anti-sleep-btn" 
+          :class="{ active: isWakeLockActive }" 
+          @click="toggleWakeLock" 
+          :aria-pressed="isWakeLockActive"
+          :title="isWakeLockActive ? 'Anti-Sleep ATIVO: Seu computador NÃO vai bloquear a tela nem entrar em modo de suspensão enquanto esta página estiver aberta.' : 'Clique para ativar o Modo Anti-Sleep (Impede bloqueio de tela e suspensão do computador).'"
+          aria-label="Alternar Modo Anti-Sleep"
+        >
+          <span class="anti-sleep-dot" aria-hidden="true"></span>
+          <span class="anti-sleep-icon" aria-hidden="true">☕</span>
+          <span class="anti-sleep-text">{{ isWakeLockActive ? 'Anti-Sleep Ativo' : 'Anti-Sleep Off' }}</span>
+        </button>
+
+        <div class="theme-segmented" role="group" aria-label="Seleção de tema visual">
           <button 
             class="theme-segment-btn" 
             :class="{ active: themeMode === 'light' }" 
             @click="setMode('light')" 
+            :aria-pressed="themeMode === 'light'"
+            aria-label="Ativar Tema Claro"
             title="Tema Claro"
           >
-            <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
               <circle cx="12" cy="12" r="5"></circle>
               <line x1="12" y1="1" x2="12" y2="3"></line>
               <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -143,9 +251,11 @@ onUnmounted(() => {
             class="theme-segment-btn" 
             :class="{ active: themeMode === 'dark' }" 
             @click="setMode('dark')" 
+            :aria-pressed="themeMode === 'dark'"
+            aria-label="Ativar Tema Escuro"
             title="Tema Escuro"
           >
-            <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
             </svg>
             <span class="theme-label">Escuro</span>
@@ -155,9 +265,11 @@ onUnmounted(() => {
             class="theme-segment-btn" 
             :class="{ active: themeMode === 'auto' }" 
             @click="setMode('auto')" 
+            :aria-pressed="themeMode === 'auto'"
+            aria-label="Ativar Tema Automático por horário"
             title="Tema Automático (Baseado no horário local: 06:00 às 18:00 Claro, 18:00 às 06:00 Escuro)"
           >
-            <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
               <circle cx="12" cy="12" r="10"></circle>
               <polyline points="12 6 12 12 16 14"></polyline>
             </svg>
@@ -167,7 +279,7 @@ onUnmounted(() => {
       </div>
     </header>
 
-    <main class="content">
+    <main class="content" id="main-content" tabIndex="-1">
       <router-view />
     </main>
     <ToastManager />
@@ -177,14 +289,51 @@ onUnmounted(() => {
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 1rem;
+  background: var(--accent);
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  z-index: 9999;
+  transition: top 0.2s ease;
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: 1rem;
+  outline: 3px solid var(--accent-light);
+  outline-offset: 2px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 :root, [data-theme="dark"] {
   --bg: #0F172A;
   --card-bg: #1E293B;
   --card-border: #334155;
-  --border: #334155;
+  --border: #475569;
+  --input-border: #64748B;
   --text: #F8FAFC;
-  --text-muted: #94A3B8;
-  --text-subtle: #64748B;
+  --text-muted: #CBD5E1;
+  --text-subtle: #94A3B8;
   --accent: #3B82F6;
   --accent-light: #60A5FA;
   --accent-cyan: #06B6D4;
@@ -228,19 +377,20 @@ onUnmounted(() => {
 [data-theme="light"] {
   --bg: #F8FAFC;
   --card-bg: #FFFFFF;
-  --card-border: #E2E8F0;
-  --border: #CBD5E1;
+  --card-border: #CBD5E1;
+  --border: #94A3B8;
+  --input-border: #718096;
   --text: #0F172A;
-  --text-muted: #475569;
-  --text-subtle: #64748B;
-  --accent: #2563EB;
-  --accent-light: #1D4ED8;
-  --accent-cyan: #0284C7;
-  --accent-grad: linear-gradient(135deg, #2563EB 0%, #6366f1 50%, #8b5cf6 100%);
-  --accent-glow: rgba(37, 99, 235, 0.12);
-  --success: #059669;
-  --warning: #D97706;
-  --error: #DC2626;
+  --text-muted: #374151;
+  --text-subtle: #4B5563;
+  --accent: #1D4ED8;
+  --accent-light: #1E40AF;
+  --accent-cyan: #0369A1;
+  --accent-grad: linear-gradient(135deg, #1D4ED8 0%, #4F46E5 50%, #7C3AED 100%);
+  --accent-glow: rgba(29, 78, 216, 0.12);
+  --success: #047857;
+  --warning: #92400E;
+  --error: #B91C1C;
   --topbar-bg: rgba(248, 250, 252, 0.95);
 
   --badge-code-bg: #EFF6FF;
@@ -370,7 +520,60 @@ body {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
+}
+
+/* ── Anti-Sleep Button ── */
+.anti-sleep-btn {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 0.35rem 0.75rem;
+  border-radius: 99px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.anti-sleep-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.anti-sleep-btn.active {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #34d399;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.22);
+}
+
+.anti-sleep-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-subtle);
+  transition: all 0.2s ease;
+}
+
+.anti-sleep-btn.active .anti-sleep-dot {
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulse-dot 1.8s infinite;
+}
+
+@keyframes pulse-dot {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@media (max-width: 640px) {
+  .anti-sleep-text { display: none; }
 }
 
 /* ── Theme Segmented Control ── */
@@ -533,7 +736,7 @@ body {
 /* ── Inputs ── */
 input, textarea, select {
   background: var(--card-bg) !important;
-  border: 1px solid var(--border) !important;
+  border: 1px solid var(--input-border) !important;
   color: var(--text) !important;
   border-radius: 8px !important;
   padding: 0.6rem 0.85rem !important;

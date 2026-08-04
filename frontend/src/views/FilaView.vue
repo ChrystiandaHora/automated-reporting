@@ -3,11 +3,21 @@
     <div class="page-header">
       <div class="title-row">
         <h1>Fila de Execução</h1>
-        <span v-if="concurrencyInfo" class="concurrency-badge" :title="`Fila de análises: ${concurrencyInfo.queues.analises} workers | Fila de envios: ${concurrencyInfo.queues.envios} workers`">
-          ⚡ Concorrência: {{ concurrencyInfo.queues.analises }} análises / {{ concurrencyInfo.queues.envios }} envios ({{ concurrencyInfo.cpu_cores }} Cores CPU)
+        <span v-if="concurrencyInfo" class="concurrency-badge" :title="`Fila de análises: ${concurrencyInfo.queues.analises} workers | Fila de envios: ${concurrencyInfo.queues.envios} workers | Pool compartilhado de até ${concurrencyInfo.total_system_limit} workers simultâneos`">
+          ⚡ Concorrência: {{ concurrencyInfo.queues.analises }} análises / {{ concurrencyInfo.queues.envios }} envios ({{ concurrencyInfo.total_system_limit }} total | {{ concurrencyInfo.cpu_cores }} Cores CPU)
         </span>
       </div>
-      <button class="btn-ghost btn-sm" @click="atualizarFila">↻ Atualizar</button>
+      <div class="header-actions">
+        <button 
+          v-if="failedJobsCount > 0" 
+          class="btn-retry-all" 
+          @click="reenfileirarTodasComFalha"
+          :title="`Reenfileira todas as ${failedJobsCount} tarefas com falha`"
+        >
+          ⚡ Reenfileirar Todas com Falha ({{ failedJobsCount }})
+        </button>
+        <button class="btn-ghost btn-sm" @click="atualizarFila">↻ Atualizar</button>
+      </div>
     </div>
 
     <div v-if="filaStore.loading && filaStore.jobs.length === 0" class="loading">Carregando fila...</div>
@@ -20,9 +30,16 @@
       <!-- Percorre os commits agrupados -->
       <div v-for="grupo in jobsAgrupados" :key="grupo.commit_id" class="commit-group">
         <!-- Cabeçalho do Commit -->
-        <div class="commit-group-header" @click="alternarGrupo(grupo.commit_id)" style="cursor: pointer; user-select: none;">
+        <button 
+          class="commit-group-header" 
+          type="button"
+          :aria-expanded="!isGrupoColapsado(grupo.commit_id)"
+          :aria-controls="'group-jobs-' + grupo.commit_id"
+          @click="alternarGrupo(grupo.commit_id)" 
+          style="cursor: pointer; user-select: none; border: none; font-family: inherit; color: inherit; width: 100%; text-align: left;"
+        >
           <div class="commit-group-info">
-            <span class="collapse-icon">{{ isGrupoColapsado(grupo.commit_id) ? '▶' : '▼' }}</span>
+            <span class="collapse-icon" aria-hidden="true">{{ isGrupoColapsado(grupo.commit_id) ? '▶' : '▼' }}</span>
             <router-link :to="`/commits/${grupo.commit_id}`" class="commit-hash-link" @click.stop>
               {{ grupo.commit_id.slice(0, 8) }}
             </router-link>
@@ -30,11 +47,21 @@
               {{ grupo.commit_mensagem }}
             </router-link>
           </div>
-          <span class="job-count-badge">{{ grupo.jobs.length }} tarefa{{ grupo.jobs.length > 1 ? 's' : '' }}</span>
-        </div>
+          <div class="commit-group-right" style="display: flex; align-items: center; gap: 0.6rem;">
+            <button 
+              v-if="temErrosNoGrupo(grupo)" 
+              class="btn-retry-commit" 
+              @click.stop="reenfileirarGrupo(grupo)"
+              :title="`Reenfileirar ${errosNoGrupoCount(grupo)} tarefa(s) com falha deste commit`"
+            >
+              ⚡ Reenfileirar Falhas ({{ errosNoGrupoCount(grupo) }})
+            </button>
+            <span class="job-count-badge">{{ grupo.jobs.length }} tarefa{{ grupo.jobs.length > 1 ? 's' : '' }}</span>
+          </div>
+        </button>
 
         <!-- Lista de tarefas deste commit -->
-        <div v-show="!isGrupoColapsado(grupo.commit_id)" class="commit-group-jobs">
+        <div v-show="!isGrupoColapsado(grupo.commit_id)" :id="'group-jobs-' + grupo.commit_id" class="commit-group-jobs">
           <div 
             v-for="job in grupo.jobs" 
             :key="job.id" 
@@ -63,22 +90,23 @@
                   Ver Tarefa
                 </a>
                 
-                <!-- Botão de Ver Logs (para envio concluído ou com erro) -->
+                <!-- Botão de Ver Logs (para envio em andamento, concluído ou com erro) -->
                 <button 
-                  v-if="job.resultado && job.resultado.logs && job.resultado.logs.length" 
+                  v-if="job.status === 'running' || (job.resultado && job.resultado.logs && job.resultado.logs.length)" 
                   class="btn-ghost btn-xs" 
                   @click="abrirLogs(job)"
                 >
-                  Ver Logs
+                  {{ job.status === 'running' ? '📋 Ver Logs (Ao Vivo)' : 'Ver Logs' }}
                 </button>
                 
-                <!-- Botão Cancelar (para pending) -->
+                <!-- Botão Cancelar (para pending ou running) -->
                 <button 
-                  v-if="job.status === 'pending'" 
+                  v-if="job.status === 'pending' || job.status === 'running'" 
                   class="btn-danger-link" 
                   @click="cancelarJob(job.id)"
+                  :title="job.status === 'running' ? 'Interrompe a execução em andamento' : 'Remove da fila antes de iniciar'"
                 >
-                  Cancelar
+                  ❌ Cancelar Envio
                 </button>
 
                 <!-- Botão de Deletar (para done ou error) -->
@@ -111,11 +139,22 @@
                 <span>{{ job.resultado.mensagem || 'Aguardando tempo limite para tentar novamente...' }}</span>
               </div>
 
+              <!-- Faixa de Logs em Tempo Real durante Execução -->
+              <div v-if="job.status === 'running'" class="running-log-box" style="margin-top: 0.5rem; padding: 0.5rem 0.75rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 6px; display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; color: #60a5fa;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; overflow: hidden; max-width: 80%;">
+                  <span style="display: inline-block; width: 8px; height: 8px; background-color: #3b82f6; border-radius: 50%;"></span>
+                  <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: monospace;">
+                    {{ obterUltimoLog(job) }}
+                  </span>
+                </div>
+              </div>
+
               <!-- Seleção de outro modelo em caso de limite atingido -->
               <div v-if="podeMudarModelo(job)" class="mudar-modelo-box">
-                <span class="mudar-modelo-label">Limite atingido. Tentar outro modelo:</span>
+                <label :for="'select-model-' + job.id" class="mudar-modelo-label">Limite atingido. Tentar outro modelo:</label>
                 <div class="mudar-modelo-control">
                   <select 
+                    :id="'select-model-' + job.id"
                     :value="obterModeloSelecionado(job.id, job.modelo)" 
                     @change="atualizarModeloSelecionado(job.id, $event)"
                     class="select-modelo"
@@ -156,16 +195,18 @@
 
     <!-- Modal de Logs -->
     <div v-if="logJobSelecionado" class="modal-overlay" @click.self="fecharLogs">
-      <div class="modal modal-wide">
-        <h2>Logs de Automação (Job #{{ logJobSelecionado.id }})</h2>
+      <div ref="logsModalRef" class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="logs-modal-title">
+        <h2 id="logs-modal-title">Logs de Automação (Job #{{ logJobSelecionado.id }})</h2>
         <p class="modal-subtitle">Tarefa: "{{ logJobSelecionado.titulo_atividade }}"</p>
         
         <div class="terminal-container">
           <div class="terminal-header">
-            <span>Logs do Playwright</span>
-            <span class="status-badge" :class="`badge-${logJobSelecionado.status}`">{{ logJobSelecionado.status }}</span>
+            <span>Logs de Execução Playwright</span>
+            <span class="status-badge" :class="logJobSelecionado.status === 'running' ? 'badge-blue' : `badge-${logJobSelecionado.status}`">
+              {{ logJobSelecionado.status === 'running' ? '⚡ TRANSMITINDO AO VIVO' : logJobSelecionado.status }}
+            </span>
           </div>
-          <pre class="terminal-body"><div v-for="(log, idx) in logJobSelecionado.resultado.logs" :key="idx" :class="{'error-line': log.startsWith('❌') || log.startsWith('ERRO')}">{{ log }}</div></pre>
+          <pre class="terminal-body"><div v-for="(log, idx) in (logJobSelecionado.resultado?.logs || [])" :key="idx" :class="{'error-line': log.startsWith('❌') || log.includes('ERRO')}">{{ log }}</div></pre>
         </div>
 
         <div class="modal-actions">
@@ -177,13 +218,41 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { useFilaStore } from '../stores/fila'
 import { api, type Config } from '../api'
 
 const filaStore = useFilaStore()
 const logJobSelecionado = ref<any>(null)
 const concurrencyInfo = ref<Config['concurrency'] | null>(null)
+
+const logsModalRef = ref<HTMLElement | null>(null)
+const previousActiveElement = ref<HTMLElement | null>(null)
+
+const failedJobsCount = computed(() => {
+  return filaStore.jobs.filter(j => j.status === 'error').length
+})
+
+async function reenfileirarTodasComFalha() {
+  if (confirm(`Deseja reenfileirar todas as ${failedJobsCount.value} tarefas com falha para processamento automático?`)) {
+    await filaStore.reenfileirarComErros()
+  }
+}
+
+function temErrosNoGrupo(grupo: { commit_id: string; jobs: any[] }) {
+  return grupo.jobs.some(j => j.status === 'error')
+}
+
+function errosNoGrupoCount(grupo: { commit_id: string; jobs: any[] }) {
+  return grupo.jobs.filter(j => j.status === 'error').length
+}
+
+async function reenfileirarGrupo(grupo: { commit_id: string; jobs: any[] }) {
+  const count = errosNoGrupoCount(grupo)
+  if (confirm(`Deseja reenfileirar ${count} tarefa(s) com falha deste commit (${grupo.commit_id.slice(0, 8)})?`)) {
+    await filaStore.reenfileirarComErros(grupo.commit_id)
+  }
+}
 
 const gruposColapsados = ref<Record<string, boolean>>({})
 
@@ -266,8 +335,8 @@ function obterMensagemErro(job: any) {
 }
 
 async function cancelarJob(id: number) {
-  if (confirm('Deseja realmente cancelar esta tarefa na fila?')) {
-    await filaStore.removerJob(id)
+  if (confirm('⚠️ Deseja realmente cancelar esta tarefa? Se estiver em execução, será interrompida imediatamente.')) {
+    await filaStore.cancelarJob(id)
   }
 }
 
@@ -275,11 +344,74 @@ async function removerJob(id: number) {
   await filaStore.removerJob(id)
 }
 
+function obterUltimoLog(job: any): string {
+  if (job.resultado && job.resultado.logs && job.resultado.logs.length) {
+    return job.resultado.logs[job.resultado.logs.length - 1]
+  }
+  return 'Executando automação no portal Munka...'
+}
+
+function handleLogsKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    fecharLogs()
+  }
+  if (e.key === 'Tab' && logsModalRef.value) {
+    const focusable = logsModalRef.value.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+    if (focusable.length === 0) return
+    const first = focusable[0] as HTMLElement
+    const last = focusable[focusable.length - 1] as HTMLElement
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        last.focus()
+        e.preventDefault()
+      }
+    } else {
+      if (document.activeElement === last) {
+        first.focus()
+        e.preventDefault()
+      }
+    }
+  }
+}
+
+watch(logJobSelecionado, (newVal) => {
+  if (newVal) {
+    previousActiveElement.value = document.activeElement as HTMLElement
+    document.addEventListener('keydown', handleLogsKeydown)
+    nextTick(() => {
+      const btn = logsModalRef.value?.querySelector('.modal-actions button') as HTMLElement
+      btn?.focus()
+    })
+  } else {
+    document.removeEventListener('keydown', handleLogsKeydown)
+    if (previousActiveElement.value) {
+      previousActiveElement.value.focus()
+      previousActiveElement.value = null
+    }
+  }
+})
+
+let logsInterval: any = null
+
 function abrirLogs(job: any) {
   logJobSelecionado.value = job
+  if (logsInterval) clearInterval(logsInterval)
+  
+  logsInterval = setInterval(async () => {
+    if (!logJobSelecionado.value) return
+    await filaStore.fetchJobs()
+    const updated = filaStore.jobs.find(j => j.id === logJobSelecionado.value.id)
+    if (updated) {
+      logJobSelecionado.value = updated
+    }
+  }, 1200)
 }
 
 function fecharLogs() {
+  if (logsInterval) {
+    clearInterval(logsInterval)
+    logsInterval = null
+  }
   logJobSelecionado.value = null
 }
 
@@ -589,13 +721,20 @@ async function reenviarAtividade(job: any) {
   flex-direction: column;
   overflow: hidden;
 }
-.commit-group-header {
+button.commit-group-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0.85rem 1.25rem !important;
   background: rgba(255, 255, 255, 0.01) !important;
   border-bottom: 1px solid var(--card-border) !important;
+  outline: none;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  border: none;
+  width: 100%;
+  text-align: left;
 }
 .commit-group-info {
   display: flex;
@@ -668,5 +807,55 @@ async function reenviarAtividade(job: any) {
   padding: 4px 10px;
   border-radius: 99px;
   margin-left: 0.75rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.btn-retry-all {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #ffffff;
+  border: none;
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btn-retry-all:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.45);
+}
+
+.btn-retry-commit {
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  color: #ffffff;
+  border: none;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.btn-retry-commit:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(239, 68, 68, 0.4);
 }
 </style>

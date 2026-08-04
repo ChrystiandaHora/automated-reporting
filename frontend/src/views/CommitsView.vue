@@ -10,10 +10,11 @@
 
     <!-- Modal de importação -->
     <div v-if="showImport" class="modal-overlay" @click.self="showImport = false">
-      <div class="modal">
-        <h2>Importar Commits do GitLab (Lote)</h2>
-        <label>URLs Completas dos Commits do GitLab (uma por linha)</label>
+      <div ref="importModalRef" class="modal" role="dialog" aria-modal="true" aria-labelledby="import-modal-title">
+        <h2 id="import-modal-title">Importar Commits do GitLab (Lote)</h2>
+        <label for="import-commit-hashes">URLs Completas dos Commits do GitLab (uma por linha)</label>
         <textarea 
+          id="import-commit-hashes"
           v-model="form.commit_hashes" 
           placeholder="Ex:&#10;https://gitlab.suaorganizacao.com/grupo/projeto/-/commit/abc123hash" 
           rows="6"
@@ -129,7 +130,11 @@
             v-for="commit in grupo.commits" 
             :key="commit.id" 
             class="commit-row"
+            tabindex="0"
+            role="link"
             @click="$router.push(`/commits/${commit.id}`)"
+            @keydown.enter.prevent="$router.push(`/commits/${commit.id}`)"
+            @keydown.space.prevent="$router.push(`/commits/${commit.id}`)"
           >
             <!-- Lado Esquerdo: Avatar do Autor -->
             <div 
@@ -219,8 +224,8 @@
 
     <!-- Modal de Confirmação de Exclusão -->
     <div v-if="exibindoModalConfirmacao" class="modal-overlay" @click.self="fecharModalConfirmacao">
-      <div class="modal">
-        <h2>Confirmar Exclusão</h2>
+      <div ref="confirmModalRef" class="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+        <h2 id="confirm-modal-title">Confirmar Exclusão</h2>
         <p>Tem certeza de que deseja excluir o commit <strong>{{ commitParaDeletar?.id.slice(0, 8) }}</strong> e sua respectiva análise? Esta ação não pode ser desfeita.</p>
         <div class="modal-actions">
           <button class="btn-ghost" @click="fecharModalConfirmacao">Cancelar</button>
@@ -233,7 +238,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { useCommitsStore } from '../stores/commits'
 import { useToastStore } from '../stores/toast'
 import HelpModal from '../components/HelpModal.vue'
@@ -251,6 +256,93 @@ const showImport = ref(false)
 const importing = ref(false)
 const importError = ref('')
 const form = ref({ commit_hashes: '' })
+
+const commitParaDeletar = ref<any>(null)
+const exibindoModalConfirmacao = ref(false)
+
+const importModalRef = ref<HTMLElement | null>(null)
+const confirmModalRef = ref<HTMLElement | null>(null)
+const previousActiveElement = ref<HTMLElement | null>(null)
+
+function handleImportKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    showImport.value = false
+  }
+  if (e.key === 'Tab' && importModalRef.value) {
+    const focusable = importModalRef.value.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+    if (focusable.length === 0) return
+    const first = focusable[0] as HTMLElement
+    const last = focusable[focusable.length - 1] as HTMLElement
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        last.focus()
+        e.preventDefault()
+      }
+    } else {
+      if (document.activeElement === last) {
+        first.focus()
+        e.preventDefault()
+      }
+    }
+  }
+}
+
+function handleConfirmKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    fecharModalConfirmacao()
+  }
+  if (e.key === 'Tab' && confirmModalRef.value) {
+    const focusable = confirmModalRef.value.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+    if (focusable.length === 0) return
+    const first = focusable[0] as HTMLElement
+    const last = focusable[focusable.length - 1] as HTMLElement
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        last.focus()
+        e.preventDefault()
+      }
+    } else {
+      if (document.activeElement === last) {
+        first.focus()
+        e.preventDefault()
+      }
+    }
+  }
+}
+
+watch(showImport, (newVal) => {
+  if (newVal) {
+    previousActiveElement.value = document.activeElement as HTMLElement
+    document.addEventListener('keydown', handleImportKeydown)
+    nextTick(() => {
+      const textarea = importModalRef.value?.querySelector('textarea') as HTMLElement
+      textarea?.focus()
+    })
+  } else {
+    document.removeEventListener('keydown', handleImportKeydown)
+    if (previousActiveElement.value) {
+      previousActiveElement.value.focus()
+      previousActiveElement.value = null
+    }
+  }
+})
+
+watch(exibindoModalConfirmacao, (newVal) => {
+  if (newVal) {
+    previousActiveElement.value = document.activeElement as HTMLElement
+    document.addEventListener('keydown', handleConfirmKeydown)
+    nextTick(() => {
+      const btn = confirmModalRef.value?.querySelector('.modal-actions button') as HTMLElement
+      btn?.focus()
+    })
+  } else {
+    document.removeEventListener('keydown', handleConfirmKeydown)
+    if (previousActiveElement.value) {
+      previousActiveElement.value.focus()
+      previousActiveElement.value = null
+    }
+  }
+})
 
 const mesSelecionado = ref<string>('todos')
 
@@ -354,8 +446,7 @@ async function copiarSHA(sha: string) {
   }
 }
 
-const commitParaDeletar = ref<any>(null)
-const exibindoModalConfirmacao = ref(false)
+
 
 function abrirModalConfirmacao(commit: any) {
   commitParaDeletar.value = commit

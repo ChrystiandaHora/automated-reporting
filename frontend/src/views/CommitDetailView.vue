@@ -57,14 +57,14 @@
         </template>
         <template v-else>
           <div class="meta-edit-form">
-            <label>Data</label>
-            <input v-model="metaEditavel.data" placeholder="DD/MM/YYYY" style="width: 7.5rem" />
-            <label>Projeto</label>
-            <input v-model="metaEditavel.projeto" placeholder="grupo/repositorio" style="flex: 1; min-width: 12rem" />
-            <label>Autor</label>
-            <input v-model="metaEditavel.autor" placeholder="Nome do autor" style="flex: 1; min-width: 10rem" />
-            <label>Mensagem</label>
-            <input v-model="metaEditavel.mensagem" placeholder="Mensagem do commit" style="flex: 2; min-width: 14rem" />
+            <label for="meta-data">Data</label>
+            <input id="meta-data" v-model="metaEditavel.data" placeholder="DD/MM/YYYY" style="width: 7.5rem" />
+            <label for="meta-project">Projeto</label>
+            <input id="meta-project" v-model="metaEditavel.projeto" placeholder="grupo/repositorio" style="flex: 1; min-width: 12rem" />
+            <label for="meta-author">Autor</label>
+            <input id="meta-author" v-model="metaEditavel.autor" placeholder="Nome do autor" style="flex: 1; min-width: 10rem" />
+            <label for="meta-message">Mensagem</label>
+            <input id="meta-message" v-model="metaEditavel.mensagem" placeholder="Mensagem do commit" style="flex: 2; min-width: 14rem" />
           </div>
           <div class="meta-edit-actions">
             <button class="btn-primary btn-sm" @click="salvarMeta" :disabled="salvandoMeta">{{ salvandoMeta ? 'Salvando...' : '✓ Salvar' }}</button>
@@ -97,8 +97,8 @@
 
         <template v-else-if="analiseStore.analise">
           <div class="complexidade-box">
-            <label>Complexidade Global</label>
-            <textarea v-model="analiseStore.analise.complexidade_global" rows="3"></textarea>
+            <label for="global-complexity">Complexidade Global</label>
+            <textarea id="global-complexity" v-model="analiseStore.analise.complexidade_global" rows="3"></textarea>
           </div>
 
           <!-- Lista de atividades -->
@@ -113,8 +113,10 @@
                 type="checkbox" 
                 :value="idx" 
                 v-model="selecionadas" 
+                :id="'atv-check-' + idx"
                 class="atividade-header-checkbox"
                 :disabled="atv.enviado"
+                :aria-label="'Selecionar atividade: ' + (atv.titulo || 'Atividade sem Título')"
               />
               <span class="badge badge-blue">{{ atv.etapa }}</span>
               <span class="atividade-codigo">{{ atv.codigo_id }} · {{ atv.hpa }}h</span>
@@ -132,10 +134,13 @@
               </button>
             </div>
 
-            <div class="card-tabs">
+            <div class="card-tabs" role="tablist" aria-label="Abas de opções da atividade">
               <button 
                 type="button" 
                 class="tab-btn" 
+                role="tab"
+                :aria-selected="activeTabs[idx] !== 'preview'"
+                :aria-controls="'tab-form-' + idx"
                 :class="{ 'active': activeTabs[idx] !== 'preview' }" 
                 @click="activeTabs[idx] = 'form'"
               >
@@ -144,6 +149,9 @@
               <button 
                 type="button" 
                 class="tab-btn" 
+                role="tab"
+                :aria-selected="activeTabs[idx] === 'preview'"
+                :aria-controls="'tab-preview-' + idx"
                 :class="{ 'active': activeTabs[idx] === 'preview' }" 
                 @click="carregarPreview(idx)"
               >
@@ -151,27 +159,27 @@
               </button>
             </div>
 
-            <div v-show="activeTabs[idx] !== 'preview'" class="atividade-body">
-              <label>Título</label>
-              <input v-model="atv.titulo" />
-              <label>Descrição</label>
-              <textarea v-model="atv.descricao" rows="3"></textarea>
-              <label>Justificativa</label>
-              <textarea v-model="atv.justificativa" rows="3"></textarea>
-              <label>Categoria</label>
-              <input v-model="atv.categoria" />
-              <label>Código</label>
-              <input v-model="atv.codigo_id" @input="recalcularHpa(atv)" style="width: 6rem" />
-              <label>HPA (horas)</label>
-              <input v-model.number="atv.hpa" type="number" style="width: 5rem" />
-              <label>Complexidade</label>
-              <select v-model="atv.complexidade" @change="recalcularHpa(atv)" style="width: 8rem">
+            <div v-show="activeTabs[idx] !== 'preview'" :id="'tab-form-' + idx" role="tabpanel" class="atividade-body">
+              <label :for="'atv-titulo-' + idx">Título</label>
+              <input :id="'atv-titulo-' + idx" v-model="atv.titulo" />
+              <label :for="'atv-desc-' + idx">Descrição</label>
+              <textarea :id="'atv-desc-' + idx" v-model="atv.descricao" rows="3"></textarea>
+              <label :for="'atv-just-' + idx">Justificativa</label>
+              <textarea :id="'atv-just-' + idx" v-model="atv.justificativa" rows="3"></textarea>
+              <label :for="'atv-cat-' + idx">Categoria</label>
+              <input :id="'atv-cat-' + idx" v-model="atv.categoria" />
+              <label :for="'atv-code-' + idx">Código</label>
+              <input :id="'atv-code-' + idx" v-model="atv.codigo_id" @input="recalcularHpa(atv)" style="width: 6rem" />
+              <label :for="'atv-hpa-' + idx">HPA (horas)</label>
+              <input :id="'atv-hpa-' + idx" v-model.number="atv.hpa" type="number" style="width: 5rem" />
+              <label :for="'atv-comp-' + idx">Complexidade</label>
+              <select :id="'atv-comp-' + idx" v-model="atv.complexidade" @change="recalcularHpa(atv)" style="width: 8rem">
                 <option value="Baixa">Baixa</option>
                 <option value="Média">Média</option>
                 <option value="Alta">Alta</option>
               </select>
-              <label>Arquivos Afetados (Clique em "Visualizar Alterações" para abrir o diff)</label>
-              <div class="files-list-interactive">
+              <label :for="'atv-files-' + idx">Arquivos Afetados (Clique em "Visualizar Alterações" para abrir o diff)</label>
+              <div :id="'atv-files-' + idx" class="files-list-interactive">
                 <div v-for="f in atv.arquivos" :key="f" class="file-chip-container">
                   <div class="file-chip-row">
                     <span class="file-chip-name">📄 {{ f }}</span>
@@ -197,7 +205,7 @@
               </div>
             </div>
 
-            <div v-if="activeTabs[idx] === 'preview'" class="atividade-preview-body">
+            <div v-if="activeTabs[idx] === 'preview'" :id="'tab-preview-' + idx" role="tabpanel" class="atividade-preview-body">
               <div v-if="loadingPreviews[idx]" class="preview-loading">
                 <div class="spinner"></div>
                 <span>Gerando pré-visualização...</span>
@@ -223,6 +231,7 @@
                     scrolling="no"
                     @load="ajustarAlturaIframe($event)"
                     class="preview-iframe"
+                    :title="'Pré-visualização da Evidência para Atividade ' + (atv.titulo || idx)"
                   ></iframe>
                 </div>
               </div>
@@ -242,7 +251,15 @@
 
       <!-- Diff raw -->
       <div class="section diff-section">
-        <div class="diff-section-header" @click="showCommitDiff = !showCommitDiff">
+        <div 
+          class="diff-section-header" 
+          @click="showCommitDiff = !showCommitDiff"
+          tabindex="0"
+          role="button"
+          :aria-expanded="showCommitDiff"
+          @keydown.enter.prevent="showCommitDiff = !showCommitDiff"
+          @keydown.space.prevent="showCommitDiff = !showCommitDiff"
+        >
           <h2>Diff Completo do Commit</h2>
           <span class="collapse-icon-btn">{{ showCommitDiff ? '▼ Ocultar Diff' : '▶ Mostrar Diff' }}</span>
         </div>
@@ -677,7 +694,7 @@ async function enviarTodasFila() {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.story-step.active .step-title { color: #fff; }
+.story-step.active .step-title { color: var(--accent); }
 .story-step.completed .step-title { color: #4ade80; }
 .step-desc {
   font-size: 0.82rem;
@@ -685,7 +702,7 @@ async function enviarTodasFila() {
   margin-top: 0.2rem;
   line-height: 1.4;
 }
-.story-step.active .step-desc { color: var(--text-muted); }
+.story-step.active .step-desc { color: var(--text); }
 .story-arrow { color: var(--accent-light); font-weight: 900; font-size: 1.1rem; opacity: 0.7; }
 
 /* ── Meta bar ── */
@@ -717,7 +734,7 @@ async function enviarTodasFila() {
   border-bottom: 2px solid rgba(59, 130, 246, 0.5);
   padding-bottom: 0.75rem;
 }
-.section-header h2 { font-size: 1.15rem; font-weight: 800; letter-spacing: -0.01em; color: #fff; }
+.section-header h2 { font-size: 1.15rem; font-weight: 800; letter-spacing: -0.01em; color: var(--text); }
 .section-actions { display: flex; gap: 0.5rem; }
 
 .complexidade-box { margin-bottom: 1.25rem; }
@@ -778,7 +795,7 @@ async function enviarTodasFila() {
 .atividade-titulo-header {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #fff;
+  color: var(--text);
   margin-left: 0.75rem;
   white-space: nowrap;
   overflow: hidden;
@@ -910,7 +927,7 @@ async function enviarTodasFila() {
 .diff-section-header h2 {
   font-size: 1.15rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--text);
   margin: 0;
 }
 .collapse-icon-btn {

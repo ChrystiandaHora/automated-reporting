@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from datetime import datetime, timezone
 import redis
 
@@ -12,6 +13,9 @@ from celery_app import celery_app
 redis_client = redis.Redis.from_url(
     os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
 )
+
+
+from celery.exceptions import Retry
 
 
 @celery_app.task(bind=True, name="tasks.analisar_commit")
@@ -55,14 +59,14 @@ def analisar_commit_task(
                             if f:
                                 f.status = "done"
                                 f.resultado = json.dumps(res, ensure_ascii=False)
-                                f.concluido_em = datetime.now(timezone.utc).isoformat()
+                                f.concluido_em = datetime.now().isoformat()
                                 db_f.commit()
                     return res
 
         # 2. Executa a chamada da API do Gemini (fora de qualquer transação de banco de dados)
         relatorio = analisar_diff(diff_raw, modelo=modelo)
         atividades = [a.model_dump() for a in relatorio.atividades]
-        analisado_em = datetime.now(timezone.utc).isoformat()
+        analisado_em = datetime.now().isoformat()
 
         # 3. Salva no banco em uma nova transação rápida
         with SessionLocal() as db:
@@ -98,7 +102,7 @@ def analisar_commit_task(
                 if f:
                     f.status = "done"
                     f.resultado = json.dumps(res, ensure_ascii=False)
-                    f.concluido_em = datetime.now(timezone.utc).isoformat()
+                    f.concluido_em = datetime.now().isoformat()
                     db_f.commit()
         return res
     except Exception as e:
@@ -151,7 +155,7 @@ def analisar_commit_task(
                 if f:
                     f.status = "error"
                     f.resultado = json.dumps({"error": str(e)}, ensure_ascii=False)
-                    f.concluido_em = datetime.now(timezone.utc).isoformat()
+                    f.concluido_em = datetime.now().isoformat()
                     db_f.commit()
         raise e
 
@@ -170,6 +174,15 @@ def enviar_atividade_task(
     def log(msg: str):
         logs.append(msg)
         self.update_state(state="PROGRESS", meta={"logs": logs})
+        if fila_id:
+            try:
+                with SessionLocal() as db_log:
+                    fj = db_log.query(models.Fila).filter_by(id=fila_id).first()
+                    if fj and fj.status == "running":
+                        fj.resultado = json.dumps({"resultado": "RUNNING", "logs": logs}, ensure_ascii=False)
+                        db_log.commit()
+            except Exception:
+                pass
 
     if fila_id:
         with SessionLocal() as db:
@@ -177,6 +190,7 @@ def enviar_atividade_task(
             if fila_job:
                 fila_job.status = "running"
                 fila_job.task_id = self.request.id
+                fila_job.resultado = json.dumps({"resultado": "RUNNING", "logs": ["Iniciando automação..."]}, ensure_ascii=False)
                 db.commit()
 
     try:
@@ -246,6 +260,26 @@ def enviar_atividade_task(
             except Exception:
                 evidencia_html = ""
 
+        from backup import verificar_ping_munka, gerar_backup_json_e_sql, verificar_e_executar_auto_backup_20min
+
+        munka_url_config = cfg.get("MUNKA_URL", "")
+        log("🔍 Realizando teste de conectividade (PING) no portal Munka...")
+        ping_ok, ping_msg = verificar_ping_munka(munka_url_config, timeout=6)
+        if not ping_ok:
+            log(f"⚠️ PING FALHOU: Portal Munka indisponível ({ping_msg}).")
+            log("⏸️ Pausando a tarefa temporariamente para evitar falhas consecutivas. Testando novamete em 30s...")
+            res = {"resultado": "PAUSED_PING_FAILED", "logs": logs}
+            if fila_id:
+                with SessionLocal() as db_f:
+                    f = db_f.query(models.Fila).filter_by(id=fila_id).first()
+                    if f:
+                        f.status = "pending"
+                        f.resultado = json.dumps(res, ensure_ascii=False)
+                        db_f.commit()
+            raise self.retry(exc=Exception(f"Portal Munka indisponível (Ping: {ping_msg})"), countdown=30, max_retries=9)
+
+        log("✔ Portal Munka online. Iniciando automação do lançamento...")
+
         auto = MunkaAutomation(
             username=cfg["MUNKA_USER"],
             password=cfg["MUNKA_PASS"],
@@ -253,7 +287,8 @@ def enviar_atividade_task(
             headless=True,
             log_callback=log,
         )
-        log(f"Executando fluxo completo (Cadastro + Evidência)...")
+        attempt_curr = self.request.retries + 1
+        log(f"Executando fluxo completo (Cadastro + Evidência) - Tentativa {attempt_curr}/10...")
         resultado, task_id = auto.cadastrar_e_homologar_completo(
             task_data=atividade,
             image_path=None,
@@ -274,32 +309,54 @@ def enviar_atividade_task(
             "20": "Homologação",
             "21": "Concluído"
         }
-        hist_status = status_map.get(status_id, "Cadastrada")
+        if pulada:
+            hist_status = "Concluído"
+            tem_df = True
+        else:
+            hist_status = status_map.get(status_id, "Enviado ao Munka")
+            tem_df = True
+            if "Sem Data Fim" in str(hist_status) or "Incompleta" in str(hist_status):
+                tem_df = False
 
         with SessionLocal() as db:
-            # 2. Verifica se a tarefa já está no histórico local para evitar duplicações no banco de dados local
-            already_exists = (
+            hist = (
                 db.query(models.Historico)
                 .filter_by(commit_id=commit_id, titulo=atividade.get("titulo", ""))
                 .first()
             )
 
-            if not already_exists and not pulada:
-                tem_df = True
-                if "Sem Data Fim" in str(hist_status) or "Incompleta" in str(hist_status) or hist_status in ("Cadastrada", "Backlog", "Backlog Prioritário"):
-                    tem_df = False
-
+            if hist:
+                hist.status = hist_status
+                hist.tem_data_fim = tem_df
+                hist.enviado_em = datetime.now().isoformat()
+                if atividade.get("codigo_id"):
+                    hist.codigo = atividade.get("codigo_id")
+                if atividade.get("hpa"):
+                    hist.hpa = float(atividade.get("hpa"))
+            else:
                 hist = models.Historico(
                     commit_id=commit_id,
                     titulo=atividade.get("titulo", ""),
                     codigo=atividade.get("codigo_id", ""),
                     hpa=float(atividade.get("hpa", 0)),
                     status=hist_status,
-                    enviado_em=datetime.now(timezone.utc).isoformat(),
+                    enviado_em=datetime.now().isoformat(),
                     tem_data_fim=tem_df,
                 )
                 db.add(hist)
-                db.commit()
+
+            analise = db.query(models.Analise).filter_by(commit_id=commit_id).first()
+            if analise and analise.atividades_json:
+                try:
+                    atvs = json.loads(analise.atividades_json)
+                    for a in atvs:
+                        if a.get("titulo") == atividade.get("titulo"):
+                            a["enviado"] = True
+                    analise.atividades_json = json.dumps(atvs, ensure_ascii=False)
+                except Exception:
+                    pass
+
+            db.commit()
 
         task_url = None
         if task_id:
@@ -314,11 +371,37 @@ def enviar_atividade_task(
                 if f:
                     f.status = "done"
                     f.resultado = json.dumps(res, ensure_ascii=False)
-                    f.concluido_em = datetime.now(timezone.utc).isoformat()
+                    f.concluido_em = datetime.now().isoformat()
                     db_f.commit()
+
+        try:
+            verificar_e_executar_auto_backup_20min()
+        except Exception as eb:
+            log(f"Auto-save backup notice: {eb}")
+
         return res
+    except Retry:
+        raise
     except Exception as e:
-        logs.append(f"ERRO: {str(e)}")
+        retry_num = self.request.retries
+        max_retries = 9
+        delays = [10, 15, 20, 30, 45, 60, 90, 120, 180]
+        if retry_num < max_retries:
+            next_attempt = retry_num + 2
+            countdown = delays[retry_num] if retry_num < len(delays) else 180
+            log(f"⚠️ Falha na tentativa {retry_num + 1}/{max_retries + 1}: {str(e)}")
+            log(f"🔄 Reenfileirando automaticamente para tentar novamente em {countdown}s (Tentativa {next_attempt}/{max_retries + 1})...")
+            res = {"resultado": "RETRYING", "logs": logs}
+            if fila_id:
+                with SessionLocal() as db_f:
+                    f = db_f.query(models.Fila).filter_by(id=fila_id).first()
+                    if f:
+                        f.status = "pending"
+                        f.resultado = json.dumps(res, ensure_ascii=False)
+                        db_f.commit()
+            raise self.retry(exc=e, countdown=countdown, max_retries=max_retries)
+
+        log(f"❌ Todas as {max_retries + 1} tentativas falharam com erro: {str(e)}")
         res = {"resultado": "ERRO", "logs": logs}
         if fila_id:
             with SessionLocal() as db_f:
@@ -326,6 +409,6 @@ def enviar_atividade_task(
                 if f:
                     f.status = "error"
                     f.resultado = json.dumps(res, ensure_ascii=False)
-                    f.concluido_em = datetime.now(timezone.utc).isoformat()
+                    f.concluido_em = datetime.now().isoformat()
                     db_f.commit()
         raise e

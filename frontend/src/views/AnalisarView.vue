@@ -14,13 +14,18 @@
         <h2>Selecione o Modelo de AI</h2>
       </div>
       
-      <div class="model-grid">
+      <div class="model-grid" role="radiogroup" aria-label="Selecione o Modelo de AI">
         <div 
           v-for="model in models" 
           :key="model.name" 
           class="model-card"
           :class="{ 'selected': selectedModel === model.name }"
+          tabindex="0"
+          role="radio"
+          :aria-checked="selectedModel === model.name"
           @click="selectedModel = model.name"
+          @keydown.enter.prevent="selectedModel = model.name"
+          @keydown.space.prevent="selectedModel = model.name"
         >
           <div class="model-header">
             <span class="model-badge" :class="model.badgeClass">{{ model.badge }}</span>
@@ -52,6 +57,7 @@
                   type="checkbox" 
                   :checked="todosSelecionados" 
                   @change="alternarTodos" 
+                  aria-label="Selecionar todos os commits"
                 />
               </th>
               <th>SHA / Mensagem</th>
@@ -73,6 +79,7 @@
                   :value="commit.id" 
                   v-model="selecionados"
                   @click.stop
+                  :aria-label="'Selecionar commit ' + commit.id.slice(0, 8)"
                 />
               </td>
               <td class="col-msg">

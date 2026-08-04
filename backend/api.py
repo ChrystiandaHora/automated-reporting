@@ -547,7 +547,7 @@ def importar_commit(req: ImportarRequest, db: Session = Depends(get_db)):
         autor=meta.get("author_name", ""),
         mensagem=mensagem,
         diff_raw=diff_com_header,
-        importado_em=datetime.now(timezone.utc).isoformat(),
+        importado_em=datetime.now().isoformat(),
     )
     db.add(commit_obj)
     db.commit()
@@ -640,21 +640,42 @@ def verificar_data_fim_commit(sha: str, db: Session = Depends(get_db)):
     historicos_por_titulo = {h.titulo: h for h in historicos}
 
     res_atividades = []
+    db_changed = False
+
     for atv in atividades:
         titulo = atv.get("titulo", "")
         hist = historicos_por_titulo.get(titulo)
-
         atv_enviado = bool(atv.get("enviado"))
+
         if hist:
             enviado = True
             status_str = str(hist.status or "")
-            if "Sem Data Fim" in status_str or "Incompleta" in status_str or status_str in ("Cadastrada", "Backlog", "Backlog Prioritário"):
+            if status_str not in ("Sem Data Fim", "Incompleta") and getattr(hist, "tem_data_fim", None) is False:
+                hist.tem_data_fim = True
+                db_changed = True
+
+            if getattr(hist, "tem_data_fim", None) is False or "Sem Data Fim" in status_str or "Incompleta" in status_str:
                 has_data_fim = False
             else:
                 has_data_fim = True
         else:
             enviado = atv_enviado
-            has_data_fim = False
+            if enviado:
+                hist = models.Historico(
+                    commit_id=commit.id,
+                    titulo=titulo,
+                    codigo=atv.get("codigo_id", ""),
+                    hpa=float(atv.get("hpa", 0)),
+                    status="Enviado ao Munka",
+                    enviado_em=datetime.now().isoformat(),
+                    tem_data_fim=True,
+                )
+                db.add(hist)
+                historicos_por_titulo[titulo] = hist
+                db_changed = True
+                has_data_fim = True
+            else:
+                has_data_fim = False
 
         res_atividades.append({
             "titulo": titulo,
@@ -663,6 +684,12 @@ def verificar_data_fim_commit(sha: str, db: Session = Depends(get_db)):
             "has_data_fim": has_data_fim,
             "data_fim_missing": enviado and not has_data_fim
         })
+
+    if db_changed:
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
 
     return {
         "commit_id": commit.id,
@@ -996,26 +1023,51 @@ def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)
         "20": "Homologação",
         "21": "Concluído"
     }
-    hist_status = status_map.get(req.status_id, "Cadastrada")
+    if pulada:
+        hist_status = "Concluído"
+        tem_df = True
+    else:
+        hist_status = status_map.get(req.status_id, "Enviado ao Munka")
+        tem_df = True
+        if "Sem Data Fim" in str(hist_status) or "Incompleta" in str(hist_status):
+            tem_df = False
 
-
-    already_exists = (
+    hist = (
         db.query(models.Historico)
         .filter_by(commit_id=commit.id, titulo=atividade.get("titulo", ""))
         .first()
     )
 
-    if not already_exists and not pulada:
+    if hist:
+        hist.status = hist_status
+        hist.tem_data_fim = tem_df
+        hist.enviado_em = datetime.now().isoformat()
+        if atividade.get("codigo_id"):
+            hist.codigo = atividade.get("codigo_id")
+        if atividade.get("hpa"):
+            hist.hpa = float(atividade.get("hpa"))
+    else:
         hist = models.Historico(
             commit_id=commit.id,
             titulo=atividade.get("titulo", ""),
             codigo=atividade.get("codigo_id", ""),
             hpa=float(atividade.get("hpa", 0)),
             status=hist_status,
-            enviado_em=datetime.now(timezone.utc).isoformat(),
+            enviado_em=datetime.now().isoformat(),
+            tem_data_fim=tem_df,
         )
         db.add(hist)
-        db.commit()
+
+    try:
+        atvs = json.loads(analise.atividades_json)
+        for a in atvs:
+            if a.get("titulo") == atividade.get("titulo"):
+                a["enviado"] = True
+        analise.atividades_json = json.dumps(atvs, ensure_ascii=False)
+    except Exception:
+        pass
+
+    db.commit()
 
     task_url = None
     if task_id:
@@ -1264,6 +1316,7 @@ def obter_config():
             "cpu_cores": concurrency_cfg["cpu_cores"],
             "total_system_limit": concurrency_cfg["total"],
             "limit_per_queue": concurrency_cfg["queues"]["analises"],
+            "dynamic_sharing": concurrency_cfg.get("dynamic_sharing", True),
             "queues": concurrency_cfg["queues"],
         },
     }
@@ -1386,6 +1439,66 @@ def enfileirar_envio(req: FilaEnvioRequest, db: Session = Depends(get_db)):
     return {"ok": True, "job_id": job.id}
 
 
+@app.post("/fila/retry-failed")
+def reenfileirar_tarefas_com_falha(commit_id: Optional[str] = None, db: Session = Depends(get_db)):
+    """Reenfileira tarefas da fila que estão com status 'error', opcionalmente filtrando por commit_id."""
+    query = db.query(models.Fila).filter_by(status="error")
+    if commit_id:
+        query = query.filter(models.Fila.commit_id.like(f"{commit_id}%"))
+    jobs_com_erro = query.all()
+    if not jobs_com_erro:
+        return {"ok": True, "re_enqueued": 0, "message": "Nenhuma tarefa com falha para reenfileirar."}
+
+    cfg = obter_config_valores()
+    count = 0
+
+    for job in jobs_com_erro:
+        if job.tipo == "analise":
+            task = analisar_commit_task.delay(job.commit_id, cfg.get("modelo_gemini"), job.id)
+            job.status = "pending"
+            job.task_id = task.id
+            job.resultado = None
+            count += 1
+        elif job.tipo == "envio":
+            if not cfg.get("MUNKA_USER") or not cfg.get("MUNKA_PASS"):
+                continue
+            task = enviar_atividade_task.delay(job.commit_id, job.atividade_idx, cfg, job.id)
+            job.status = "pending"
+            job.task_id = task.id
+            job.resultado = None
+            count += 1
+
+    db.commit()
+    return {"ok": True, "re_enqueued": count, "message": f"{count} tarefa(s) reenfileirada(s) com sucesso!"}
+
+
+@app.post("/fila/{job_id}/cancel")
+def cancelar_tarefa(job_id: int, db: Session = Depends(get_db)):
+    """Cancela uma tarefa da fila, revogando a execução no Celery se estiver rodando."""
+    job = db.query(models.Fila).filter_by(id=job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Tarefa não encontrada")
+    
+    # Se a tarefa está rodando, revoga do Celery
+    if job.task_id and job.status in ("pending", "running"):
+        try:
+            # SIGTERM é mais seguro que SIGKILL para subprocessos Playwright e evita EPIPE em cascata.
+            celery_app.control.revoke(job.task_id, terminate=True, signal='SIGTERM')
+        except Exception as e:
+            print(f"Erro ao revogar tarefa do Celery: {e}")
+    
+    # Atualiza status no banco
+    job.status = "error"
+    job.resultado = json.dumps({
+        "resultado": "CANCELADO",
+        "logs": ["❌ Tarefa cancelada pelo usuário"]
+    }, ensure_ascii=False)
+    job.concluido_em = datetime.now().isoformat()
+    db.commit()
+    
+    return {"ok": True, "message": "Tarefa cancelada com sucesso!"}
+
+
 @app.get("/fila")
 def listar_fila(db: Session = Depends(get_db)):
     jobs = db.query(models.Fila).order_by(models.Fila.criado_em.desc()).all()
@@ -1418,6 +1531,19 @@ def listar_fila(db: Session = Depends(get_db)):
                         resultado_data["task_url"] = f"{munka_url}/tarefamodelview/list/?"
             except:
                 resultado_data = {"logs": [], "resultado": j.resultado}
+
+        if j.task_id and j.status == "running":
+            try:
+                task_res = celery_app.AsyncResult(j.task_id)
+                if task_res and task_res.info and isinstance(task_res.info, dict):
+                    live_logs = task_res.info.get("logs", [])
+                    if live_logs:
+                        if not resultado_data:
+                            resultado_data = {"resultado": "RUNNING", "logs": live_logs}
+                        else:
+                            resultado_data["logs"] = live_logs
+            except Exception:
+                pass
 
         resultado.append(
             {
@@ -1499,4 +1625,52 @@ def resetar_metricas_modelos():
     """Reseta todos os contadores de requisições e tokens."""
     rate_limiter.reset_metrics()
     return {"ok": True}
+
+
+# --- ENDPOINTS DE BACKUP AUTOMÁTICO E TESTE DE PING ---
+from backup import gerar_backup_json_e_sql, verificar_ping_munka, obter_diretorio_backup
+
+
+@app.on_event("startup")
+def startup_backup_e_ping():
+    try:
+        gerar_backup_json_e_sql()
+    except Exception as e:
+        print(f"[Startup Backup Error] {e}", flush=True)
+
+
+@app.post("/backup/criar")
+def criar_backup_manual():
+    """Gera imediatamente um backup em formato JSON e SQL de todas as tabelas."""
+    try:
+        res = gerar_backup_json_e_sql()
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar backup: {str(e)}")
+
+
+@app.get("/backup/listar")
+def listar_backups():
+    """Lista todos os arquivos de backup salvos no diretório de dados."""
+    dir_backup = obter_diretorio_backup()
+    arquivos = []
+    if os.path.exists(dir_backup):
+        for f in sorted(os.listdir(dir_backup), reverse=True):
+            if f.endswith(".json") or f.endswith(".sql"):
+                path_f = os.path.join(dir_backup, f)
+                arquivos.append({
+                    "nome": f,
+                    "tamanho_bytes": os.path.getsize(path_f),
+                    "modificado_em": datetime.fromtimestamp(os.path.getmtime(path_f)).isoformat()
+                })
+    return {"ok": True, "diretorio": dir_backup, "backups": arquivos}
+
+
+@app.get("/ping-munka")
+def testar_ping_munka():
+    """Realiza um teste de conectividade rápida com o portal Munka."""
+    cfg = obter_config_valores()
+    munka_url = cfg.get("MUNKA_URL", "")
+    ok, msg = verificar_ping_munka(munka_url)
+    return {"ok": ok, "mensagem": msg, "munka_url": munka_url}
 

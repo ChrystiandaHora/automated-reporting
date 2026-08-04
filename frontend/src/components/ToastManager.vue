@@ -1,5 +1,5 @@
 <template>
-  <div class="toast-container">
+  <div class="toast-container" aria-live="polite" role="status">
     <TransitionGroup name="toast">
       <div 
         v-for="toast in toastStore.toasts" 
@@ -8,8 +8,9 @@
         :class="`toast-${toast.type}`"
         @click="toastStore.removeToast(toast.id)"
       >
+        <span class="sr-only">{{ toast.type === 'error' ? 'Erro: ' : toast.type === 'success' ? 'Sucesso: ' : 'Info: ' }}</span>
         <span class="toast-message">{{ toast.message }}</span>
-        <button class="toast-close">&times;</button>
+        <button class="toast-close" @click.stop="toastStore.removeToast(toast.id)" aria-label="Fechar notificação">&times;</button>
       </div>
     </TransitionGroup>
   </div>

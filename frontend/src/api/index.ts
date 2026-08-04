@@ -75,6 +75,7 @@ export interface Config {
     cpu_cores: number
     total_system_limit: number
     limit_per_queue: number
+    dynamic_sharing?: boolean
     queues: {
       analises: number
       envios: number
@@ -212,6 +213,9 @@ export const api = {
     enfileirarEnvio: (payload: { commit_id: string; atividade_idx: number }) =>
       http.post<{ ok: boolean; job_id: number }>('/fila/envio', payload).then(r => r.data),
     remover: (id: number) => http.delete(`/fila/${id}`).then(r => r.data),
+    cancelar: (id: number) => http.post<{ ok: boolean; message: string }>(`/fila/${id}/cancel`).then(r => r.data),
+    retryFailed: (commitId?: string) =>
+      http.post<{ ok: boolean; re_enqueued: number; message: string }>('/fila/retry-failed', null, { params: commitId ? { commit_id: commitId } : {} }).then(r => r.data),
   },
   projeto: {
     verificarAtualizacao: () => http.get<any>('/projeto/atualizacao').then(r => r.data),
@@ -224,6 +228,11 @@ export const api = {
       http.post<{ ok: boolean; metrics: any }>('/modelos/test-call', { model_id: modelId }).then(r => r.data),
     reset: () => http.post<{ ok: boolean }>('/modelos/reset').then(r => r.data),
   },
+  backup: {
+    criar: () => http.post<any>('/backup/criar').then(r => r.data),
+    listar: () => http.get<any>('/backup/listar').then(r => r.data),
+  },
+  pingMunka: () => http.get<{ ok: boolean; mensagem: string; munka_url: string }>('/ping-munka').then(r => r.data),
 }
 
 

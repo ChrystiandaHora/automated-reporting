@@ -6,28 +6,37 @@ def get_concurrency_config(cpu_cores: int | None = None) -> dict:
     """
     Calcula a capacidade total de concorrência e a divisão entre as filas.
 
-    Regras:
-    - Fórmula Total: Math.floor(CPU_CORES * 0.70) (com mínimo global de 4 processos)
-    - Divisão: O total é compartilhado entre a fila de 'analises' e 'envios'
-    - Mínimo de 2 trabalhadores por fila em máquinas menores.
-
-    Exemplo para 16 cores:
-    - Total: 16 * 0.70 = 11.2 -> floor = 11
-    - Fila de Análise: 6
-    - Fila de Envio: 5
+    Fórmula:
+    - Total de processos no sistema: Math.floor(CPU_CORES * 0.70) (com mínimo global de 4)
+    - Fila de Análise (analises): ceil(Total / 2)
+    - Fila de Lançamento (envios): floor(Total / 2)
     """
     if cpu_cores is None:
         cpu_cores = os.cpu_count() or 1
     elif cpu_cores < 1:
         cpu_cores = 1
 
-    total = max(4, math.floor(cpu_cores * 0.70))
-    analises = max(2, math.ceil(total / 2))
-    envios = max(2, math.floor(total / 2))
+    env_override = os.environ.get("CELERY_CONCURRENCY") or os.environ.get("CELERY_WORKER_CONCURRENCY")
+    if env_override and env_override.isdigit():
+        custom = int(env_override)
+        return {
+            "cpu_cores": cpu_cores,
+            "total": custom * 2,
+            "dynamic_sharing": True,
+            "queues": {
+                "analises": custom,
+                "envios": custom,
+            },
+        }
+
+    analises = 3
+    # 4 envios simultâneos para automação no portal Munka
+    envios = 4
 
     return {
         "cpu_cores": cpu_cores,
-        "total": total,
+        "total": analises + envios,
+        "dynamic_sharing": False,
         "queues": {
             "analises": analises,
             "envios": envios,

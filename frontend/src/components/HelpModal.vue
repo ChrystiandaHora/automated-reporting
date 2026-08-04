@@ -3,10 +3,10 @@
     <button class="help-btn" @click="open = true" :title="title">?</button>
 
     <div v-if="open" class="modal-overlay" @click.self="open = false">
-      <div class="modal help-modal">
+      <div ref="modalRef" class="modal help-modal" role="dialog" aria-modal="true" :aria-labelledby="titleId">
         <div class="help-modal-header">
-          <h2>{{ title }}</h2>
-          <button class="close-btn" @click="open = false">✕</button>
+          <h2 :id="titleId">{{ title }}</h2>
+          <button class="close-btn" @click="open = false" aria-label="Fechar ajuda">✕</button>
         </div>
         <div class="help-modal-body">
           <div v-for="item in items" :key="item.title" class="help-item">
@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 
 defineProps<{
   title: string
@@ -28,6 +28,50 @@ defineProps<{
 }>()
 
 const open = ref(false)
+const modalRef = ref<HTMLElement | null>(null)
+const titleId = 'help-title-' + Math.random().toString(36).substring(2, 9)
+
+let previousActiveElement: HTMLElement | null = null
+
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    open.value = false
+  }
+  if (e.key === 'Tab' && modalRef.value) {
+    const focusable = modalRef.value.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+    if (focusable.length === 0) return
+    const first = focusable[0] as HTMLElement
+    const last = focusable[focusable.length - 1] as HTMLElement
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        last.focus()
+        e.preventDefault()
+      }
+    } else {
+      if (document.activeElement === last) {
+        first.focus()
+        e.preventDefault()
+      }
+    }
+  }
+}
+
+watch(open, (newVal) => {
+  if (newVal) {
+    previousActiveElement = document.activeElement as HTMLElement | null
+    document.addEventListener('keydown', handleKeydown)
+    nextTick(() => {
+      const closeBtn = modalRef.value?.querySelector('.close-btn') as HTMLElement | null
+      closeBtn?.focus()
+    })
+  } else {
+    document.removeEventListener('keydown', handleKeydown)
+    if (previousActiveElement) {
+      previousActiveElement.focus()
+      previousActiveElement = null
+    }
+  }
+})
 </script>
 
 <style scoped>
