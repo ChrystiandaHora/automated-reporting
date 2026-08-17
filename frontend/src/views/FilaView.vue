@@ -71,14 +71,42 @@
             <div class="job-header">
               <span 
                 class="badge" 
-                :class="job.tipo === 'analise' ? 'badge-blue' : 'badge-purple'"
+                :class="job.tipo === 'analise' ? 'badge-blue' : job.tipo === 'verificacao' ? 'badge-orange' : 'badge-purple'"
               >
-                {{ job.tipo === 'analise' ? 'Análise AI' : 'Envio Portal' }}
+                {{ job.tipo === 'analise' ? 'Análise AI' : job.tipo === 'verificacao' ? 'Verificação Portal' : 'Envio Portal' }}
               </span>
               
               <span class="job-time">{{ formatarData(job.criado_em) }}</span>
               
               <div class="job-actions">
+                <!-- Botão Dinâmico de Verificação / Correção (para envio concluído) -->
+                <button 
+                  v-if="job.status === 'done' && job.tipo === 'envio'" 
+                  class="btn-xs btn-verificacao-status" 
+                  :class="{
+                    'btn-status-ok': !isVerificando(job.id) && obterStatusVerificacao(job) === 'ok',
+                    'btn-status-divergencia': !isVerificando(job.id) && obterStatusVerificacao(job) === 'divergencia',
+                    'btn-status-default': isVerificando(job.id) || !obterStatusVerificacao(job)
+                  }"
+                  style="margin-right: 0.5rem; display: inline-flex; align-items: center; gap: 0.3rem;"
+                  @click="handleAcaoVerificacao(job)"
+                  :disabled="isVerificando(job.id)"
+                  :title="obterTituloVerificacao(job)"
+                >
+                  <template v-if="isVerificando(job.id)">
+                    ⏳ Verificando...
+                  </template>
+                  <template v-else-if="obterStatusVerificacao(job) === 'ok'">
+                    ✅ Lançamento OK
+                  </template>
+                  <template v-else-if="obterStatusVerificacao(job) === 'divergencia'">
+                    ⚠️ Corrigir Lançamento
+                  </template>
+                  <template v-else>
+                    🔍 Verificar Lançamento
+                  </template>
+                </button>
+
                 <!-- Botão de Ver Tarefa (para envio concluído com sucesso) -->
                 <a 
                   v-if="job.status === 'done' && job.resultado && job.resultado.task_url" 
@@ -218,7 +246,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { useFilaStore } from '../stores/fila'
 import { api, type Config } from '../api'
 
@@ -228,6 +256,12 @@ const concurrencyInfo = ref<Config['concurrency'] | null>(null)
 
 const logsModalRef = ref<HTMLElement | null>(null)
 const previousActiveElement = ref<HTMLElement | null>(null)
+
+const jobsEmVerificacao = ref<Record<number, boolean>>({})
+
+function isVerificando(jobId: number): boolean {
+  return !!jobsEmVerificacao.value[jobId]
+}
 
 const failedJobsCount = computed(() => {
   return filaStore.jobs.filter(j => j.status === 'error').length
@@ -268,6 +302,7 @@ const jobsAgrupados = computed(() => {
   const grupos: Record<string, { commit_id: string; commit_mensagem: string; jobs: any[] }> = {}
   
   for (const job of filaStore.jobs) {
+    if (job.tipo === 'verificacao') continue
     const key = job.commit_id
     if (!grupos[key]) {
       grupos[key] = {
@@ -279,13 +314,14 @@ const jobsAgrupados = computed(() => {
     grupos[key].jobs.push(job)
   }
   
-  // Ordena os grupos pela data de criação do job mais recente
   return Object.values(grupos).sort((a, b) => {
     const maxA = Math.max(...a.jobs.map(j => new Date(j.criado_em).getTime()))
     const maxB = Math.max(...b.jobs.map(j => new Date(j.criado_em).getTime()))
     return maxB - maxA
   })
 })
+
+let globalPollInterval: any = null
 
 onMounted(async () => {
   await filaStore.fetchJobs()
@@ -297,6 +333,14 @@ onMounted(async () => {
   } catch (e) {
     console.error("Erro ao carregar configuracoes de concorrencia:", e)
   }
+
+  globalPollInterval = setInterval(() => {
+    filaStore.fetchJobs()
+  }, 3500)
+})
+
+onUnmounted(() => {
+  if (globalPollInterval) clearInterval(globalPollInterval)
 })
 
 function atualizarFila() {
@@ -414,6 +458,63 @@ function fecharLogs() {
   }
   logJobSelecionado.value = null
 }
+
+const verificandoJobId = ref<number | null>(null)
+const corrigindoJobId = ref<number | null>(null)
+
+function obterStatusVerificacao(job: any) {
+  if (!job.resultado) return null
+  let res = job.resultado
+  if (typeof res === 'string') {
+    try { res = JSON.parse(res) } catch { return null }
+  }
+  if (res.verificacao) {
+    return res.verificacao.overall_ok ? 'ok' : 'divergencia'
+  }
+  return null
+}
+
+function obterTituloVerificacao(job: any) {
+  const status = obterStatusVerificacao(job)
+  if (status === 'ok') return 'Todos os 5 campos (Data Início, Data Fim, Serviço, Status e Commit) conferidos com sucesso no portal. Clique para re-verificar.'
+  if (status === 'divergencia') return 'Inconformidade detectada nos campos do portal Munka. Clique para corrigir e re-salvar automaticamente.'
+  return 'Clique para verificar se os campos da tarefa no portal Munka correspondem ao commit.'
+}
+
+async function handleAcaoVerificacao(job: any) {
+  const status = obterStatusVerificacao(job)
+  if (status === 'divergencia') {
+    await executarCorrigir(job)
+  } else {
+    await executarVerificar(job)
+  }
+}
+
+async function executarVerificar(job: any) {
+  verificandoJobId.value = job.id
+  try {
+    await api.fila.verificar(job.id)
+    await filaStore.fetchJobs()
+  } catch (err: any) {
+    alert(`Erro ao enfileirar verificação: ${err.response?.data?.detail || err.message || String(err)}`)
+  } finally {
+    verificandoJobId.value = null
+  }
+}
+
+async function executarCorrigir(job: any) {
+  if (!job) return
+  corrigindoJobId.value = job.id
+  try {
+    await api.fila.corrigir(job.id)
+    await filaStore.fetchJobs()
+  } catch (err: any) {
+    alert(`Erro ao enfileirar correção: ${err.response?.data?.detail || err.message || String(err)}`)
+  } finally {
+    corrigindoJobId.value = null
+  }
+}
+
 
 const models = [
   { name: 'Gemini 2.5 Flash' },
@@ -572,7 +673,13 @@ async function reenviarAtividade(job: any) {
 }
 
 /* Modal de logs */
-.modal-wide { width: 100%; max-width: 700px; }
+.modal-wide { 
+  width: 100%; 
+  max-width: 800px; 
+  max-height: 85vh; 
+  overflow-y: auto; 
+  box-sizing: border-box;
+}
 .modal-subtitle {
   font-size: 0.8rem;
   color: var(--text-muted);
@@ -610,10 +717,12 @@ async function reenviarAtividade(job: any) {
   padding: 1rem;
   font-size: 0.78rem;
   font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
-  max-height: 350px;
+  max-height: 380px;
   overflow-y: auto;
+  overflow-x: auto;
   margin: 0;
   white-space: pre-wrap;
+  word-break: break-all;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -857,5 +966,42 @@ button.commit-group-header {
   filter: brightness(1.15);
   transform: translateY(-1px);
   box-shadow: 0 3px 10px rgba(239, 68, 68, 0.4);
+}
+
+.btn-verificacao-status {
+  transition: all 0.2s ease;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.btn-status-default {
+  border: 1px solid rgba(96, 165, 250, 0.4) !important;
+  color: #60a5fa !important;
+  background: rgba(96, 165, 250, 0.05) !important;
+}
+.btn-status-default:hover {
+  background: rgba(96, 165, 250, 0.15) !important;
+  transform: translateY(-1px);
+}
+.btn-status-ok {
+  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+  color: #10b981 !important;
+  background: rgba(16, 185, 129, 0.08) !important;
+}
+.btn-status-ok:hover {
+  background: rgba(16, 185, 129, 0.18) !important;
+  transform: translateY(-1px);
+}
+.btn-status-divergencia {
+  border: 1px solid rgba(245, 158, 11, 0.5) !important;
+  color: #fbbf24 !important;
+  background: rgba(245, 158, 11, 0.12) !important;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
+}
+.btn-status-divergencia:hover {
+  background: rgba(245, 158, 11, 0.25) !important;
+  transform: translateY(-1px);
 }
 </style>

@@ -4,7 +4,7 @@ import re
 import subprocess
 import time
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
@@ -1499,6 +1499,48 @@ def cancelar_tarefa(job_id: int, db: Session = Depends(get_db)):
     return {"ok": True, "message": "Tarefa cancelada com sucesso!"}
 
 
+@app.post("/fila/{job_id}/verificar")
+def verificar_lancamento_tarefa(job_id: int, db: Session = Depends(get_db)):
+    """Executa tarefa assíncrona de verificação do lançamento no portal.
+    Não cria uma nova linha na fila, atualiza o resultado da própria tarefa.
+    """
+    target_job = db.query(models.Fila).filter_by(id=job_id).first()
+    if not target_job:
+        raise HTTPException(status_code=404, detail="Tarefa da fila não encontrada")
+
+    from celery_tasks import verificar_lancamento_task
+    task = verificar_lancamento_task.delay(target_job.id)
+
+    return {"ok": True, "task_id": task.id, "message": "Verificação enfileirada com sucesso!"}
+
+
+@app.post("/fila/{job_id}/corrigir", status_code=201)
+def corrigir_lancamento_tarefa(job_id: int, db: Session = Depends(get_db)):
+    """Enfileira uma tarefa assíncrona para abrir a tarefa no portal Munka
+    e corrigir automaticamente quaisquer desconformidades nos campos (Serviço, Data Fim, Status).
+    """
+    target_job = db.query(models.Fila).filter_by(id=job_id).first()
+    if not target_job:
+        raise HTTPException(status_code=404, detail="Tarefa da fila não encontrada")
+
+    job_correcao = models.Fila(
+        tipo="envio",
+        commit_id=target_job.commit_id,
+        atividade_idx=target_job.atividade_idx,
+        status="pending",
+        criado_em=datetime.now().isoformat(),
+    )
+    db.add(job_correcao)
+    db.flush()
+
+    from celery_tasks import corrigir_lancamento_task
+    task = corrigir_lancamento_task.delay(target_job.id, job_correcao.id)
+    job_correcao.task_id = task.id
+    db.commit()
+
+    return {"ok": True, "job_id": job_correcao.id, "message": "Correção automática enfileirada com sucesso!"}
+
+
 @app.get("/fila")
 def listar_fila(db: Session = Depends(get_db)):
     jobs = db.query(models.Fila).order_by(models.Fila.criado_em.desc()).all()
@@ -1579,6 +1621,74 @@ def remover_job_fila(job_id: int, db: Session = Depends(get_db)):
 
     db.delete(job)
     db.commit()
+
+
+# ─── Fila Logs Historico Endpoints ──────────────────────────────────────────
+
+class DeleteMultipleLogsRequest(BaseModel):
+    ids: List[int]
+
+
+@app.get("/fila-logs")
+def listar_fila_logs(db: Session = Depends(get_db)):
+    logs_hist = db.query(models.FilaLogsHistorico).order_by(models.FilaLogsHistorico.criado_em.desc()).all()
+    resultado = []
+    for log_item in logs_hist:
+        commit = db.query(models.Commit).filter_by(id=log_item.commit_id).first() if log_item.commit_id else None
+        mensagem = commit.mensagem if commit else "(sem commit)"
+
+        titulo_atividade = None
+        if log_item.tipo == "envio" and commit:
+            analise = db.query(models.Analise).filter_by(commit_id=commit.id).first()
+            if analise:
+                try:
+                    atividades = json.loads(analise.atividades_json)
+                    if log_item.atividade_idx is not None and 0 <= log_item.atividade_idx < len(atividades):
+                        titulo_atividade = atividades[log_item.atividade_idx].get("titulo")
+                except Exception:
+                    pass
+
+        logs_data = []
+        if log_item.logs:
+            try:
+                logs_data = json.loads(log_item.logs)
+            except Exception:
+                logs_data = [log_item.logs]
+
+        resultado.append(
+            {
+                "id": log_item.id,
+                "fila_id": log_item.fila_id,
+                "tipo": log_item.tipo,
+                "commit_id": log_item.commit_id,
+                "atividade_idx": log_item.atividade_idx,
+                "tentativa": log_item.tentativa,
+                "status": log_item.status,
+                "logs": logs_data,
+                "criado_em": log_item.criado_em,
+                "commit_mensagem": mensagem,
+                "titulo_atividade": titulo_atividade,
+            }
+        )
+    return resultado
+
+
+@app.delete("/fila-logs/{log_id}", status_code=204)
+def remover_log_individual(log_id: int, db: Session = Depends(get_db)):
+    log_item = db.query(models.FilaLogsHistorico).filter_by(id=log_id).first()
+    if not log_item:
+        raise HTTPException(status_code=404, detail="Log não encontrado")
+    db.delete(log_item)
+    db.commit()
+
+
+@app.post("/fila-logs/delete-multiple")
+def remover_multiplos_logs(payload: DeleteMultipleLogsRequest, db: Session = Depends(get_db)):
+    if not payload.ids:
+        return {"ok": True, "removed": 0}
+    db.query(models.FilaLogsHistorico).filter(models.FilaLogsHistorico.id.in_(payload.ids)).delete(synchronize_session=False)
+    db.commit()
+    return {"ok": True, "removed": len(payload.ids)}
 
 
 # ─── Rate Limit & Model Monitoring Endpoints ───────────────────────────────

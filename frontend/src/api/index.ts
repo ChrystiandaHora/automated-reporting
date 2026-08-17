@@ -105,7 +105,7 @@ export interface TaskStatus {
 
 export interface FilaItem {
   id: number
-  tipo: 'analise' | 'envio'
+  tipo: 'analise' | 'envio' | 'verificacao'
   commit_id: string
   atividade_idx?: number
   modelo?: string
@@ -114,6 +114,20 @@ export interface FilaItem {
   resultado?: any
   criado_em: string
   concluido_em?: string
+  commit_mensagem: string
+  titulo_atividade?: string
+}
+
+export interface FilaLogItem {
+  id: number
+  fila_id: number
+  tipo: 'analise' | 'envio'
+  commit_id: string
+  atividade_idx?: number
+  tentativa: number
+  status: 'done' | 'error' | 'retrying'
+  logs: string[]
+  criado_em: string
   commit_mensagem: string
   titulo_atividade?: string
 }
@@ -214,8 +228,15 @@ export const api = {
       http.post<{ ok: boolean; job_id: number }>('/fila/envio', payload).then(r => r.data),
     remover: (id: number) => http.delete(`/fila/${id}`).then(r => r.data),
     cancelar: (id: number) => http.post<{ ok: boolean; message: string }>(`/fila/${id}/cancel`).then(r => r.data),
+    verificar: (id: number) => http.post<any>(`/fila/${id}/verificar`).then(r => r.data),
+    corrigir: (id: number) => http.post<any>(`/fila/${id}/corrigir`).then(r => r.data),
     retryFailed: (commitId?: string) =>
       http.post<{ ok: boolean; re_enqueued: number; message: string }>('/fila/retry-failed', null, { params: commitId ? { commit_id: commitId } : {} }).then(r => r.data),
+  },
+  filaLogs: {
+    listar: () => http.get<FilaLogItem[]>('/fila-logs').then(r => r.data),
+    remover: (id: number) => http.delete(`/fila-logs/${id}`),
+    removerMultiplos: (ids: number[]) => http.post<{ ok: boolean; removed: number }>('/fila-logs/delete-multiple', { ids }).then(r => r.data),
   },
   projeto: {
     verificarAtualizacao: () => http.get<any>('/projeto/atualizacao').then(r => r.data),

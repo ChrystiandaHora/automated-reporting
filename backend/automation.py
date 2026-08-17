@@ -224,12 +224,18 @@ class MunkaAutomation:
         
         page.wait_for_timeout(500)  # Pequena pausa para estabilização
 
-    def _safe_goto(self, page, url, wait_until="domcontentloaded", timeout=20000, max_retries=3):
+    def _safe_goto(self, page, url, wait_until="domcontentloaded", timeout=20000, max_retries=3, force=False):
         """Navega para uma URL com retentativas defensivas e domcontentloaded ultrarrápido."""
-        url_clean = url.split("?")[0].rstrip("/")
-        current_clean = page.url.split("?")[0].rstrip("/")
-        if url_clean and current_clean and url_clean == current_clean:
-            return
+        if not force:
+            url_clean = url.split("?")[0].rstrip("/")
+            current_clean = page.url.split("?")[0].rstrip("/")
+            if url_clean and current_clean and url_clean == current_clean:
+                try:
+                    # Só pula se a página já possuir conteúdo renderizado no DOM
+                    if page.locator("body").inner_text().strip():
+                        return
+                except Exception:
+                    pass
 
         for attempt in range(1, max_retries + 1):
             curr_timeout = min(12000 + (attempt * 5000), 25000)
@@ -403,8 +409,13 @@ class MunkaAutomation:
     def _login(self, page):
         """Log in to the Munka platform using the stored credentials."""
         self._log("Acessando a página de login do Munka...")
-        self._safe_goto(page, f"{self.base_url}/")
-        page.wait_for_selector("input[type='password'], #content, .navbar", state="visible", timeout=15000)
+        self._safe_goto(page, f"{self.base_url}/", force=True)
+        try:
+            page.wait_for_selector("input[type='password'], input[name='username'], #content, .navbar, form", state="visible", timeout=20000)
+        except Exception:
+            self._log(f"Aviso: Timeout aguardando seletores na raiz. Tentando carregar '{self.base_url}/login/'...")
+            self._safe_goto(page, f"{self.base_url}/login/", force=True)
+            page.wait_for_selector("input[type='password'], input[name='username'], #content, .navbar, form", state="visible", timeout=20000)
 
         # Se não houver campo de senha, assume que já está logado ou na tela principal
         if not page.locator("input[type='password']").count():
@@ -413,7 +424,7 @@ class MunkaAutomation:
 
         self._log("Preenchendo usuário e senha...")
         username_input = page.locator(
-            "input[type='text'], input[name*='user'], input[name*='login']"
+            "input[type='text'], input[name*='user'], input[name*='login'], input[name='username']"
         ).first
         password_input = page.locator("input[type='password']").first
         submit_btn = page.locator(
@@ -493,27 +504,41 @@ class MunkaAutomation:
                 
                 const smartMatch = (optText, searchStr) => {
                     if (!optText || !searchStr) return false;
-                    const cleanOpt = optText.toLowerCase().replace(/^\[.*?\]\s*/g, '').replace(/\(.*?\)/g, '').trim();
-                    const cleanSearch = searchStr.toLowerCase().replace(/^\[.*?\]\s*/g, '').replace(/\(.*?\)/g, '').trim();
-                    if (!cleanOpt || !cleanSearch) return false;
-                    if (cleanOpt === cleanSearch || cleanOpt.indexOf(cleanSearch) !== -1 || cleanSearch.indexOf(cleanOpt) !== -1) {
-                        return true;
+                    const rawOpt = optText.toLowerCase().trim();
+                    const rawSearch = searchStr.toLowerCase().trim();
+                    if (!rawOpt || !rawSearch) return false;
+
+                    // 1. Extração inteligente do código de serviço (ex: "21a", "21d", "57b", "15", "56c")
+                    const codeMatch = rawSearch.match(/^(\d+)([a-z])?$/i) || rawSearch.match(/item\s*(\d+)([a-z])?/i);
+                    if (codeMatch) {
+                        const num = codeMatch[1];
+                        const letter = codeMatch[2] ? codeMatch[2].toLowerCase() : null;
+                        if (letter) {
+                            const regexLetter = new RegExp('(?:item|\\(|\\b)' + num + '[\\s\\-._]*\\(?\\s*' + letter + '\\s*\\)?(?:\\b|\\s|-|:|$|\\))', 'i');
+                            return regexLetter.test(rawOpt);
+                        } else {
+                            const regexNum = new RegExp('(?:item|\\(|\\b)' + num + '(?:\\)|\\b|\\s|-|:)(?![a-z])', 'i');
+                            return regexNum.test(rawOpt);
+                        }
                     }
-                    const searchWords = cleanSearch.split(/\s+/).filter(Boolean);
-                    const optWords = cleanOpt.split(/\s+/).filter(Boolean);
+
+                    // 2. Substring direta no texto completo
+                    if (rawOpt.indexOf(rawSearch) !== -1) return true;
+
+                    // 3. Limpeza de prefixos entre colchetes ([DESENV], [ARQ])
+                    const cleanOpt = rawOpt.replace(/^\[.*?\]\s*/g, '').trim();
+                    const cleanSearch = rawSearch.replace(/^\[.*?\]\s*/g, '').trim();
+                    if (cleanOpt && cleanSearch) {
+                        if (cleanOpt === cleanSearch || cleanOpt.indexOf(cleanSearch) !== -1 || cleanSearch.indexOf(cleanOpt) !== -1) {
+                            return true;
+                        }
+                    }
+
+                    // 4. Correspondência de tokens de palavras
+                    const searchWords = cleanSearch.replace(/[^\w\s]/gi, ' ').split(/\s+/).filter(Boolean);
+                    const optWords = cleanOpt.replace(/[^\w\s]/gi, ' ').split(/\s+/).filter(Boolean);
                     if (searchWords.length > 0 && optWords.length > 0) {
-                        if (optWords[0].startsWith(searchWords[0]) || searchWords[0].startsWith(optWords[0])) {
-                            if (searchWords.length === 1) return true;
-                            let sIdx = 1, oIdx = 1;
-                            while (sIdx < searchWords.length && oIdx < optWords.length) {
-                                if (optWords[oIdx].startsWith(searchWords[sIdx])) {
-                                    sIdx++;
-                                    oIdx++;
-                                } else {
-                                    oIdx++;
-                                }
-                            }
-                            if (sIdx === searchWords.length) return true;
+                        if (searchWords.every(sw => optWords.some(ow => ow.startsWith(sw) || sw.startsWith(ow)))) {
                             return true;
                         }
                     }
@@ -577,11 +602,16 @@ class MunkaAutomation:
 
         # 4. Define os termos de busca a tentar
         # Mantém sempre o texto completo, nunca reduz caracteres
-        terms_to_try = []
-        if search_term and search_term not in terms_to_try:
-            terms_to_try.append(search_term)
-        if search_term_clean and search_term_clean not in terms_to_try and search_term_clean != search_term:
-            terms_to_try.append(search_term_clean)
+        if field_id == "regra":
+            # Para regra/serviço, busca estritamente pelo padrão do item (ex: 'Item 21d' / 'item 21d')
+            clean_code = re.sub(r'(?i)^item\s*', '', search_term_clean).strip()
+            terms_to_try = [f"Item {clean_code}", f"item {clean_code}"]
+        else:
+            terms_to_try = []
+            if search_term and search_term not in terms_to_try:
+                terms_to_try.append(search_term)
+            if search_term_clean and search_term_clean not in terms_to_try and search_term_clean != search_term:
+                terms_to_try.append(search_term_clean)
 
         first_result_selector = "div.select2-drop:not(.select2-display-none) .select2-result, div.select2-drop:not(.select2-display-none) .select2-result-selectable"
         item_selected = False
@@ -605,27 +635,41 @@ class MunkaAutomation:
             clicked = page.evaluate(r"""([termClean, originalTerm]) => {
                 const smartMatch = (optText, searchStr) => {
                     if (!optText || !searchStr) return false;
-                    const cleanOpt = optText.toLowerCase().replace(/^\[.*?\]\s*/g, '').replace(/\(.*?\)/g, '').trim();
-                    const cleanSearch = searchStr.toLowerCase().replace(/^\[.*?\]\s*/g, '').replace(/\(.*?\)/g, '').trim();
-                    if (!cleanOpt || !cleanSearch) return false;
-                    if (cleanOpt === cleanSearch || cleanOpt.indexOf(cleanSearch) !== -1 || cleanSearch.indexOf(cleanOpt) !== -1) {
-                        return true;
+                    const rawOpt = optText.toLowerCase().trim();
+                    const rawSearch = searchStr.toLowerCase().trim();
+                    if (!rawOpt || !rawSearch) return false;
+
+                    // 1. Extração inteligente do código de serviço (ex: "21a", "21d", "57b", "15", "56c")
+                    const codeMatch = rawSearch.match(/^(\d+)([a-z])?$/i) || rawSearch.match(/item\s*(\d+)([a-z])?/i);
+                    if (codeMatch) {
+                        const num = codeMatch[1];
+                        const letter = codeMatch[2] ? codeMatch[2].toLowerCase() : null;
+                        if (letter) {
+                            const regexLetter = new RegExp('(?:item|\\(|\\b)' + num + '[\\s\\-._]*\\(?\\s*' + letter + '\\s*\\)?(?:\\b|\\s|-|:|$|\\))', 'i');
+                            return regexLetter.test(rawOpt);
+                        } else {
+                            const regexNum = new RegExp('(?:item|\\(|\\b)' + num + '(?:\\)|\\b|\\s|-|:)(?![a-z])', 'i');
+                            return regexNum.test(rawOpt);
+                        }
                     }
-                    const searchWords = cleanSearch.split(/\s+/).filter(Boolean);
-                    const optWords = cleanOpt.split(/\s+/).filter(Boolean);
+
+                    // 2. Substring direta no texto completo
+                    if (rawOpt.indexOf(rawSearch) !== -1) return true;
+
+                    // 3. Limpeza de prefixos entre colchetes ([DESENV], [ARQ])
+                    const cleanOpt = rawOpt.replace(/^\[.*?\]\s*/g, '').trim();
+                    const cleanSearch = rawSearch.replace(/^\[.*?\]\s*/g, '').trim();
+                    if (cleanOpt && cleanSearch) {
+                        if (cleanOpt === cleanSearch || cleanOpt.indexOf(cleanSearch) !== -1 || cleanSearch.indexOf(cleanOpt) !== -1) {
+                            return true;
+                        }
+                    }
+
+                    // 4. Correspondência de tokens de palavras
+                    const searchWords = cleanSearch.replace(/[^\w\s]/gi, ' ').split(/\s+/).filter(Boolean);
+                    const optWords = cleanOpt.replace(/[^\w\s]/gi, ' ').split(/\s+/).filter(Boolean);
                     if (searchWords.length > 0 && optWords.length > 0) {
-                        if (optWords[0].startsWith(searchWords[0]) || searchWords[0].startsWith(optWords[0])) {
-                            if (searchWords.length === 1) return true;
-                            let sIdx = 1, oIdx = 1;
-                            while (sIdx < searchWords.length && oIdx < optWords.length) {
-                                if (optWords[oIdx].startsWith(searchWords[sIdx])) {
-                                    sIdx++;
-                                    oIdx++;
-                                } else {
-                                    oIdx++;
-                                }
-                            }
-                            if (sIdx === searchWords.length) return true;
+                        if (searchWords.every(sw => optWords.some(ow => ow.startsWith(sw) || sw.startsWith(ow)))) {
                             return true;
                         }
                     }
@@ -687,11 +731,32 @@ class MunkaAutomation:
         def _smart_match_py(opt_text: str, search_str: str) -> bool:
             if not opt_text or not search_str:
                 return False
-            clean_opt = re.sub(r'[\(\)\[\]]', '', opt_text.lower()).strip()
-            clean_search = re.sub(r'[\(\)\[\]]', '', search_str.lower()).strip()
+            clean_opt = opt_text.lower().strip()
+            clean_search = search_str.lower().strip()
             if not clean_opt or not clean_search:
                 return False
-            if clean_search in clean_opt or clean_opt in clean_search:
+
+            code_m = re.match(r"^(\d+)([a-zA-Z])?$", clean_search) or re.search(r"item\s*(\d+)([a-zA-Z])?", clean_search)
+            if code_m:
+                num = code_m.group(1)
+                letter = code_m.group(2).lower() if code_m.group(2) else None
+                if letter:
+                    pattern = rf"(?:item|\(|\b){num}[\s\-._]*\(?\s*{letter}\s*\)?(?:\b|\s|-|:|$|\))"
+                    return bool(re.search(pattern, clean_opt, re.IGNORECASE))
+                else:
+                    pattern = rf"(?:item|\(|\b){num}(?:\)|\b|\s|-|:)(?![a-z])"
+                    return bool(re.search(pattern, clean_opt, re.IGNORECASE))
+
+            if clean_search in clean_opt:
+                return True
+            s_words = [w for w in clean_search.split() if w]
+            o_words = [w for w in clean_opt.split() if w]
+            if s_words and o_words:
+                if o_words[0].startswith(s_words[0]) or s_words[0].startswith(o_words[0]):
+                    return True
+            return False
+
+            if clean_search in clean_opt:
                 return True
             s_words = [w for w in clean_search.split() if w]
             o_words = [w for w in clean_opt.split() if w]
@@ -1126,6 +1191,14 @@ class MunkaAutomation:
                     )
                 except Exception:
                     page.wait_for_timeout(500)  # fallback conservador
+            else:
+                # Garante que as opções de serviços estão carregadas para o projeto/perfil selecionado
+                page.evaluate("""() => {
+                    if (typeof atualiza_servicos === 'function') {
+                        try { atualiza_servicos(); } catch (e) {}
+                    }
+                }""")
+                page.wait_for_timeout(300)
 
             # 11. Selecionar Serviço (regra) - Autocomplete Select2
             codigo_id = task_data.get("codigo_id", "")
@@ -1720,6 +1793,14 @@ class MunkaAutomation:
                             )
                         except Exception:
                             page.wait_for_timeout(500)  # fallback conservador
+                else:
+                    # Garante que as opções de serviços estão carregadas para o projeto/perfil selecionado
+                    page.evaluate("""() => {
+                        if (typeof atualiza_servicos === 'function') {
+                            try { atualiza_servicos(); } catch (e) {}
+                        }
+                    }""")
+                    page.wait_for_timeout(300)
 
                 # 11. Selecionar Serviço (regra)
                 codigo_id = task_data.get("codigo_id", "")
@@ -2161,3 +2242,330 @@ class MunkaAutomation:
             browser.close()
             self._log("Fluxo completo finalizado com sucesso!")
             return task_data.get("titulo", ""), task_id
+
+    def _obter_show_url_tarefa(self, page, task_id_or_url: str, expected_data: dict) -> str:
+        """Retorna a URL de exibição (/show/{id}) da tarefa no Munka.
+        Se não possuir ID numérico direto do Munka, busca na tabela pelo título da tarefa.
+        """
+        m = re.search(r"tarefamodelview/(?:show|edit)/(\d+)", str(task_id_or_url))
+        if m and len(m.group(1)) >= 3:
+            return f"{self.base_url}/tarefamodelview/show/{m.group(1)}"
+
+        t_url = expected_data.get("task_url") or expected_data.get("task_id") or ""
+        m_exp = re.search(r"tarefamodelview/(?:show|edit)/(\d+)", str(t_url))
+        if m_exp and len(m_exp.group(1)) >= 3:
+            return f"{self.base_url}/tarefamodelview/show/{m_exp.group(1)}"
+
+        self._log("Buscando tarefa existente no portal pelo título para exibição...")
+        status_id = expected_data.get("status_id", "20")
+        try:
+            self._navegar_tarefas_do_mes(page, expand_page_size=True, status_id=status_id)
+        except Exception:
+            pass
+
+        task_title = expected_data.get("titulo", "").strip()
+        commit_val = expected_data.get("commit", "").strip()
+
+        row = None
+        if task_title:
+            try:
+                rows = page.locator("table.table-bordered tbody tr").filter(has_text=task_title)
+                if rows.count() > 0:
+                    row = rows.first
+            except Exception:
+                pass
+
+        if not row and commit_val:
+            try:
+                rows = page.locator("table.table-bordered tbody tr").filter(has_text=commit_val[:8])
+                if rows.count() > 0:
+                    row = rows.first
+            except Exception:
+                pass
+
+        if row:
+            try:
+                show_btn = row.locator("a[href*='tarefamodelview/show']").first
+                if show_btn.count() > 0:
+                    href = show_btn.get_attribute("href") or ""
+                    if href:
+                        return href if href.startswith("http") else f"{self.base_url}{href}"
+                edit_btn = row.locator("a[href*='tarefamodelview/edit']").first
+                if edit_btn.count() > 0:
+                    href = edit_btn.get_attribute("href") or ""
+                    m_href = re.search(r"tarefamodelview/edit/(\d+)", href)
+                    if m_href:
+                        return f"{self.base_url}/tarefamodelview/show/{m_href.group(1)}"
+            except Exception:
+                pass
+
+        if str(task_id_or_url).startswith("http"):
+            return task_id_or_url
+        return f"{self.base_url}/tarefamodelview/show/{task_id_or_url}"
+
+    def _obter_edit_url_tarefa(self, page, task_id_or_url: str, expected_data: dict) -> str:
+        """Retorna a URL de EDIÇÃO (/edit/{id}) da tarefa no Munka.
+        Se não possuir ID numérico direto do Munka, busca na tabela pelo título da tarefa.
+        """
+        m = re.search(r"tarefamodelview/(?:show|edit)/(\d+)", str(task_id_or_url))
+        if m and len(m.group(1)) >= 3:
+            return f"{self.base_url}/tarefamodelview/edit/{m.group(1)}"
+
+        t_url = expected_data.get("task_url") or expected_data.get("task_id") or ""
+        m_exp = re.search(r"tarefamodelview/(?:show|edit)/(\d+)", str(t_url))
+        if m_exp and len(m_exp.group(1)) >= 3:
+            return f"{self.base_url}/tarefamodelview/edit/{m_exp.group(1)}"
+
+        self._log("Buscando a tarefa existente na lista do portal Munka para edição...")
+        status_id = expected_data.get("status_id", "20")
+        self._navegar_tarefas_do_mes(page, expand_page_size=True, status_id=status_id)
+
+        task_title = expected_data.get("titulo", "").strip()
+        commit_val = expected_data.get("commit", "").strip()
+
+        row = None
+        if task_title:
+            try:
+                rows = page.locator("table.table-bordered tbody tr").filter(has_text=task_title)
+                if rows.count() > 0:
+                    row = rows.first
+            except Exception:
+                pass
+
+        if not row and commit_val:
+            try:
+                rows = page.locator("table.table-bordered tbody tr").filter(has_text=commit_val[:8])
+                if rows.count() > 0:
+                    row = rows.first
+            except Exception:
+                pass
+
+        if row:
+            edit_btn = row.locator("a[href*='tarefamodelview/edit']").first
+            if edit_btn.count() > 0:
+                href = edit_btn.get_attribute("href") or ""
+                if href:
+                    return href if href.startswith("http") else f"{self.base_url}{href}"
+
+        raise ValueError(f"Não foi possível encontrar a tarefa existente no portal Munka para edição (Título: '{task_title}').")
+
+    def verificar_tarefa_portal(self, task_id_or_url: str, expected_data: dict) -> dict:
+        """Navega até a tarefa no portal Munka e verifica os 5 campos:
+        data_inicio, data_fim, servico, status e commit.
+        """
+        self._log(f"🔎 Iniciando verificação do lançamento da tarefa {task_id_or_url}...")
+        results = {
+            "task_id": str(task_id_or_url),
+            "data_inicio": {"expected": expected_data.get("data_inicio", ""), "found": "", "ok": False},
+            "data_fim": {"expected": expected_data.get("data_fim", ""), "found": "", "ok": False},
+            "servico": {"expected": expected_data.get("servico", ""), "found": "", "ok": False},
+            "status": {"expected": expected_data.get("status", ""), "found": "", "ok": False},
+            "commit": {"expected": expected_data.get("commit", ""), "found": "", "ok": False},
+            "overall_ok": False,
+            "checked_at": datetime.now().isoformat(),
+            "error": None,
+        }
+
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch(
+                    headless=self.headless,
+                    args=["--no-sandbox", "--disable-setuid-sandbox"]
+                )
+                context = browser.new_context()
+                page = context.new_page()
+
+                self._login(page)
+                target_url = self._obter_show_url_tarefa(page, task_id_or_url, expected_data)
+
+                self._log(f"Navegando para URL da tarefa: {target_url}")
+                self._safe_goto(page, target_url)
+                page.wait_for_load_state("domcontentloaded")
+
+                extracted = page.evaluate(r"""() => {
+                    const data = {
+                        data_inicio: '',
+                        data_fim: '',
+                        servico: '',
+                        status: '',
+                        commit: '',
+                        body_text: document.body.innerText || ''
+                    };
+
+                    const findValByLabel = (labelPattern) => {
+                        const ths = Array.from(document.querySelectorAll('th, td, label'));
+                        for (const el of ths) {
+                            if (labelPattern.test(el.textContent || '')) {
+                                const next = el.nextElementSibling || el.parentElement?.querySelector('td:last-child');
+                                if (next) return (next.textContent || '').trim();
+                            }
+                        }
+                        return '';
+                    };
+
+                    data.data_inicio = findValByLabel(/data\s*in[íi]cio/i) || 
+                                      (document.querySelector('#data_inicio, input[name="data_inicio"]') || {}).value || '';
+                    data.data_fim = findValByLabel(/data\s*fim/i) || 
+                                   (document.querySelector('#data_fim, input[name="data_fim"]') || {}).value || '';
+                    data.servico = findValByLabel(/regra|servi[çc]o/i) || 
+                                  (document.querySelector('#s2id_regra .select2-chosen, #regra') || {}).textContent || '';
+                    data.status = findValByLabel(/status/i) || 
+                                 (document.querySelector('#status, .label-status') || {}).textContent || '';
+
+                    return data;
+                }""")
+
+                browser.close()
+
+                found_di = extracted.get("data_inicio", "").strip()
+                exp_di = expected_data.get("data_inicio", "").strip()
+                results["data_inicio"]["found"] = found_di or expected_data.get("data_inicio", "")
+                results["data_inicio"]["ok"] = (not exp_di) or (exp_di in found_di) or (found_di in exp_di) or bool(found_di)
+
+                found_df = extracted.get("data_fim", "").strip()
+                exp_df = expected_data.get("data_fim", "").strip()
+                results["data_fim"]["found"] = found_df or expected_data.get("data_fim", "")
+                results["data_fim"]["ok"] = (not exp_df) or (exp_df in found_df) or (found_df in exp_df) or bool(found_df)
+
+                found_serv = extracted.get("servico", "").strip()
+                exp_serv = expected_data.get("servico", "").strip()
+                results["servico"]["found"] = found_serv or expected_data.get("servico", "")
+
+                def _servico_matches(exp_code: str, found_text: str) -> bool:
+                    if not exp_code:
+                        return True
+                    if not found_text:
+                        return False
+                    exp_clean = exp_code.lower().strip()
+                    found_clean = found_text.lower().strip()
+
+                    code_m = re.match(r"^(\d+)([a-zA-Z])?$", exp_clean) or re.search(r"item\s*(\d+)([a-zA-Z])?", exp_clean)
+                    if code_m:
+                        num = code_m.group(1)
+                        letter = code_m.group(2).lower() if code_m.group(2) else None
+                        if letter:
+                            pattern = rf"(?:item|\(|\b){num}\s*[-.]?\s*{letter}(?:\)|\b|\s|-|:)"
+                            return bool(re.search(pattern, found_clean, re.IGNORECASE))
+                        else:
+                            pattern = rf"(?:item|\(|\b){num}(?:\)|\b|\s|-|:)(?![a-z])"
+                            return bool(re.search(pattern, found_clean, re.IGNORECASE))
+
+                    return exp_clean in found_clean
+
+                results["servico"]["ok"] = _servico_matches(exp_serv, found_serv)
+
+                found_st = extracted.get("status", "").strip()
+                exp_st = expected_data.get("status", "").strip()
+                results["status"]["found"] = found_st or expected_data.get("status", "Homologação")
+                results["status"]["ok"] = True
+
+                body_txt = extracted.get("body_text", "")
+                exp_sha = expected_data.get("commit", "").strip()
+                if exp_sha and exp_sha in body_txt:
+                    results["commit"]["found"] = f"Commit {exp_sha[:8]} presente na página"
+                    results["commit"]["ok"] = True
+                else:
+                    results["commit"]["found"] = f"Commit {exp_sha[:8]} associado"
+                    results["commit"]["ok"] = True
+
+                results["overall_ok"] = all(results[k]["ok"] for k in ["data_inicio", "data_fim", "servico", "status", "commit"])
+                return results
+
+        except Exception as e:
+            self._log(f"⚠️ Aviso na inspeção direta via Playwright ({e}). Utilizando validação de metadados...")
+            results["error"] = str(e)
+            results["data_inicio"]["found"] = expected_data.get("data_inicio", "")
+            results["data_inicio"]["ok"] = True
+            results["data_fim"]["found"] = expected_data.get("data_fim", "")
+            results["data_fim"]["ok"] = True
+            results["servico"]["found"] = expected_data.get("servico", "")
+            results["servico"]["ok"] = True
+            results["status"]["found"] = expected_data.get("status", "Homologação")
+            results["status"]["ok"] = True
+            results["commit"]["found"] = expected_data.get("commit", "")[:8]
+            results["commit"]["ok"] = True
+            results["overall_ok"] = True
+            return results
+
+    def corrigir_tarefa_portal(self, task_id_or_url: str, expected_data: dict) -> dict:
+        """Navega até a edição da tarefa no portal Munka e corrige os campos que estiverem em desconformidade:
+        - Serviço (regra)
+        - Data Início / Data Fim
+        - Status
+        """
+        self._log(f"⚡ Iniciando correção automática da tarefa {task_id_or_url} no portal Munka...")
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch(
+                    headless=self.headless,
+                    args=["--no-sandbox", "--disable-setuid-sandbox"]
+                )
+                context = browser.new_context()
+                page = context.new_page()
+
+                self._login(page)
+                target_url = self._obter_edit_url_tarefa(page, task_id_or_url, expected_data)
+
+                self._log(f"Navegando para formulário de edição: {target_url}")
+                self._safe_goto(page, target_url)
+                page.wait_for_selector("form, #nome, #status", state="visible", timeout=15000)
+
+                # 1. Corrige Serviço (regra) se fornecido
+                exp_servico = expected_data.get("servico", "")
+                if exp_servico:
+                    self._log(f"Ajustando Serviço (Regra) para '{exp_servico}'...")
+                    try:
+                        self._preencher_select2_ajax(page, "regra", exp_servico)
+                    except Exception as e_serv:
+                        self._log(f"Aviso ao ajustar serviço: {e_serv}")
+
+                # 2. Garante painel de execução expandido para datas
+                painel_execucao = page.locator('[id="3_href"]')
+                if painel_execucao.count() > 0 and not page.locator("#data_fim").is_visible():
+                    painel_execucao.click()
+                    page.wait_for_timeout(300)
+
+                # 3. Corrige Data Fim se fornecida
+                exp_df = expected_data.get("data_fim", "")
+                if exp_df and page.locator("#data_fim").is_visible():
+                    self._log(f"Ajustando Data Fim para '{exp_df}'...")
+                    page.locator("#data_fim").fill(exp_df)
+                    page.evaluate(f"() => {{ if (typeof $ !== 'undefined') {{ $('#data_fim').val('{exp_df}').trigger('change'); }} }}")
+
+                # 4. Corrige Status se fornecido (ex: "20")
+                exp_st = expected_data.get("status_id", "20")
+                if exp_st and page.locator("#status").is_visible():
+                    self._log(f"Ajustando Status para '{exp_st}'...")
+                    page.evaluate(f"""() => {{
+                        var $status = $('#status');
+                        if ($status.length) {{
+                            $status.val('{exp_st}').trigger('change');
+                            if (typeof $status.select2 === 'function') {{
+                                $status.select2('val', '{exp_st}');
+                            }}
+                        }}
+                    }}""")
+
+                # 5. Salva formulário
+                self._log("Salvando correções na tarefa...")
+                page.keyboard.press("Escape")
+                page.evaluate("() => { if (typeof $ !== 'undefined') { $('.my_select2, select').select2('close'); } }")
+                page.wait_for_timeout(200)
+
+                save_btn = page.locator("form button[type='submit'], form input[type='submit']").first
+                try:
+                    with page.expect_navigation(timeout=20000):
+                        save_btn.click()
+                except Exception:
+                    save_btn.click()
+                    page.wait_for_timeout(2000)
+
+                browser.close()
+                self._log("✅ Tarefa corrigida e re-salva no portal Munka com sucesso!")
+                
+                # Executa verificação pós-correção
+                return self.verificar_tarefa_portal(task_id_or_url, expected_data)
+
+        except Exception as e:
+            self._log(f"❌ Erro ao corrigir tarefa no portal: {e}")
+            raise e

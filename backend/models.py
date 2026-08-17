@@ -117,3 +117,23 @@ class Fila(Base):
     criado_em = Column(String)
     concluido_em = Column(String, nullable=True)
 
+
+class FilaLogsHistorico(Base):
+    """Armazena logs históricos de tentativas de tarefas na fila (retries, erros ou finalizadas).
+
+    Permite debug posterior mantendo o histórico completo dos logs de execução de cada tentativa.
+    """
+
+    __tablename__ = "fila_logs_historico"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    fila_id = Column(Integer, nullable=False)
+    tipo = Column(String)  # analise, envio
+    commit_id = Column(String, nullable=True)
+    atividade_idx = Column(Integer, nullable=True)
+    tentativa = Column(Integer, default=1)
+    status = Column(String)  # retrying, done, error
+    logs = Column(Text)  # JSON com lista de logs
+    criado_em = Column(String)
+
+

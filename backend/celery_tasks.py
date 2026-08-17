@@ -103,6 +103,20 @@ def analisar_commit_task(
                     f.status = "done"
                     f.resultado = json.dumps(res, ensure_ascii=False)
                     f.concluido_em = datetime.now().isoformat()
+                    try:
+                        hist_log = models.FilaLogsHistorico(
+                            fila_id=f.id,
+                            tipo=f.tipo,
+                            commit_id=f.commit_id,
+                            atividade_idx=None,
+                            tentativa=self.request.retries + 1,
+                            status="done",
+                            logs=json.dumps([f"Análise do commit concluída com sucesso via modelo '{modelo}'."], ensure_ascii=False),
+                            criado_em=datetime.now().isoformat(),
+                        )
+                        db_f.add(hist_log)
+                    except Exception as ex_log:
+                        print(f"Erro ao salvar logs historicos no sucesso de analise: {ex_log}", flush=True)
                     db_f.commit()
         return res
     except Exception as e:
@@ -145,6 +159,20 @@ def analisar_commit_task(
                             "mensagem": f"Limite de requisições atingido. Tentando novamente em {countdown} segundos..."
                         }
                         f.resultado = json.dumps(info_tentativa, ensure_ascii=False)
+                        try:
+                            hist_log = models.FilaLogsHistorico(
+                                fila_id=f.id,
+                                tipo=f.tipo,
+                                commit_id=f.commit_id,
+                                atividade_idx=None,
+                                tentativa=self.request.retries + 1,
+                                status="retrying",
+                                logs=json.dumps([f"Limite de requisições atingido. Tentando novamente em {countdown}s: {msg_erro}"], ensure_ascii=False),
+                                criado_em=datetime.now().isoformat(),
+                            )
+                            db_f.add(hist_log)
+                        except Exception as ex_log:
+                            print(f"Erro ao salvar logs historicos no retry de analise: {ex_log}", flush=True)
                         db_f.commit()
 
             raise self.retry(exc=e, countdown=countdown)
@@ -156,6 +184,20 @@ def analisar_commit_task(
                     f.status = "error"
                     f.resultado = json.dumps({"error": str(e)}, ensure_ascii=False)
                     f.concluido_em = datetime.now().isoformat()
+                    try:
+                        hist_log = models.FilaLogsHistorico(
+                            fila_id=f.id,
+                            tipo=f.tipo,
+                            commit_id=f.commit_id,
+                            atividade_idx=None,
+                            tentativa=self.request.retries + 1,
+                            status="error",
+                            logs=json.dumps([f"Erro na análise do commit: {str(e)}"], ensure_ascii=False),
+                            criado_em=datetime.now().isoformat(),
+                        )
+                        db_f.add(hist_log)
+                    except Exception as ex_log:
+                        print(f"Erro ao salvar logs historicos na falha de analise: {ex_log}", flush=True)
                     db_f.commit()
         raise e
 
@@ -275,6 +317,20 @@ def enviar_atividade_task(
                     if f:
                         f.status = "pending"
                         f.resultado = json.dumps(res, ensure_ascii=False)
+                        try:
+                            hist_log = models.FilaLogsHistorico(
+                                fila_id=f.id,
+                                tipo=f.tipo,
+                                commit_id=f.commit_id,
+                                atividade_idx=f.atividade_idx,
+                                tentativa=self.request.retries + 1,
+                                status="retrying",
+                                logs=json.dumps(logs, ensure_ascii=False),
+                                criado_em=datetime.now().isoformat(),
+                            )
+                            db_f.add(hist_log)
+                        except Exception as ex_log:
+                            print(f"Erro ao salvar logs historicos no ping retry: {ex_log}", flush=True)
                         db_f.commit()
             raise self.retry(exc=Exception(f"Portal Munka indisponível (Ping: {ping_msg})"), countdown=30, max_retries=9)
 
@@ -372,6 +428,20 @@ def enviar_atividade_task(
                     f.status = "done"
                     f.resultado = json.dumps(res, ensure_ascii=False)
                     f.concluido_em = datetime.now().isoformat()
+                    try:
+                        hist_log = models.FilaLogsHistorico(
+                            fila_id=f.id,
+                            tipo=f.tipo,
+                            commit_id=f.commit_id,
+                            atividade_idx=f.atividade_idx,
+                            tentativa=self.request.retries + 1,
+                            status="done",
+                            logs=json.dumps(logs, ensure_ascii=False),
+                            criado_em=datetime.now().isoformat(),
+                        )
+                        db_f.add(hist_log)
+                    except Exception as ex_log:
+                        print(f"Erro ao salvar logs historicos no sucesso: {ex_log}", flush=True)
                     db_f.commit()
 
         try:
@@ -398,6 +468,20 @@ def enviar_atividade_task(
                     if f:
                         f.status = "pending"
                         f.resultado = json.dumps(res, ensure_ascii=False)
+                        try:
+                            hist_log = models.FilaLogsHistorico(
+                                fila_id=f.id,
+                                tipo=f.tipo,
+                                commit_id=f.commit_id,
+                                atividade_idx=f.atividade_idx,
+                                tentativa=retry_num + 1,
+                                status="retrying",
+                                logs=json.dumps(logs, ensure_ascii=False),
+                                criado_em=datetime.now().isoformat(),
+                            )
+                            db_f.add(hist_log)
+                        except Exception as ex_log:
+                            print(f"Erro ao salvar logs historicos no retry: {ex_log}", flush=True)
                         db_f.commit()
             raise self.retry(exc=e, countdown=countdown, max_retries=max_retries)
 
@@ -410,5 +494,293 @@ def enviar_atividade_task(
                     f.status = "error"
                     f.resultado = json.dumps(res, ensure_ascii=False)
                     f.concluido_em = datetime.now().isoformat()
+                    try:
+                        hist_log = models.FilaLogsHistorico(
+                            fila_id=f.id,
+                            tipo=f.tipo,
+                            commit_id=f.commit_id,
+                            atividade_idx=f.atividade_idx,
+                            tentativa=retry_num + 1,
+                            status="error",
+                            logs=json.dumps(logs, ensure_ascii=False),
+                            criado_em=datetime.now().isoformat(),
+                        )
+                        db_f.add(hist_log)
+                    except Exception as ex_log:
+                        print(f"Erro ao salvar logs historicos na falha final: {ex_log}", flush=True)
                     db_f.commit()
         raise e
+
+
+@celery_app.task(bind=True, name="tasks.verificar_lancamento")
+def verificar_lancamento_task(self, target_job_id: int, fila_id: int = None):
+    from database import SessionLocal
+    import models
+    from api import obter_config_valores
+    from automation import MunkaAutomation
+
+    logs = []
+
+    def log(msg: str):
+        logs.append(msg)
+        self.update_state(state="PROGRESS", meta={"logs": logs})
+        if fila_id:
+            try:
+                with SessionLocal() as db_log:
+                    fj = db_log.query(models.Fila).filter_by(id=fila_id).first()
+                    if fj and fj.status == "running":
+                        fj.resultado = json.dumps({"resultado": "RUNNING", "logs": logs}, ensure_ascii=False)
+                        db_log.commit()
+            except Exception:
+                pass
+
+    if fila_id:
+        with SessionLocal() as db:
+            fila_job = db.query(models.Fila).filter_by(id=fila_id).first()
+            if fila_job:
+                fila_job.status = "running"
+                fila_job.task_id = self.request.id
+                fila_job.resultado = json.dumps({"resultado": "RUNNING", "logs": ["Iniciando automação de verificação..."]}, ensure_ascii=False)
+                db.commit()
+
+    try:
+        log("🔍 Iniciando tarefa assíncrona de verificação do lançamento no portal Munka...")
+        with SessionLocal() as db:
+            target_job = db.query(models.Fila).filter_by(id=target_job_id).first()
+            if not target_job:
+                raise ValueError(f"Tarefa da fila #{target_job_id} não encontrada.")
+
+            commit = db.query(models.Commit).filter_by(id=target_job.commit_id).first()
+            analise = db.query(models.Analise).filter_by(commit_id=target_job.commit_id).first()
+            if not commit or not analise:
+                raise ValueError(f"Commit ou análise não encontrados para {target_job.commit_id}")
+
+            atividades = json.loads(analise.atividades_json) if analise.atividades_json else []
+            atividade = {}
+            if target_job.atividade_idx is not None and 0 <= target_job.atividade_idx < len(atividades):
+                atividade = atividades[target_job.atividade_idx]
+
+            cfg = obter_config_valores()
+            commit_data_val = commit.data
+            hora_inicio = cfg.get("MUNKA_DATA_INICIO", "08:00")
+            hora_fim = cfg.get("MUNKA_DATA_FIM", "18:00")
+            data_inicio_val = hora_inicio if " " in hora_inicio else f"{commit_data_val} {hora_inicio}"
+            data_fim_val = hora_fim if " " in hora_fim else f"{commit_data_val} {hora_fim}"
+            codigo_id = atividade.get("codigo_id") or atividade.get("codigo") or ""
+
+            status_map = {
+                "15": "Backlog",
+                "16": "Backlog Prioritário",
+                "17": "Enviado ao Munka",
+                "18": "Desenvolvimento",
+                "20": "Homologação",
+                "21": "Concluído"
+            }
+            status_id = cfg.get("MUNKA_STATUS_ID", "20")
+            status_nome = status_map.get(status_id, "Homologação")
+
+            expected = {
+                "data_inicio": data_inicio_val,
+                "data_fim": data_fim_val,
+                "servico": codigo_id,
+                "status": f"{status_id} ({status_nome})" if status_id else "Homologação",
+                "commit": commit.id,
+                "titulo": atividade.get("titulo", commit.mensagem),
+            }
+
+            task_id_or_url = None
+            if target_job.resultado:
+                try:
+                    res_dict = json.loads(target_job.resultado)
+                    task_id_or_url = res_dict.get("task_id") or res_dict.get("task_url")
+                except Exception:
+                    pass
+
+            if not task_id_or_url:
+                task_id_or_url = str(target_job.id)
+
+        log("✔ Metadados esperados carregados. Iniciando browser Playwright...")
+        auto = MunkaAutomation(
+            username=cfg.get("MUNKA_USER", ""),
+            password=cfg.get("MUNKA_PASS", ""),
+            munka_url=cfg.get("MUNKA_URL", ""),
+            headless=True,
+            log_callback=log,
+        )
+
+        log("📋 Auditando campos no portal: Data Início, Data Fim, Serviço, Status e Commit...")
+        report = auto.verificar_tarefa_portal(task_id_or_url, expected)
+        report["logs"] = logs
+        log(f"✅ Auditoria finalizada. Resultado geral: {'OK' if report.get('overall_ok') else 'Divergência Encontrada'}")
+
+        if fila_id:
+            with SessionLocal() as db_f:
+                f = db_f.query(models.Fila).filter_by(id=fila_id).first()
+                if f:
+                    f.status = "done"
+                    f.resultado = json.dumps(report, ensure_ascii=False)
+                    f.concluido_em = datetime.now().isoformat()
+                    try:
+                        hist_log = models.FilaLogsHistorico(
+                            fila_id=f.id,
+                            tipo=f.tipo,
+                            commit_id=f.commit_id,
+                            atividade_idx=f.atividade_idx,
+                            tentativa=1,
+                            status="done",
+                            logs=json.dumps(logs, ensure_ascii=False),
+                            criado_em=datetime.now().isoformat(),
+                        )
+                        db_f.add(hist_log)
+                    except Exception:
+                        pass
+                    db_f.commit()
+
+        with SessionLocal() as db_target:
+            tj = db_target.query(models.Fila).filter_by(id=target_job_id).first()
+            if tj:
+                try:
+                    res_dict = json.loads(tj.resultado) if isinstance(tj.resultado, str) else (tj.resultado or {})
+                except Exception:
+                    res_dict = {}
+                res_dict["verificacao"] = report
+                tj.resultado = json.dumps(res_dict, ensure_ascii=False)
+                db_target.commit()
+
+        return report
+    except Exception as e:
+        log(f"❌ Falha na verificação: {str(e)}")
+        res_err = {"resultado": "ERRO", "logs": logs, "error": str(e)}
+        if fila_id:
+            with SessionLocal() as db_f:
+                f = db_f.query(models.Fila).filter_by(id=fila_id).first()
+                if f:
+                    f.status = "error"
+                    f.resultado = json.dumps(res_err, ensure_ascii=False)
+                    f.concluido_em = datetime.now().isoformat()
+                    db_f.commit()
+        raise e
+
+
+@celery_app.task(bind=True, name="tasks.corrigir_lancamento")
+def corrigir_lancamento_task(self, target_job_id: int, fila_id: int = None):
+    from database import SessionLocal
+    import models
+    from api import obter_config_valores
+    from automation import MunkaAutomation
+
+    logs = []
+
+    def log(msg: str):
+        logs.append(msg)
+        self.update_state(state="PROGRESS", meta={"logs": logs})
+        if fila_id:
+            try:
+                with SessionLocal() as db_log:
+                    fj = db_log.query(models.Fila).filter_by(id=fila_id).first()
+                    if fj and fj.status == "running":
+                        fj.resultado = json.dumps({"resultado": "RUNNING", "logs": logs}, ensure_ascii=False)
+                        db_log.commit()
+            except Exception:
+                pass
+
+    if fila_id:
+        with SessionLocal() as db:
+            fila_job = db.query(models.Fila).filter_by(id=fila_id).first()
+            if fila_job:
+                fila_job.status = "running"
+                fila_job.task_id = self.request.id
+                fila_job.resultado = json.dumps({"resultado": "RUNNING", "logs": ["Iniciando automação de correção no portal..."]}, ensure_ascii=False)
+                db.commit()
+
+    try:
+        log("⚡ Iniciando tarefa assíncrona de correção do lançamento no portal Munka...")
+        with SessionLocal() as db:
+            target_job = db.query(models.Fila).filter_by(id=target_job_id).first()
+            if not target_job:
+                raise ValueError(f"Tarefa da fila #{target_job_id} não encontrada.")
+
+            commit = db.query(models.Commit).filter_by(id=target_job.commit_id).first()
+            analise = db.query(models.Analise).filter_by(commit_id=target_job.commit_id).first()
+            if not commit or not analise:
+                raise ValueError(f"Commit ou análise não encontrados para {target_job.commit_id}")
+
+            atividades = json.loads(analise.atividades_json) if analise.atividades_json else []
+            atividade = {}
+            if target_job.atividade_idx is not None and 0 <= target_job.atividade_idx < len(atividades):
+                atividade = atividades[target_job.atividade_idx]
+
+            cfg = obter_config_valores()
+            commit_data_val = commit.data
+            hora_inicio = cfg.get("MUNKA_DATA_INICIO", "08:00")
+            hora_fim = cfg.get("MUNKA_DATA_FIM", "18:00")
+            data_inicio_val = hora_inicio if " " in hora_inicio else f"{commit_data_val} {hora_inicio}"
+            data_fim_val = hora_fim if " " in hora_fim else f"{commit_data_val} {hora_fim}"
+            codigo_id = atividade.get("codigo_id") or atividade.get("codigo") or ""
+            status_id = cfg.get("MUNKA_STATUS_ID", "20")
+
+            expected = {
+                "data_inicio": data_inicio_val,
+                "data_fim": data_fim_val,
+                "servico": codigo_id,
+                "status_id": status_id,
+                "commit": commit.id,
+            }
+
+            task_id_or_url = None
+            if target_job.resultado:
+                try:
+                    res_dict = json.loads(target_job.resultado)
+                    task_id_or_url = res_dict.get("task_id") or res_dict.get("task_url")
+                except Exception:
+                    pass
+
+            if not task_id_or_url:
+                task_id_or_url = str(target_job.id)
+
+        auto = MunkaAutomation(
+            username=cfg.get("MUNKA_USER", ""),
+            password=cfg.get("MUNKA_PASS", ""),
+            munka_url=cfg.get("MUNKA_URL", ""),
+            headless=True,
+            log_callback=log,
+        )
+
+        report = auto.corrigir_tarefa_portal(task_id_or_url, expected)
+        report["logs"] = logs
+
+        if fila_id:
+            with SessionLocal() as db_f:
+                f = db_f.query(models.Fila).filter_by(id=fila_id).first()
+                if f:
+                    f.status = "done"
+                    f.resultado = json.dumps(report, ensure_ascii=False)
+                    f.concluido_em = datetime.now().isoformat()
+                    db_f.commit()
+
+        with SessionLocal() as db_target:
+            tj = db_target.query(models.Fila).filter_by(id=target_job_id).first()
+            if tj:
+                try:
+                    res_dict = json.loads(tj.resultado) if isinstance(tj.resultado, str) else (tj.resultado or {})
+                except Exception:
+                    res_dict = {}
+                res_dict["verificacao"] = report
+                tj.resultado = json.dumps(res_dict, ensure_ascii=False)
+                db_target.commit()
+
+        return report
+    except Exception as e:
+        log(f"❌ Falha ao corrigir lançamento: {str(e)}")
+        res_err = {"resultado": "ERRO", "logs": logs, "error": str(e)}
+        if fila_id:
+            with SessionLocal() as db_f:
+                f = db_f.query(models.Fila).filter_by(id=fila_id).first()
+                if f:
+                    f.status = "error"
+                    f.resultado = json.dumps(res_err, ensure_ascii=False)
+                    f.concluido_em = datetime.now().isoformat()
+                    db_f.commit()
+        raise e
+
+

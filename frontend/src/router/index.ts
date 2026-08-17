@@ -5,6 +5,7 @@ import HistoryView from '../views/HistoryView.vue'
 import ConfigView from '../views/ConfigView.vue'
 import AnalisarView from '../views/AnalisarView.vue'
 import FilaView from '../views/FilaView.vue'
+import FilaLogsView from '../views/FilaLogsView.vue'
 import ModelosView from '../views/ModelosView.vue'
 
 export default createRouter({
@@ -15,6 +16,7 @@ export default createRouter({
     { path: '/commits/:sha', component: CommitDetailView },
     { path: '/analisar', component: AnalisarView },
     { path: '/fila', component: FilaView },
+    { path: '/fila-logs', component: FilaLogsView },
     { path: '/modelos', component: ModelosView },
     { path: '/historico', component: HistoryView },
     { path: '/config', component: ConfigView },

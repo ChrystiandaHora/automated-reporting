@@ -500,16 +500,23 @@ const commitsAgrupados = computed(() => {
   }
   
   const obterTime = (c: any) => {
-    const tsStr = c.data_autor || c.importado_em
-    if (tsStr) {
-      const t = new Date(tsStr).getTime()
+    if (c.data_autor) {
+      const t = new Date(c.data_autor).getTime()
       if (!isNaN(t)) return t
     }
     if (c.data) {
       const parts = c.data.split('/')
       if (parts.length === 3) {
-        return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])).getTime()
+        const dia = parseInt(parts[0], 10)
+        const mes = parseInt(parts[1], 10) - 1
+        const ano = parseInt(parts[2], 10)
+        const t = new Date(ano, mes, dia).getTime()
+        if (!isNaN(t)) return t
       }
+    }
+    if (c.importado_em) {
+      const t = new Date(c.importado_em).getTime()
+      if (!isNaN(t)) return t
     }
     return 0
   }
@@ -554,6 +561,7 @@ async function importar() {
 
   let sucessos = 0
   let falhas = 0
+  const erros: string[] = []
 
   for (const url of urls) {
     try {
@@ -561,7 +569,9 @@ async function importar() {
       sucessos++
     } catch (e: any) {
       falhas++
-      console.error(`Erro ao importar commit ${url}:`, e)
+      const msg = e.response?.data?.detail ?? e.message ?? String(e)
+      erros.push(msg)
+      console.error(`Erro ao importar commit ${url}:`, msg, e)
     }
   }
 
@@ -569,7 +579,12 @@ async function importar() {
   form.value.commit_hashes = ''
   importing.value = false
   
-  alert(`Importação concluída! Sucessos: ${sucessos}, Falhas: ${falhas}`)
+  if (falhas > 0) {
+    const errorMsg = erros.length > 0 ? erros[0] : 'Erro desconhecido'
+    toastStore.addToast(`Importação concluída com falhas. Sucessos: ${sucessos}, Falhas: ${falhas}. Detalhe: ${errorMsg}`, 'error')
+  } else {
+    toastStore.addToast(`Importação concluída com sucesso! (${sucessos} commit(s))`, 'success')
+  }
 }
 </script>
 

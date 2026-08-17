@@ -18,6 +18,7 @@ const routeTitles: Record<string, string> = {
   '/commits': 'Commits',
   '/analisar': 'Analisar',
   '/fila': 'Fila de Execução',
+  '/fila-logs': 'Logs de Execução',
   '/modelos': 'Modelos',
   '/historico': 'Histórico',
   '/config': 'Configuração'
@@ -205,6 +206,7 @@ onUnmounted(() => {
           Fila
           <span v-if="activeJobsCount > 0" class="fila-badge" aria-live="polite" :aria-label="`${activeJobsCount} tarefas ativas`">{{ activeJobsCount }}</span>
         </router-link>
+        <router-link to="/fila-logs">Logs</router-link>
         <router-link to="/modelos">Modelos</router-link>
         <router-link to="/historico">Histórico</router-link>
         <router-link to="/config">Configuração</router-link>

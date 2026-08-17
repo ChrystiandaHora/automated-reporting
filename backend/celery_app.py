@@ -17,5 +17,7 @@ celery_app.conf.worker_concurrency = calculate_queue_concurrency()
 celery_app.conf.task_routes = {
     "tasks.analisar_commit": {"queue": "analises"},
     "tasks.enviar_atividade": {"queue": "envios"},
+    "tasks.verificar_lancamento": {"queue": "envios"},
+    "tasks.corrigir_lancamento": {"queue": "envios"},
 }
 
