@@ -17,6 +17,7 @@ const activeJobsCount = computed(() => {
 const routeTitles: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/commits': 'Commits',
+  '/importar': 'Importar Commits',
   '/analisar': 'Analisar',
   '/fila': 'Fila de Execução',
   '/fila-logs': 'Logs de Execução',
@@ -202,17 +203,43 @@ onUnmounted(() => {
       </div>
 
       <nav class="nav" aria-label="Navegação principal">
-        <router-link to="/dashboard">Dashboard</router-link>
-        <router-link to="/commits">Commits</router-link>
-        <router-link to="/analisar">Análise</router-link>
+        <router-link to="/dashboard">
+          <i class="fa-solid fa-chart-line nav-icon" aria-hidden="true"></i>
+          <span>Dashboard</span>
+        </router-link>
+        <router-link to="/commits">
+          <i class="fa-solid fa-code-commit nav-icon" aria-hidden="true"></i>
+          <span>Commits</span>
+        </router-link>
+        <router-link to="/importar">
+          <i class="fa-solid fa-cloud-arrow-down nav-icon" aria-hidden="true"></i>
+          <span>Importar</span>
+        </router-link>
+        <router-link to="/analisar">
+          <i class="fa-solid fa-wand-magic-sparkles nav-icon" aria-hidden="true"></i>
+          <span>Análise</span>
+        </router-link>
         <router-link to="/fila">
-          Fila
+          <i class="fa-solid fa-list-check nav-icon" aria-hidden="true"></i>
+          <span>Fila</span>
           <span v-if="activeJobsCount > 0" class="fila-badge" aria-live="polite" :aria-label="`${activeJobsCount} tarefas ativas`">{{ activeJobsCount }}</span>
         </router-link>
-        <router-link to="/fila-logs">Logs</router-link>
-        <router-link to="/modelos">Modelos</router-link>
-        <router-link to="/historico">Histórico</router-link>
-        <router-link to="/config">Configuração</router-link>
+        <router-link to="/fila-logs">
+          <i class="fa-solid fa-file-waveform nav-icon" aria-hidden="true"></i>
+          <span>Logs</span>
+        </router-link>
+        <router-link to="/modelos">
+          <i class="fa-solid fa-microchip nav-icon" aria-hidden="true"></i>
+          <span>Modelos</span>
+        </router-link>
+        <router-link to="/historico">
+          <i class="fa-solid fa-clock-rotate-left nav-icon" aria-hidden="true"></i>
+          <span>Histórico</span>
+        </router-link>
+        <router-link to="/config">
+          <i class="fa-solid fa-gear nav-icon" aria-hidden="true"></i>
+          <span>Configuração</span>
+        </router-link>
       </nav>
 
       <div class="topbar-actions">
@@ -225,7 +252,7 @@ onUnmounted(() => {
           aria-label="Alternar Modo Anti-Sleep"
         >
           <span class="anti-sleep-dot" aria-hidden="true"></span>
-          <span class="anti-sleep-icon" aria-hidden="true">☕</span>
+          <i class="fa-solid fa-mug-hot anti-sleep-icon" aria-hidden="true"></i>
           <span class="anti-sleep-text">{{ isWakeLockActive ? 'Anti-Sleep Ativo' : 'Anti-Sleep Off' }}</span>
         </button>
 
@@ -238,17 +265,7 @@ onUnmounted(() => {
             aria-label="Ativar Tema Claro"
             title="Tema Claro"
           >
-            <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-              <circle cx="12" cy="12" r="5"></circle>
-              <line x1="12" y1="1" x2="12" y2="3"></line>
-              <line x1="12" y1="21" x2="12" y2="23"></line>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-              <line x1="1" y1="12" x2="3" y2="12"></line>
-              <line x1="21" y1="12" x2="23" y2="12"></line>
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-            </svg>
+            <i class="fa-solid fa-sun theme-fa-icon" aria-hidden="true"></i>
             <span class="theme-label">Claro</span>
           </button>
 
@@ -260,9 +277,7 @@ onUnmounted(() => {
             aria-label="Ativar Tema Escuro"
             title="Tema Escuro"
           >
-            <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-            </svg>
+            <i class="fa-solid fa-moon theme-fa-icon" aria-hidden="true"></i>
             <span class="theme-label">Escuro</span>
           </button>
 
@@ -274,10 +289,7 @@ onUnmounted(() => {
             aria-label="Ativar Tema Automático por horário"
             title="Tema Automático (Baseado no horário local: 06:00 às 18:00 Claro, 18:00 às 06:00 Escuro)"
           >
-            <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
+            <i class="fa-solid fa-circle-half-stroke theme-fa-icon" aria-hidden="true"></i>
             <span class="theme-label">Auto</span>
           </button>
         </div>
@@ -618,9 +630,23 @@ body {
   box-shadow: 0 2px 8px var(--accent-glow);
 }
 
-.theme-icon {
+.theme-icon, .theme-fa-icon {
   width: 14px;
   height: 14px;
+  font-size: 0.82rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-icon {
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.nav a.router-link-active .nav-icon {
+  opacity: 1;
+  color: var(--accent);
 }
 
 @media (max-width: 640px) {

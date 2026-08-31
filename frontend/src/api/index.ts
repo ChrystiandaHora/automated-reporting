@@ -166,6 +166,15 @@ export interface MonthStat {
   total_hpa: number
 }
 
+export interface GitAccount {
+  id: number
+  nome: string
+  url: string
+  token_mascarado: string
+  padrao: boolean
+  criado_em?: string
+}
+
 export interface CommitStatsResponse {
   months: string[]
   by_month: Record<string, MonthStat>
@@ -177,13 +186,23 @@ export interface CommitStatsResponse {
 }
 
 export const api = {
+  gitAccounts: {
+    listar: () => http.get<GitAccount[]>('/git-accounts').then(r => r.data),
+    criar: (payload: { nome: string; url: string; token: string; padrao?: boolean }) =>
+      http.post<GitAccount>('/git-accounts', payload).then(r => r.data),
+    atualizar: (id: number, payload: { nome?: string; url?: string; token?: string; padrao?: boolean }) =>
+      http.put<GitAccount>(`/git-accounts/${id}`, payload).then(r => r.data),
+    remover: (id: number) => http.delete(`/git-accounts/${id}`),
+    testar: (id: number) =>
+      http.post<{ ok: boolean; usuario: string; nome: string; email: string; mensagem: string }>(`/git-accounts/${id}/testar`).then(r => r.data),
+  },
   commits: {
     listar: () => http.get<CommitSummary[]>('/commits').then(r => r.data),
     stats: () => http.get<CommitStatsResponse>('/commits/stats').then(r => r.data),
     obter: (sha: string) => http.get<any>(`/commits/${sha}`).then(r => r.data),
     verificarDataFim: (sha: string) =>
       http.get<{ commit_id: string; atividades: { titulo: string; codigo_id: string; enviado: boolean; has_data_fim: boolean; data_fim_missing: boolean }[] }>(`/commits/${sha}/check-data-fim`).then(r => r.data),
-    importar: (payload: { gitlab_url?: string; token?: string; project_path?: string; commit_hash: string }) =>
+    importar: (payload: { gitlab_url?: string; token?: string; project_path?: string; commit_hash: string; git_account_id?: number }) =>
       http.post<{ id: string; ja_existia: boolean }>('/commits/importar', payload).then(r => r.data),
     atualizar: (sha: string, payload: CommitUpdate) =>
       http.patch(`/commits/${sha}`, payload).then(r => r.data),

@@ -28,13 +28,7 @@
       <section class="summary-grid" aria-label="Resumo geral de indicadores">
         <div class="kpi-card highlight-blue">
           <div class="kpi-icon-wrap">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-              <polyline points="10 9 9 9 8 9"></polyline>
-            </svg>
+            <i class="fa-solid fa-list-check" aria-hidden="true"></i>
           </div>
           <div class="kpi-body">
             <span class="kpi-card-label">Total de Tarefas</span>
@@ -45,10 +39,7 @@
 
         <div class="kpi-card highlight-green">
           <div class="kpi-icon-wrap">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
+            <i class="fa-solid fa-clock" aria-hidden="true"></i>
           </div>
           <div class="kpi-body">
             <span class="kpi-card-label">Total Horas HPA</span>
@@ -59,11 +50,7 @@
 
         <div class="kpi-card highlight-purple">
           <div class="kpi-icon-wrap">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-              <polyline points="2 17 12 22 22 17"></polyline>
-              <polyline points="2 12 12 17 22 12"></polyline>
-            </svg>
+            <i class="fa-solid fa-shapes" aria-hidden="true"></i>
           </div>
           <div class="kpi-body">
             <span class="kpi-card-label">Tipos Distintos</span>
@@ -74,11 +61,7 @@
 
         <div class="kpi-card highlight-amber">
           <div class="kpi-icon-wrap">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <line x1="18" y1="20" x2="18" y2="10"/>
-              <line x1="12" y1="20" x2="12" y2="4"/>
-              <line x1="6" y1="20" x2="6" y2="14"/>
-            </svg>
+            <i class="fa-solid fa-chart-simple" aria-hidden="true"></i>
           </div>
           <div class="kpi-body">
             <span class="kpi-card-label">Média HPA / Tarefa</span>
@@ -92,9 +75,7 @@
       <section class="dashboard-panel" aria-label="Distribuição por Repositório">
         <div class="panel-header">
           <div class="panel-title">
-            <svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor" aria-hidden="true">
-              <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.6-1.2-1.6 1.2a.25.25 0 0 1-.4-.2Z"/>
-            </svg>
+            <i class="fa-brands fa-git-alt" aria-hidden="true" style="color: #f97316; font-size: 1.15rem;"></i>
             <h2>Distribuição por Repositório</h2>
           </div>
           <router-link to="/commits" class="link-action">Ver lista de commits →</router-link>
@@ -110,28 +91,26 @@
             :key="repo.nome" 
             class="repo-stat-card"
           >
-            <div class="repo-stat-top">
-              <div class="repo-stat-dot" :class="repo.colorClass" aria-hidden="true"></div>
-              <span class="repo-stat-name" :title="repo.nome">{{ repo.nome }}</span>
-              <span class="repo-stat-count">{{ repo.commitsCount }} commit{{ repo.commitsCount > 1 ? 's' : '' }}</span>
+            <div class="repo-card-top">
+              <div class="repo-name-group">
+                <i class="fa-solid fa-folder-open" aria-hidden="true" style="color: var(--accent); font-size: 0.95rem;"></i>
+                <span class="repo-name" :title="repo.nome">{{ repo.nome }}</span>
+              </div>
+              <span class="repo-commits-count">{{ repo.commitsCount }} commit{{ repo.commitsCount > 1 ? 's' : '' }}</span>
             </div>
-            
-            <div class="repo-stat-metrics">
-              <div class="repo-metric-item">
-                <span class="metric-label">Analisados:</span>
-                <span class="metric-val text-green">{{ repo.analisados }}</span>
+
+            <div class="repo-card-stats">
+              <div class="repo-stat-item">
+                <span class="repo-stat-lbl">Tarefas:</span>
+                <span class="repo-stat-val">{{ repo.analisados + repo.pendentes }}</span>
               </div>
-              <div class="repo-metric-item">
-                <span class="metric-label">Pendentes:</span>
-                <span class="metric-val text-muted">{{ repo.pendentes }}</span>
-              </div>
-              <div class="repo-metric-item">
-                <span class="metric-label">Total HPA:</span>
-                <span class="metric-val text-amber">{{ repo.totalHpa }}h</span>
+              <div class="repo-stat-item">
+                <span class="repo-stat-lbl">HPA Total:</span>
+                <span class="repo-stat-val">{{ repo.totalHpa }}h</span>
               </div>
             </div>
 
-            <div class="progress-bar" role="progressbar" :aria-valuenow="repo.pctTotal" aria-valuemin="0" aria-valuemax="100" :aria-label="`Percentual de commits de ${repo.nome}`">
+            <div class="progress-bar" role="progressbar" :aria-valuenow="repo.pctTotal" aria-valuemin="0" aria-valuemax="100" :aria-label="`Representatividade de ${repo.nome}`">
               <div class="progress-fill" :style="{ width: `${repo.pctTotal}%` }"></div>
             </div>
             <span class="progress-sub">{{ repo.pctTotal }}% do total de commits</span>
@@ -143,11 +122,7 @@
       <section class="dashboard-panel" aria-label="Quantificação por Tipo de Serviço">
         <div class="panel-header">
           <div class="panel-title">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="3" y1="9" x2="21" y2="9"></line>
-              <line x1="9" y1="21" x2="9" y2="9"></line>
-            </svg>
+            <i class="fa-solid fa-tags" aria-hidden="true" style="color: #38bdf8; font-size: 1.15rem;"></i>
             <h2>Quantificação por Tipo de Serviço</h2>
           </div>
           <span class="panel-subtitle">Baseado nas atividades geradas pelas análises de IA</span>

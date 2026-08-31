@@ -6,7 +6,8 @@
         <HelpModal title="Como funciona a análise" :items="helpItems" />
       </div>
       <router-link to="/fila" class="btn-ghost btn-sm">
-        Ver Fila de Execução →
+        <i class="fa-solid fa-list-check" aria-hidden="true"></i>
+        <span>Ver Fila de Execução →</span>
       </router-link>
     </div>
 
@@ -36,7 +37,10 @@
               <div class="radio-dot" v-if="selectedModel === model.name"></div>
             </div>
           </div>
-          <h3 class="model-name">{{ model.name }}</h3>
+          <h3 class="model-name">
+            <i class="fa-solid fa-microchip" aria-hidden="true" style="color: var(--accent); margin-right: 5px; font-size: 0.9rem;"></i>
+            <span>{{ model.name }}</span>
+          </h3>
           <p class="model-desc">{{ model.desc }}</p>
         </div>
       </div>
@@ -65,9 +69,7 @@
               aria-controls="panel-analise-view"
               @click="visaoModo = 'repositorio'"
             >
-              <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true">
-                <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.6-1.2-1.6 1.2a.25.25 0 0 1-.4-.2Z"/>
-              </svg>
+              <i class="fa-solid fa-folder-tree" aria-hidden="true" style="font-size: 0.95rem;"></i>
               <span>Por Repositório</span>
               <span class="mode-count-badge">{{ repositoriosResumo.length }}</span>
             </button>
@@ -82,9 +84,7 @@
               aria-controls="panel-analise-view"
               @click="visaoModo = 'lista'"
             >
-              <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true">
-                <path d="M4.75 0a.75.75 0 0 1 .75.75V2h5V.75a.75.75 0 0 1 1.5 0V2h1.25c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 13.25 16H2.75A1.75 1.75 0 0 1 1 14.25V3.75C1 2.784 1.784 2 2.75 2H4V.75A.75.75 0 0 1 4.75 0ZM2.5 7.5v6.75c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25V7.5Zm10.75-4H2.75a.25.25 0 0 0-.25.25V6h11V3.75a.25.25 0 0 0-.25-.25Z"/>
-              </svg>
+              <i class="fa-solid fa-list-ul" aria-hidden="true" style="font-size: 0.95rem;"></i>
               <span>Todos em Lista</span>
               <span class="mode-count-badge">{{ commitsFiltrados.length }}</span>
             </button>
@@ -120,9 +120,7 @@
 
           <!-- Campo de Busca -->
           <div class="search-box">
-            <svg class="search-icon" viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true">
-              <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/>
-            </svg>
+            <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true" style="color: var(--text-muted); font-size: 0.85rem;"></i>
             <input 
               type="search"
               v-model="termoBusca"
@@ -137,7 +135,7 @@
               @click="termoBusca = ''" 
               aria-label="Limpar busca"
             >
-              ✕
+              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
             </button>
           </div>
         </div>
@@ -254,9 +252,7 @@
               />
 
               <div class="repo-avatar-icon" :class="repo.colorClass">
-                <svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor" aria-hidden="true">
-                  <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.6-1.2-1.6 1.2a.25.25 0 0 1-.4-.2Z"/>
-                </svg>
+                <i class="fa-brands fa-git-alt" aria-hidden="true" style="font-size: 1.15rem;"></i>
               </div>
 
               <div class="repo-card-title-block">
@@ -277,7 +273,8 @@
                 @click="selecionarPendentesDoRepo(repo)"
                 title="Selecionar apenas os pendentes deste repositório"
               >
-                + Selecionar Pendentes ({{ repo.pendentes }})
+                <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                <span>Selecionar Pendentes ({{ repo.pendentes }})</span>
               </button>
 
               <button 
@@ -287,20 +284,11 @@
                 :aria-expanded="!isRepoColapsado(repo.nome)"
                 :aria-label="isRepoColapsado(repo.nome) ? `Expandir ${repo.nome}` : `Recolher ${repo.nome}`"
               >
-                <svg 
-                  class="chevron-icon" 
+                <i 
+                  class="fa-solid fa-chevron-down chevron-icon" 
                   :class="{ rotated: isRepoColapsado(repo.nome) }"
-                  viewBox="0 0 24 24" 
-                  width="18" 
-                  height="18" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  stroke-width="2.5" 
-                  stroke-linecap="round" 
-                  stroke-linejoin="round"
-                >
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
+                  aria-hidden="true"
+                ></i>
               </button>
             </div>
           </div>
@@ -406,9 +394,7 @@
             <div class="commit-select-top">
               <!-- Tag do Repositório -->
               <span class="badge-repo-tag" :class="obterClasseCorRepo(commit.projeto)">
-                <svg viewBox="0 0 16 16" width="11" height="11" fill="currentColor" aria-hidden="true">
-                  <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.6-1.2-1.6 1.2a.25.25 0 0 1-.4-.2Z"/>
-                </svg>
+                <i class="fa-brands fa-gitlab" aria-hidden="true" style="font-size: 0.72rem; margin-right: 3px;"></i>
                 <span>{{ commit.projeto || 'Sem repositório' }}</span>
               </span>
 
@@ -447,7 +433,8 @@
           class="btn-ghost" 
           @click="desmarcarTodos"
         >
-          Limpar Seleção
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          <span>Limpar Seleção</span>
         </button>
         <button 
           type="button"
@@ -455,7 +442,8 @@
           :disabled="enfileirando" 
           @click="confirmarAnalise"
         >
-          {{ enfileirando ? 'Enfileirando...' : `Confirmar e Enfileirar (${selecionados.length})` }}
+          <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+          <span>{{ enfileirando ? 'Enfileirando...' : `Confirmar e Enfileirar (${selecionados.length})` }}</span>
         </button>
       </div>
     </div>

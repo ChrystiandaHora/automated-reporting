@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import DashboardView from '../views/DashboardView.vue'
 import CommitsView from '../views/CommitsView.vue'
 import CommitDetailView from '../views/CommitDetailView.vue'
+import ImportarCommitsView from '../views/ImportarCommitsView.vue'
 import HistoryView from '../views/HistoryView.vue'
 import ConfigView from '../views/ConfigView.vue'
 import AnalisarView from '../views/AnalisarView.vue'
@@ -16,6 +17,7 @@ export default createRouter({
     { path: '/dashboard', component: DashboardView },
     { path: '/commits', component: CommitsView },
     { path: '/commits/:sha', component: CommitDetailView },
+    { path: '/importar', component: ImportarCommitsView },
     { path: '/analisar', component: AnalisarView },
     { path: '/fila', component: FilaView },
     { path: '/fila-logs', component: FilaLogsView },
@@ -24,5 +26,3 @@ export default createRouter({
     { path: '/config', component: ConfigView },
   ],
 })
-
-

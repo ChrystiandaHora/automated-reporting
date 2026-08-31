@@ -246,3 +246,41 @@ def importar_commit_gitlab(gitlab_url: str, token: str, project_path: str, commi
         f.write("\n".join(conteudo))
 
     return filepath
+
+
+def testar_conexao_gitlab(gitlab_url: str, token: str) -> dict:
+    """Valida as credenciais de acesso contra a API do GitLab chamando o endpoint /api/v4/user."""
+    base = gitlab_url.strip().rstrip("/")
+    if not base:
+        raise ValueError("URL do GitLab não informada")
+    if not token or not token.strip():
+        raise ValueError("Token do GitLab não informado")
+
+    url = f"{base}/api/v4/user"
+    try:
+        resp = _requests.get(
+            url,
+            headers={"PRIVATE-TOKEN": token.strip()},
+            verify=False,
+            timeout=15,
+        )
+    except Exception as e:
+        raise RuntimeError(f"Falha de conexão com o servidor GitLab: {e}")
+
+    if resp.status_code == 401:
+        raise RuntimeError("Token de acesso inválido ou expirado (HTTP 401 Unauthorized)")
+    elif not resp.ok:
+        raise RuntimeError(f"GitLab API retornou status {resp.status_code}: {resp.text[:200]}")
+
+    try:
+        data = resp.json()
+    except Exception:
+        raise RuntimeError("Resposta do GitLab não é um JSON válido")
+
+    return {
+        "ok": True,
+        "usuario": data.get("username") or data.get("name") or "Desconhecido",
+        "nome": data.get("name") or "",
+        "email": data.get("email") or "",
+    }
+

@@ -74,7 +74,7 @@ def obter_config_valores() -> dict:
 
 from database import engine, get_db, Base, SessionLocal, _aplicar_migracoes
 import models
-from gitlab_service import obter_metadados_commit, obter_diff_commit
+from gitlab_service import obter_metadados_commit, obter_diff_commit, testar_conexao_gitlab
 from gemini_service import analisar_diff
 from evidence_generator import gerar_html_evidencia
 from automation import MunkaAutomation
@@ -85,6 +85,33 @@ from model_rate_limiter import rate_limiter
 
 Base.metadata.create_all(bind=engine)
 _aplicar_migracoes(engine)
+
+
+def _seed_git_accounts_se_necessario():
+    """Cria conta inicial caso a tabela git_accounts esteja vazia a partir do .env."""
+    with SessionLocal() as db:
+        try:
+            qtd = db.query(models.GitAccount).count()
+            if qtd == 0:
+                cfg = obter_config_valores()
+                url = cfg.get("GITLAB_URL") or ""
+                token = cfg.get("GITLAB_TOKEN") or ""
+                if url or token:
+                    conta_padrao = models.GitAccount(
+                        nome="GitLab Principal (.env)",
+                        url=url.strip().rstrip("/"),
+                        token=token.strip(),
+                        padrao=True,
+                        criado_em=datetime.now().isoformat(),
+                    )
+                    db.add(conta_padrao)
+                    db.commit()
+                    print("[GitAccount] Conta inicial criada a partir do .env", flush=True)
+        except Exception as e:
+            print(f"[GitAccount] Erro ao verificar/seed contas: {e}", flush=True)
+
+
+_seed_git_accounts_se_necessario()
 
 app = FastAPI(
     title="Nexus API",
@@ -108,11 +135,35 @@ app.add_middleware(
 # ─── Request/Response Schemas ───────────────────────────────────────────────
 
 
+class GitAccountCreate(BaseModel):
+    nome: str
+    url: str
+    token: str
+    padrao: bool = False
+
+
+class GitAccountUpdate(BaseModel):
+    nome: Optional[str] = None
+    url: Optional[str] = None
+    token: Optional[str] = None
+    padrao: Optional[bool] = None
+
+
+class GitAccountResponse(BaseModel):
+    id: int
+    nome: str
+    url: str
+    token_mascarado: str
+    padrao: bool
+    criado_em: Optional[str] = None
+
+
 class ImportarRequest(BaseModel):
     commit_hash: str
     gitlab_url: Optional[str] = None
     token: Optional[str] = None
     project_path: Optional[str] = None
+    git_account_id: Optional[int] = None
 
 
 class AnalisarRequest(BaseModel):
@@ -465,9 +516,17 @@ def importar_commit(req: ImportarRequest, db: Session = Depends(get_db)):
     """
     cfg = obter_config_valores()
 
-    gitlab_url = (req.gitlab_url or "").strip() or cfg.get("GITLAB_URL")
-    token = (req.token or "").strip() or cfg.get("GITLAB_TOKEN")
+    gitlab_url = (req.gitlab_url or "").strip()
+    token = (req.token or "").strip()
     project_path = (req.project_path or "").strip()
+
+    # 1. Se informou explicitamente a conta Git pelo ID
+    if req.git_account_id:
+        conta = db.query(models.GitAccount).filter_by(id=req.git_account_id).first()
+        if conta:
+            token = conta.token
+            if not gitlab_url:
+                gitlab_url = conta.url
 
     commit_hash = req.commit_hash.strip()
     # Tenta extrair da URL completa do GitLab: https://gitlab.exemplo.com/grupo/projeto/-/commit/ee91a8e2...
@@ -481,16 +540,38 @@ def importar_commit(req: ImportarRequest, db: Session = Depends(get_db)):
         commit_hash = sha_extracted
         gitlab_url = url_extracted
         project_path = project_extracted
+
+        # 2. Se não selecionou conta explicitamente, tenta auto-match de conta pelo domínio da URL
+        if not req.git_account_id:
+            conta_correspondente = db.query(models.GitAccount).filter(
+                models.GitAccount.url.ilike(f"{url_extracted}%")
+            ).first()
+            if conta_correspondente:
+                token = conta_correspondente.token
     else:
         # Fallback para extração simples de SHA caso venha algo como /commit/sha no final
         sha_match = re.search(r"/commit/([0-9a-fA-F]{6,64})", commit_hash)
         if sha_match:
             commit_hash = sha_match.group(1)
 
+    # 3. Se ainda não tem token ou URL, tenta a conta padrão cadastrada
+    if not token:
+        conta_padrao = db.query(models.GitAccount).filter_by(padrao=True).first()
+        if conta_padrao:
+            token = conta_padrao.token
+            if not gitlab_url:
+                gitlab_url = conta_padrao.url
+
+    # 4. Fallback final para .env
+    if not gitlab_url:
+        gitlab_url = cfg.get("GITLAB_URL")
+    if not token:
+        token = cfg.get("GITLAB_TOKEN")
+
     if not gitlab_url or not token or not project_path:
         raise HTTPException(
             status_code=400,
-            detail="Forneça a URL completa do commit GitLab (ex: https://gitlab.empresa.com/grupo/projeto/-/commit/abc123) ou informe o projeto manualmente",
+            detail="Forneça a URL completa do commit GitLab (ex: https://gitlab.empresa.com/grupo/projeto/-/commit/abc123) ou selecione uma conta GitLab cadastrada",
         )
 
     # Verifica se já existe
@@ -1357,6 +1438,159 @@ def salvar_config(req: ConfiguracaoRequest):
             else:
                 _update_env(env_key, value)
     return {"ok": True}
+
+
+# ─── Endpoints: Contas GitLab ─────────────────────────────────────────────
+
+
+def _mascarar_token(tok: str) -> str:
+    if not tok:
+        return ""
+    if len(tok) <= 8:
+        return "***"
+    return f"{tok[:4]}...{tok[-4:]}"
+
+
+@app.get("/git-accounts", response_model=list[GitAccountResponse])
+def listar_git_accounts(db: Session = Depends(get_db)):
+    """Lista todas as contas/instâncias do GitLab cadastradas no sistema."""
+    contas = (
+        db.query(models.GitAccount)
+        .order_by(models.GitAccount.padrao.desc(), models.GitAccount.id.asc())
+        .all()
+    )
+    return [
+        GitAccountResponse(
+            id=c.id,
+            nome=c.nome,
+            url=c.url,
+            token_mascarado=_mascarar_token(c.token),
+            padrao=bool(c.padrao),
+            criado_em=c.criado_em,
+        )
+        for c in contas
+    ]
+
+
+@app.post("/git-accounts", status_code=201, response_model=GitAccountResponse)
+def criar_git_account(req: GitAccountCreate, db: Session = Depends(get_db)):
+    """Cadastra uma nova conta/instância do GitLab."""
+    url = req.url.strip().rstrip("/")
+    if not url:
+        raise HTTPException(status_code=400, detail="URL do GitLab é obrigatória")
+    if not req.token.strip():
+        raise HTTPException(status_code=400, detail="Token do GitLab é obrigatório")
+
+    nome = req.nome.strip() or url
+
+    # Se for marcado como padrão, desmarca os demais
+    if req.padrao:
+        db.query(models.GitAccount).update({"padrao": False})
+
+    # Se for a primeira conta cadastrada, define como padrão automaticamente
+    primeira = db.query(models.GitAccount).count() == 0
+    padrao = req.padrao or primeira
+
+    nova_conta = models.GitAccount(
+        nome=nome,
+        url=url,
+        token=req.token.strip(),
+        padrao=padrao,
+        criado_em=datetime.now().isoformat(),
+    )
+    db.add(nova_conta)
+    db.commit()
+    db.refresh(nova_conta)
+
+    return GitAccountResponse(
+        id=nova_conta.id,
+        nome=nova_conta.nome,
+        url=nova_conta.url,
+        token_mascarado=_mascarar_token(nova_conta.token),
+        padrao=bool(nova_conta.padrao),
+        criado_em=nova_conta.criado_em,
+    )
+
+
+@app.put("/git-accounts/{account_id}", response_model=GitAccountResponse)
+def atualizar_git_account(
+    account_id: int, req: GitAccountUpdate, db: Session = Depends(get_db)
+):
+    """Atualiza uma conta/instância do GitLab existente."""
+    conta = db.query(models.GitAccount).filter_by(id=account_id).first()
+    if not conta:
+        raise HTTPException(status_code=404, detail="Conta GitLab não encontrada")
+
+    if req.nome is not None and req.nome.strip():
+        conta.nome = req.nome.strip()
+    if req.url is not None and req.url.strip():
+        conta.url = req.url.strip().rstrip("/")
+    if req.token is not None and req.token.strip() and not req.token.startswith("***"):
+        conta.token = req.token.strip()
+
+    if req.padrao is True:
+        db.query(models.GitAccount).filter(models.GitAccount.id != account_id).update(
+            {"padrao": False}
+        )
+        conta.padrao = True
+    elif req.padrao is False:
+        conta.padrao = False
+
+    db.commit()
+    db.refresh(conta)
+
+    return GitAccountResponse(
+        id=conta.id,
+        nome=conta.nome,
+        url=conta.url,
+        token_mascarado=_mascarar_token(conta.token),
+        padrao=bool(conta.padrao),
+        criado_em=conta.criado_em,
+    )
+
+
+@app.delete("/git-accounts/{account_id}", status_code=204)
+def remover_git_account(account_id: int, db: Session = Depends(get_db)):
+    """Remove uma conta/instância do GitLab cadastrada."""
+    conta = db.query(models.GitAccount).filter_by(id=account_id).first()
+    if not conta:
+        raise HTTPException(status_code=404, detail="Conta GitLab não encontrada")
+
+    era_padrao = conta.padrao
+    db.delete(conta)
+    db.commit()
+
+    # Se removeu a padrão, define a primeira restante como padrão
+    if era_padrao:
+        restante = db.query(models.GitAccount).first()
+        if restante:
+            restante.padrao = True
+            db.commit()
+
+    return None
+
+
+@app.post("/git-accounts/{account_id}/testar")
+def testar_git_account(account_id: int, db: Session = Depends(get_db)):
+    """Testa a conectividade e autenticação com o GitLab usando as credenciais cadastradas."""
+    conta = db.query(models.GitAccount).filter_by(id=account_id).first()
+    if not conta:
+        raise HTTPException(status_code=404, detail="Conta GitLab não encontrada")
+
+    try:
+        resultado = testar_conexao_gitlab(conta.url, conta.token)
+        return {
+            "ok": True,
+            "conta_id": conta.id,
+            "nome_conta": conta.nome,
+            "url": conta.url,
+            "usuario": resultado.get("usuario"),
+            "nome": resultado.get("nome"),
+            "email": resultado.get("email"),
+            "mensagem": f"Conexão com {conta.nome} estabelecida com sucesso! Usuário autenticado: {resultado.get('usuario')}",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # ─── Endpoints: Fila de Tarefas ─────────────────────────────────────────────

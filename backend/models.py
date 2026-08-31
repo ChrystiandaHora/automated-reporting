@@ -134,6 +134,28 @@ class FilaLogsHistorico(Base):
     tentativa = Column(Integer, default=1)
     status = Column(String)  # retrying, done, error
     logs = Column(Text)  # JSON com lista de logs
+class GitAccount(Base):
+    """Representa uma conta/instância GitLab configurada no sistema.
+
+    Permite cadastrar múltiplas instâncias ou tokens do GitLab (ex: instâncias internas,
+    saúde, empresa ou gitlab.com) sem necessidade de alterar o arquivo .env.
+
+    Attributes:
+        id: Identificador autoincremental.
+        nome: Rótulo amigável (ex: "GitLab Saúde", "GitLab Matriz").
+        url: URL base da instância GitLab (ex: "https://gitlab.saude-go.net").
+        token: Personal Access Token (PAT) com permissão de leitura da API.
+        padrao: Booleano indicando se é o Git padrão para importação.
+        criado_em: Timestamp ISO de cadastro.
+    """
+
+    __tablename__ = "git_accounts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    nome = Column(String, nullable=False)
+    url = Column(String, nullable=False)
+    token = Column(String, nullable=False)
+    padrao = Column(Boolean, default=False)
     criado_em = Column(String)
 
 

@@ -5,7 +5,10 @@
         <h1>Commits</h1>
         <HelpModal title="Como funciona esta página" :items="helpItems" />
       </div>
-      <button class="btn-primary" @click="showImport = true">+ Importar Commit</button>
+      <button class="btn-primary" @click="$router.push('/importar')">
+        <i class="fa-solid fa-file-import" aria-hidden="true"></i>
+        <span>+ Importar Commit</span>
+      </button>
     </div>
 
     <!-- Modal de importação -->
@@ -56,9 +59,7 @@
               aria-controls="panel-commits-view"
               @click="setVisaoModo('repositorio')"
             >
-              <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true" focusable="false">
-                <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.6-1.2-1.6 1.2a.25.25 0 0 1-.4-.2Z"/>
-              </svg>
+              <i class="fa-solid fa-folder-tree" aria-hidden="true" style="font-size: 0.95rem;"></i>
               <span>Por Repositório</span>
               <span class="mode-count-badge" :title="`${repositoriosResumo.length} repositórios ativos`">
                 {{ repositoriosResumo.length }}
@@ -75,9 +76,7 @@
               aria-controls="panel-commits-view"
               @click="setVisaoModo('data')"
             >
-              <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true" focusable="false">
-                <path d="M4.75 0a.75.75 0 0 1 .75.75V2h5V.75a.75.75 0 0 1 1.5 0V2h1.25c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 13.25 16H2.75A1.75 1.75 0 0 1 1 14.25V3.75C1 2.784 1.784 2 2.75 2H4V.75A.75.75 0 0 1 4.75 0ZM2.5 7.5v6.75c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25V7.5Zm10.75-4H2.75a.25.25 0 0 0-.25.25V6h11V3.75a.25.25 0 0 0-.25-.25Z"/>
-              </svg>
+              <i class="fa-solid fa-calendar-days" aria-hidden="true" style="font-size: 0.95rem;"></i>
               <span>Linha do Tempo (Data)</span>
               <span class="mode-count-badge" :title="`${commitsFiltrados.length} commits`">
                 {{ commitsFiltrados.length }}
@@ -87,9 +86,7 @@
 
           <!-- Busca de Commits / Repositórios -->
           <div class="search-box">
-            <svg class="search-icon" viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true" focusable="false">
-              <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/>
-            </svg>
+            <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true" style="color: var(--text-muted); font-size: 0.85rem;"></i>
             <input 
               type="search"
               v-model="termoBusca"
@@ -105,7 +102,7 @@
               aria-label="Limpar texto da busca"
               title="Limpar busca"
             >
-              ✕
+              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
             </button>
           </div>
         </div>
@@ -225,9 +222,7 @@
           >
             <div class="repo-header-main">
               <div class="repo-avatar-icon" :class="repo.colorClass">
-                <svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor" aria-hidden="true" focusable="false">
-                  <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.6-1.2-1.6 1.2a.25.25 0 0 1-.4-.2Z"/>
-                </svg>
+                <i class="fa-brands fa-git-alt" aria-hidden="true" style="font-size: 1.15rem;"></i>
               </div>
               <div class="repo-header-text">
                 <div class="repo-title-row">
@@ -255,13 +250,16 @@
                 </span>
 
                 <span class="badge badge-status badge-green" :title="`${repo.analisados} commit(s) analisado(s)`">
-                  ✓ {{ repo.analisados }} Analisado{{ repo.analisados !== 1 ? 's' : '' }}
+                  <i class="fa-solid fa-circle-check" aria-hidden="true" style="margin-right: 2px;"></i>
+                  {{ repo.analisados }} Analisado{{ repo.analisados !== 1 ? 's' : '' }}
                 </span>
                 <span v-if="repo.pendentes > 0" class="badge badge-status badge-gray" :title="`${repo.pendentes} commit(s) pendente(s)`">
-                  ⏳ {{ repo.pendentes }} Pendente{{ repo.pendentes !== 1 ? 's' : '' }}
+                  <i class="fa-solid fa-clock" aria-hidden="true" style="margin-right: 2px;"></i>
+                  {{ repo.pendentes }} Pendente{{ repo.pendentes !== 1 ? 's' : '' }}
                 </span>
                 <span v-if="repo.totalHpa > 0" class="badge badge-status badge-hpa" :title="`${repo.totalHpa} horas HPA estimadas`">
-                  ⚡ {{ repo.totalHpa }}h HPA
+                  <i class="fa-solid fa-bolt" aria-hidden="true" style="margin-right: 2px;"></i>
+                  {{ repo.totalHpa }}h HPA
                 </span>
               </div>
 
@@ -274,22 +272,11 @@
                 :aria-label="isRepoColapsado(repo.nome) ? `Expandir commits do repositório ${repo.nome}` : `Recolher commits do repositório ${repo.nome}`"
                 :title="isRepoColapsado(repo.nome) ? 'Expandir commits' : 'Recolher commits'"
               >
-                <svg 
-                  class="chevron-icon" 
+                <i 
+                  class="fa-solid fa-chevron-down chevron-icon" 
                   :class="{ rotated: isRepoColapsado(repo.nome) }"
-                  viewBox="0 0 24 24" 
-                  width="18" 
-                  height="18" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  stroke-width="2.5" 
-                  stroke-linecap="round" 
-                  stroke-linejoin="round"
                   aria-hidden="true"
-                  focusable="false"
-                >
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
+                ></i>
               </button>
             </div>
           </div>
@@ -379,11 +366,7 @@
                   title="Excluir commit"
                   aria-label="Excluir commit"
                 >
-                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10" stroke="#f85149" fill="none" />
-                    <line x1="15" y1="9" x2="9" y2="15" stroke="#f85149" />
-                    <line x1="9" y1="9" x2="15" y2="15" stroke="#f85149" />
-                  </svg>
+                  <i class="fa-solid fa-trash-can" aria-hidden="true" style="color: #f85149; font-size: 0.95rem;"></i>
                 </button>
 
                 <!-- SHA Box -->
@@ -396,10 +379,7 @@
                   title="Copiar SHA completo"
                   aria-label="Copiar SHA completo"
                 >
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                  </svg>
+                  <i class="fa-regular fa-copy" aria-hidden="true" style="font-size: 0.85rem;"></i>
                 </button>
 
                 <!-- Botão Navegar (Folder) -->
@@ -409,9 +389,7 @@
                   title="Ver detalhes da análise"
                   aria-label="Ver detalhes da análise"
                 >
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                  </svg>
+                  <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true" style="font-size: 0.82rem;"></i>
                 </button>
               </div>
             </div>
@@ -469,9 +447,7 @@
                     :title="`Filtrar pelo repositório ${commit.projeto || 'Sem repositório'}`"
                     aria-label="Filtrar por este repositório"
                   >
-                    <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true" focusable="false">
-                      <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.6-1.2-1.6 1.2a.25.25 0 0 1-.4-.2Z"/>
-                    </svg>
+                    <i class="fa-brands fa-gitlab" aria-hidden="true" style="font-size: 0.78rem;"></i>
                     <span>{{ commit.projeto || 'Sem repositório' }}</span>
                   </button>
 
@@ -515,7 +491,7 @@
                         :title="`${obterInfoFila(commit.id)!.envios} tarefa(s) deste commit na fila (${obterInfoFila(commit.id)!.running} em execução, ${obterInfoFila(commit.id)!.pending} aguardando)`"
                       >
                         <span class="spinner-dot-xs" v-if="obterInfoFila(commit.id)!.running > 0"></span>
-                        <span class="queue-icon-txt" v-else>⏳</span>
+                        <i class="fa-solid fa-clock" aria-hidden="true" style="font-size: 0.72rem; margin-right: 2px;" v-else></i>
                         {{ obterInfoFila(commit.id)!.envios }} na fila
                       </span>
                     </template>
@@ -535,11 +511,7 @@
                   title="Excluir commit"
                   aria-label="Excluir commit"
                 >
-                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10" stroke="#f85149" fill="none" />
-                    <line x1="15" y1="9" x2="9" y2="15" stroke="#f85149" />
-                    <line x1="9" y1="9" x2="15" y2="15" stroke="#f85149" />
-                  </svg>
+                  <i class="fa-solid fa-trash-can" aria-hidden="true" style="color: #f85149; font-size: 0.95rem;"></i>
                 </button>
 
                 <!-- SHA Box -->
@@ -552,10 +524,7 @@
                   title="Copiar SHA completo"
                   aria-label="Copiar SHA completo"
                 >
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                  </svg>
+                  <i class="fa-regular fa-copy" aria-hidden="true" style="font-size: 0.85rem;"></i>
                 </button>
 
                 <!-- Botão Navegar (Folder) -->
@@ -565,9 +534,7 @@
                   title="Ver detalhes da análise"
                   aria-label="Ver detalhes da análise"
                 >
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                  </svg>
+                  <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true" style="font-size: 0.82rem;"></i>
                 </button>
               </div>
             </div>
