@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import DashboardView from '../views/DashboardView.vue'
 import CommitsView from '../views/CommitsView.vue'
 import CommitDetailView from '../views/CommitDetailView.vue'
 import HistoryView from '../views/HistoryView.vue'
@@ -11,7 +12,8 @@ import ModelosView from '../views/ModelosView.vue'
 export default createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', redirect: '/commits' },
+    { path: '/', redirect: '/dashboard' },
+    { path: '/dashboard', component: DashboardView },
     { path: '/commits', component: CommitsView },
     { path: '/commits/:sha', component: CommitDetailView },
     { path: '/analisar', component: AnalisarView },

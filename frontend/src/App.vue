@@ -15,6 +15,7 @@ const activeJobsCount = computed(() => {
 })
 
 const routeTitles: Record<string, string> = {
+  '/dashboard': 'Dashboard',
   '/commits': 'Commits',
   '/analisar': 'Analisar',
   '/fila': 'Fila de Execução',
@@ -201,7 +202,9 @@ onUnmounted(() => {
       </div>
 
       <nav class="nav" aria-label="Navegação principal">
+        <router-link to="/dashboard">Dashboard</router-link>
         <router-link to="/commits">Commits</router-link>
+        <router-link to="/analisar">Análise</router-link>
         <router-link to="/fila">
           Fila
           <span v-if="activeJobsCount > 0" class="fila-badge" aria-live="polite" :aria-label="`${activeJobsCount} tarefas ativas`">{{ activeJobsCount }}</span>
