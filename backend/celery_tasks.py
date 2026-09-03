@@ -118,6 +118,13 @@ def analisar_commit_task(
                     except Exception as ex_log:
                         print(f"Erro ao salvar logs historicos no sucesso de analise: {ex_log}", flush=True)
                     db_f.commit()
+
+        try:
+            from backup import verificar_e_executar_auto_backup_20min
+            verificar_e_executar_auto_backup_20min()
+        except Exception as e_bkp:
+            print(f"Erro no auto-save periódico após análise: {e_bkp}", flush=True)
+
         return res
     except Exception as e:
         import re

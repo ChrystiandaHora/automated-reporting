@@ -2007,7 +2007,7 @@ def listar_backups():
                     "tamanho_bytes": os.path.getsize(path_f),
                     "modificado_em": datetime.fromtimestamp(os.path.getmtime(path_f)).isoformat()
                 })
-    return {"ok": True, "diretorio": dir_backup, "backups": arquivos}
+    return {"ok": True, "diretorio": dir_backup, "backups": arquivos, "arquivos": arquivos}
 
 
 @app.get("/ping-munka")

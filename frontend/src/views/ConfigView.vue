@@ -473,7 +473,7 @@ const pingResult = ref<{ ok: boolean; mensagem: string } | null>(null)
 async function carregarBackups() {
   try {
     const res = await api.backup.listar()
-    backupsList.value = res.arquivos || []
+    backupsList.value = res.backups || res.arquivos || []
   } catch (e) {
     console.error('Erro ao carregar lista de backups:', e)
   }
@@ -483,10 +483,11 @@ async function executarBackupManual() {
   backupLoading.value = true
   try {
     const res = await api.backup.criar()
-    toastStore.addToast(`✔ Backup realizado! Arquivo: ${res.arquivo_sql}`, 'success')
+    const arq = res.arquivo_sql || res.files?.sql || 'backup_nexus_latest.sql'
+    toastStore.addToast(`✔ Backup realizado! Arquivo: ${arq}`, 'success')
     await carregarBackups()
   } catch (e: any) {
-    toastStore.addToast(`Erro ao criar backup: ${e.message}`, 'error')
+    toastStore.addToast(`Erro ao criar backup: ${e.response?.data?.detail ?? e.message ?? String(e)}`, 'error')
   } finally {
     backupLoading.value = false
   }

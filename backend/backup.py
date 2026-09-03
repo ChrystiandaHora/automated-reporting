@@ -53,6 +53,8 @@ def gerar_backup_json_e_sql() -> dict:
         "analises": [],
         "fila": [],
         "historico": [],
+        "fila_logs_historico": [],
+        "git_accounts": [],
     }
 
     sql_lines = [
@@ -158,6 +160,53 @@ def gerar_backup_json_e_sql() -> dict:
                 f"VALUES ({f.id}, '{val_tp}', '{val_cid}', {val_aidx}, {val_mod}, '{val_st}', {val_tid}, {val_res}, '{val_cr}', {val_conc});"
             )
 
+        # 5. Fila Logs Histórico
+        fila_logs = db.query(models.FilaLogsHistorico).all()
+        for fl in fila_logs:
+            data_export["fila_logs_historico"].append({
+                "id": fl.id,
+                "fila_id": fl.fila_id,
+                "tipo": fl.tipo,
+                "commit_id": fl.commit_id,
+                "atividade_idx": fl.atividade_idx,
+                "tentativa": fl.tentativa,
+                "status": fl.status,
+                "logs": fl.logs,
+                "criado_em": fl.criado_em,
+            })
+            val_fl_tp = (fl.tipo or "").replace("'", "''")
+            val_fl_cid = f"'{fl.commit_id.replace('\'', '\'\'')}'" if fl.commit_id else "NULL"
+            val_fl_aidx = fl.atividade_idx if fl.atividade_idx is not None else "NULL"
+            val_fl_tent = fl.tentativa or 1
+            val_fl_st = (fl.status or "").replace("'", "''")
+            val_fl_logs = f"'{fl.logs.replace('\'', '\'\'')}'" if fl.logs else "NULL"
+            val_fl_cr = (fl.criado_em or "").replace("'", "''")
+            sql_lines.append(
+                f"INSERT OR REPLACE INTO fila_logs_historico (id, fila_id, tipo, commit_id, atividade_idx, tentativa, status, logs, criado_em) "
+                f"VALUES ({fl.id}, {fl.fila_id}, '{val_fl_tp}', {val_fl_cid}, {val_fl_aidx}, {val_fl_tent}, '{val_fl_st}', {val_fl_logs}, '{val_fl_cr}');"
+            )
+
+        # 6. Git Accounts
+        git_accs = db.query(models.GitAccount).all()
+        for ga in git_accs:
+            data_export["git_accounts"].append({
+                "id": ga.id,
+                "nome": ga.nome,
+                "url": ga.url,
+                "token": ga.token,
+                "padrao": ga.padrao,
+                "criado_em": ga.criado_em,
+            })
+            val_ga_nome = (ga.nome or "").replace("'", "''")
+            val_ga_url = (ga.url or "").replace("'", "''")
+            val_ga_token = (ga.token or "").replace("'", "''")
+            val_ga_pad = 1 if ga.padrao else 0
+            val_ga_cr = (ga.criado_em or "").replace("'", "''")
+            sql_lines.append(
+                f"INSERT OR REPLACE INTO git_accounts (id, nome, url, token, padrao, criado_em) "
+                f"VALUES ({ga.id}, '{val_ga_nome}', '{val_ga_url}', '{val_ga_token}', {val_ga_pad}, '{val_ga_cr}');"
+            )
+
     sql_lines.append("COMMIT;")
 
     # Salva arquivos JSON
@@ -180,11 +229,15 @@ def gerar_backup_json_e_sql() -> dict:
     stats = {
         "ok": True,
         "timestamp": data_export["timestamp"],
+        "arquivo_sql": os.path.basename(sql_file_latest),
+        "arquivo_json": os.path.basename(json_file_latest),
         "counts": {
             "commits": len(data_export["commits"]),
             "analises": len(data_export["analises"]),
             "historico": len(data_export["historico"]),
             "fila": len(data_export["fila"]),
+            "fila_logs_historico": len(data_export["fila_logs_historico"]),
+            "git_accounts": len(data_export["git_accounts"]),
         },
         "files": {
             "json": json_file_latest,
@@ -193,7 +246,7 @@ def gerar_backup_json_e_sql() -> dict:
             "sql_timestamped": sql_file_timestamped,
         },
     }
-    print(f"[Backup Nexus] Auto-save concluído com sucesso! Commits: {stats['counts']['commits']} | Fila: {stats['counts']['fila']} | Histórico: {stats['counts']['historico']}", flush=True)
+    print(f"[Backup Nexus] Auto-save concluído com sucesso! Commits: {stats['counts']['commits']} | Fila: {stats['counts']['fila']} | Histórico: {stats['counts']['historico']} | Logs: {stats['counts']['fila_logs_historico']} | GitAccounts: {stats['counts']['git_accounts']}", flush=True)
     return stats
 
 
