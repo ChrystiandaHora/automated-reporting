@@ -134,6 +134,9 @@ class FilaLogsHistorico(Base):
     tentativa = Column(Integer, default=1)
     status = Column(String)  # retrying, done, error
     logs = Column(Text)  # JSON com lista de logs
+    criado_em = Column(String)
+
+
 class GitAccount(Base):
     """Representa uma conta/instância GitLab configurada no sistema.
 
