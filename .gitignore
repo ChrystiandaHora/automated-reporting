@@ -13,3 +13,5 @@ commits/
 .DS_Store
 dist/
 node_modules/
+graphify-out/
+docs/media/

@@ -218,7 +218,7 @@ class ConfiguracaoRequest(BaseModel):
 
 class FilaAnaliseRequest(BaseModel):
     commit_ids: list[str]
-    modelo: str = "Gemini 2.5 Flash"
+    modelo: str = "Gemini 3.8 Flash"
 
 
 class FilaEnvioRequest(BaseModel):

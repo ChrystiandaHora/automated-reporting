@@ -462,7 +462,7 @@ import type { CommitSummary } from '../api'
 const helpItems = [
   { title: 'Seleção por Repositório', text: 'Você pode marcar ou desmarcar todos os commits de um projeto específico com um único clique no checkbox do card do repositório.' },
   { title: 'Filtro por Status', text: 'Use o botão "Apenas Pendentes" para isolar rapidamente as alterações que ainda não foram processadas pelo Gemini.' },
-  { title: 'Modelos de AI', text: 'O Gemini 3.5 Flash Lite é o modelo recomendado por equilibrar alta precisão e baixo tempo de resposta.' },
+  { title: 'Modelos de AI', text: 'O Gemini 3.8 Flash oferece máxima capacidade de análise, enquanto o Gemini 3.5 Flash Lite conta com o maior limite de cota diária (500 RPD).' },
   { title: 'Fila de Execução', text: 'Ao confirmar, os commits são enviados para a fila do Celery e processados em paralelo conforme os limites de concorrência configurados.' },
 ]
 
@@ -471,7 +471,7 @@ const route = useRoute()
 const commitsStore = useCommitsStore()
 const filaStore = useFilaStore()
 
-const selectedModel = ref('Gemini 3.5 Flash Lite')
+const selectedModel = ref('Gemini 3.8 Flash')
 const selecionados = ref<string[]>([])
 const enfileirando = ref(false)
 
@@ -483,10 +483,10 @@ const termoBusca = ref<string>('')
 const reposColapsados = ref<Record<string, boolean>>({})
 
 const models = [
-  { name: 'Gemini 2.5 Flash Lite', badge: 'Super Rápido', badgeClass: 'badge-green', desc: 'Mais leve e veloz. Indicado para análises rápidas em commits de baixa complexidade.' },
-  { name: 'Gemini 3.1 Flash Lite', badge: 'Ultra Eficiente', badgeClass: 'badge-gray', desc: 'Modelo compacto de última geração com alta eficiência operacional.' },
-  { name: 'Gemini 3.5 Flash', badge: 'Alta Performance', badgeClass: 'badge-purple', desc: 'Modelo topo de linha mais recente. Máxima precisão na classificação de atividades.' },
-  { name: 'Gemini 3.5 Flash Lite', badge: 'Recomendado', badgeClass: 'badge-blue', desc: 'Equilíbrio ideal entre velocidade e precisão de análise.' }
+  { name: 'Gemini 3.8 Flash', badge: 'Mais Recente', badgeClass: 'badge-purple', desc: 'Modelo topo de linha mais atual. Maior capacidade de raciocínio e precisão na classificação.' },
+  { name: 'Gemini 3.7 Flash', badge: 'Alta Performance', badgeClass: 'badge-blue', desc: 'Excelente capacidade analítica e raciocínio avançado para diffs de código complexos.' },
+  { name: 'Gemini 3.6 Flash', badge: 'Rápido & Estável', badgeClass: 'badge-green', desc: 'Equilíbrio sólido entre tempo de resposta e qualidade na análise de mudanças técnicas.' },
+  { name: 'Gemini 3.5 Flash Lite', badge: 'Recomendado (Maior Cota)', badgeClass: 'badge-orange', desc: 'Maior limite diário (500 RPD). Ideal para análises em lote contínuas.' }
 ]
 
 onMounted(async () => {

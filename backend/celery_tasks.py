@@ -24,7 +24,7 @@ def analisar_commit_task(
     commit_id: str,
     diff_raw: str,
     forcar: bool = False,
-    modelo: str = "Gemini 2.5 Flash Lite",
+    modelo: str = "Gemini 3.8 Flash",
     fila_id: int = None,
 ):
     from database import SessionLocal
@@ -339,7 +339,7 @@ def enviar_atividade_task(
                         except Exception as ex_log:
                             print(f"Erro ao salvar logs historicos no ping retry: {ex_log}", flush=True)
                         db_f.commit()
-            raise self.retry(exc=Exception(f"Portal Munka indisponível (Ping: {ping_msg})"), countdown=30, max_retries=9)
+            raise self.retry(exc=Exception(f"Portal Munka indisponível (Ping: {ping_msg})"), countdown=30, max_retries=2)
 
         log("✔ Portal Munka online. Iniciando automação do lançamento...")
 
@@ -461,8 +461,8 @@ def enviar_atividade_task(
         raise
     except Exception as e:
         retry_num = self.request.retries
-        max_retries = 9
-        delays = [10, 15, 20, 30, 45, 60, 90, 120, 180]
+        max_retries = 2
+        delays = [10, 20, 30]
         if retry_num < max_retries:
             next_attempt = retry_num + 2
             countdown = delays[retry_num] if retry_num < len(delays) else 180

@@ -517,18 +517,17 @@ async function executarCorrigir(job: any) {
 
 
 const models = [
-  { name: 'Gemini 2.5 Flash' },
-  { name: 'Gemini 3.5 Flash' },
-  { name: 'Gemini 2.5 Flash Lite' },
-  { name: 'Gemini 3 Flash' },
-  { name: 'Gemini 3.1 Flash Lite' }
+  { name: 'Gemini 3.8 Flash' },
+  { name: 'Gemini 3.7 Flash' },
+  { name: 'Gemini 3.6 Flash' },
+  { name: 'Gemini 3.5 Flash Lite' }
 ]
 
 const modelosSelecionados = ref<Record<number, string>>({})
 
 function obterModeloSelecionado(jobId: number, modeloAtual?: string) {
   if (modelosSelecionados.value[jobId] === undefined) {
-    modelosSelecionados.value[jobId] = modeloAtual || 'Gemini 2.5 Flash'
+    modelosSelecionados.value[jobId] = modeloAtual || 'Gemini 3.8 Flash'
   }
   return modelosSelecionados.value[jobId]
 }
@@ -551,7 +550,7 @@ function podeMudarModelo(job: any) {
 }
 
 async function reprocessarComOutroModelo(job: any) {
-  const modeloSelecionado = modelosSelecionados.value[job.id] || job.modelo || 'Gemini 2.5 Flash'
+  const modeloSelecionado = modelosSelecionados.value[job.id] || job.modelo || 'Gemini 3.8 Flash'
   if (confirm(`Deseja cancelar a tarefa atual e iniciar uma nova análise com o modelo ${modeloSelecionado}?`)) {
     try {
       await filaStore.removerJob(job.id)

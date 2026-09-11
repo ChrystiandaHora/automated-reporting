@@ -1,0 +1,2 @@
+- Ao desenvolver o frontend, siga estritamente as regras de acessibilidade definidas no A11Y.md: <https://github.com/fecarrico/A11Y.md/blob/main/docs/pt-BR/A11Y.md>
+- When developing the frontend, follow strictly the accessibility rules defined in A11Y.md: <https://github.com/fecarrico/A11Y.md/blob/main/docs/en/A11Y.md>

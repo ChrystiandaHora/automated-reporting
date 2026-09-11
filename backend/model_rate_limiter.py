@@ -10,24 +10,24 @@ logger = logging.getLogger("model_rate_limiter")
 # Modelos padrão configurados no sistema
 DEFAULT_MODELS = [
     {
-        "id": "gemini-2.5-flash-lite",
-        "name": "Gemini 2.5 Flash Lite",
+        "id": "gemini-3.8-flash",
+        "name": "Gemini 3.8 Flash",
         "category": "Modelos de texto",
-        "rpm_limit": 10,
-        "tpm_limit": 750000,
+        "rpm_limit": 5,
+        "tpm_limit": 250000,
         "rpd_limit": 20,
     },
     {
-        "id": "gemini-3.1-flash-lite",
-        "name": "Gemini 3.1 Flash Lite",
+        "id": "gemini-3.7-flash",
+        "name": "Gemini 3.7 Flash",
         "category": "Modelos de texto",
-        "rpm_limit": 15,
+        "rpm_limit": 5,
         "tpm_limit": 250000,
-        "rpd_limit": 500,
+        "rpd_limit": 20,
     },
     {
-        "id": "gemini-3.5-flash",
-        "name": "Gemini 3.5 Flash",
+        "id": "gemini-3.6-flash",
+        "name": "Gemini 3.6 Flash",
         "category": "Modelos de texto",
         "rpm_limit": 5,
         "tpm_limit": 250000,
@@ -42,6 +42,7 @@ DEFAULT_MODELS = [
         "rpd_limit": 500,
     },
 ]
+
 
 
 class ModelRateLimiter:
@@ -90,6 +91,65 @@ class ModelRateLimiter:
                 continue
 
         return None
+
+    def acquire_slot(self, model_id: str, max_wait_seconds: float = 65.0) -> bool:
+        """Bloqueia preventivamente a execução até que haja cota disponível para o modelo no minuto atual.
+
+        Verifica tanto o limite por minuto (RPM) quanto o limite diário (RPD).
+        Se o limite por minuto estiver saturado, aguarda com sleep até que a janela do minuto expire.
+        Retorna True se um slot foi adquirido com sucesso.
+        Retorna False se o limite diário (RPD) estiver estourado ou se o tempo máximo de espera for excedido,
+        permitindo que o chamador faça fallback para o próximo modelo sem tomar erro 429 da API.
+        """
+        normalized_id = model_id.lower().strip()
+        cfg = self._models_config.get(normalized_id)
+        if not cfg:
+            return True
+
+        rpm_limit = cfg.get("rpm_limit", 5)
+        rpd_limit = cfg.get("rpd_limit", 20)
+        start_wait = time.time()
+
+        while True:
+            metrics = self.get_metrics(normalized_id)
+            rpm_curr = metrics["rpm"]
+            rpd_curr = metrics["rpd"]
+
+            # Se a cota diária (RPD) foi atingida, não adianta esperar minutos -> falha para usar fallback
+            if rpd_limit > 0 and rpd_curr >= rpd_limit:
+                logger.warning(
+                    f"Cota diária (RPD) atingida para {normalized_id}: {rpd_curr}/{rpd_limit}. Pulando para fallback."
+                )
+                return False
+
+            # Se o limite de RPM não foi atingido, slot liberado!
+            if rpm_limit <= 0 or rpm_curr < rpm_limit:
+                return True
+
+            # Limite de RPM atingido: calcula quanto tempo falta para o próximo minuto
+            now = time.time()
+            elapsed = now - start_wait
+            if elapsed >= max_wait_seconds:
+                logger.warning(
+                    f"Tempo máximo de espera ({max_wait_seconds}s) excedido para {normalized_id}. Pulando para fallback."
+                )
+                return False
+
+            # Segundos restantes no minuto atual (com margem de 1s para virar o clock com segurança)
+            segundos_ate_proximo_minuto = 60 - (int(now) % 60) + 1
+            tempo_sono = min(segundos_ate_proximo_minuto, max_wait_seconds - elapsed)
+
+            if tempo_sono <= 0:
+                tempo_sono = 1
+
+            logger.info(
+                f"[Rate Limiter] Modelo {normalized_id} atingiu {rpm_curr}/{rpm_limit} RPM. Aguardando {tempo_sono:.1f}s para virada de janela..."
+            )
+            print(
+                f"⚡ [Rate Limiter] Modelo {normalized_id} atingiu o limite de {rpm_curr}/{rpm_limit} RPM. Aguardando {tempo_sono:.1f}s antes de enviar a próxima requisição...",
+                flush=True,
+            )
+            time.sleep(tempo_sono)
 
     def record_call(self, model_id: str, tokens: int = 0) -> None:
         """Registra uma requisição e a quantidade de tokens consumidos no modelo."""

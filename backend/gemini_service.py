@@ -46,13 +46,13 @@ class RelatorioFaturamento(BaseModel):
 from model_rate_limiter import rate_limiter
 
 MAP_MODELOS = {
-    "Gemini 2.5 Flash Lite": "gemini-2.5-flash-lite",
-    "Gemini 3.1 Flash Lite": "gemini-3.1-flash-lite",
-    "Gemini 3.5 Flash": "gemini-3.5-flash",
+    "Gemini 3.8 Flash": "gemini-3.8-flash",
+    "Gemini 3.7 Flash": "gemini-3.7-flash",
+    "Gemini 3.6 Flash": "gemini-3.6-flash",
     "Gemini 3.5 Flash Lite": "gemini-3.5-flash-lite",
 }
 
-def analisar_diff(diff_content: str, prompt_path: str = "Docs/regras-medicao.md", catalogo_path: str = "Docs/catalogo-servicos.md", modelo: str = "Gemini 2.5 Flash Lite") -> RelatorioFaturamento:
+def analisar_diff(diff_content: str, prompt_path: str = "Docs/regras-medicao.md", catalogo_path: str = "Docs/catalogo-servicos.md", modelo: str = "Gemini 3.8 Flash") -> RelatorioFaturamento:
     """Send a Git diff to Gemini and return a structured billing report.
 
     Reads the measurement rules from ``prompt_path`` and the service catalogue
@@ -94,10 +94,10 @@ def analisar_diff(diff_content: str, prompt_path: str = "Docs/regras-medicao.md"
     )
 
     # Executa a geração de conteúdo com fallback para contornar erros de 503 (alta demanda)
-    model_id = MAP_MODELOS.get(modelo, modelo) or "gemini-2.5-flash-lite"
+    model_id = MAP_MODELOS.get(modelo, modelo) or "gemini-3.8-flash"
     
-    # Lista de fallbacks padrão entre os modelos habilitados
-    fallbacks = ["gemini-2.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-3.5-flash-lite"]
+    # Lista de fallbacks padrão entre os modelos habilitados (ordem decrescente de novidade, com Flash Lite ao final por ter maior RPD)
+    fallbacks = ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"]
     modelos_para_tentar = [model_id] + [f for f in fallbacks if f != model_id]
     
     # Limpa duplicatas mantendo a ordem
@@ -106,6 +106,13 @@ def analisar_diff(diff_content: str, prompt_path: str = "Docs/regras-medicao.md"
 
     for nome_modelo in modelos_para_tentar:
         try:
+            # Controle preventivo de Rate Limit: aguarda virada de janela caso atinja o limite de RPM
+            # Se a cota diária estiver estourada, acquire_slot retorna False e tentamos o próximo modelo (fallback)
+            slot_disponivel = rate_limiter.acquire_slot(nome_modelo, max_wait_seconds=65.0)
+            if not slot_disponivel:
+                ultimo_erro = ValueError(f"Cota diária ou limite de taxa saturado para o modelo {nome_modelo}")
+                continue
+
             response = client.models.generate_content(
                 model=nome_modelo,
                 contents=[

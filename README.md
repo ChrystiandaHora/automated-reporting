@@ -180,5 +180,5 @@ cd backend && python3 migrate.py
 | **Processamento Assíncrono** | Celery, Redis, Flower |
 | **Banco de dados** | SQLite (Persistência via volume Docker) |
 | **Automação Web** | Playwright (Chromium headless) |
-| **Inteligência Artificial** | Google Gemini (2.5 Flash Lite, 3.1 Flash Lite, 3.5 Flash) |
+| **Inteligência Artificial** | Google Gemini (3.8 Flash, 3.7 Flash, 3.6 Flash, 3.5 Flash Lite) |
 | **Containerização** | Docker, Docker Compose, Nginx |
