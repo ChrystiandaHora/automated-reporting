@@ -51,11 +51,10 @@ COPY . .
 # 5. Cria usuário sem privilégios e configura permissões
 RUN useradd -m -u 1000 appuser && \
     mkdir -p /data && \
-    chown -R appuser:appuser /app /data
-
-# Troca para o usuário não-root
-USER appuser
+    chown -R appuser:appuser /app /data && \
+    chmod +x /app/entrypoint.sh
 
 EXPOSE 8000
 
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]

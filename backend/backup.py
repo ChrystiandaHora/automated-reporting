@@ -11,10 +11,21 @@ _ULTIMO_BACKUP_TIMESTAMP = 0.0
 
 
 def obter_diretorio_backup() -> str:
-    """Retorna o caminho do diretório de backup garantindo sua criação."""
-    caminho = BACKUP_DIR if os.path.exists("/data") else "./backups"
-    os.makedirs(caminho, exist_ok=True)
-    return caminho
+    """Retorna o caminho do diretório de backup garantindo sua criação e permissão de escrita."""
+    candidatos = [BACKUP_DIR, "./backups", "/tmp/nexus_backups"]
+    for caminho in candidatos:
+        try:
+            os.makedirs(caminho, exist_ok=True)
+            teste_arq = os.path.join(caminho, f".write_test_{os.getpid()}")
+            with open(teste_arq, "w") as f:
+                f.write("ok")
+            os.remove(teste_arq)
+            return caminho
+        except Exception:
+            continue
+    fallback = "./backups"
+    os.makedirs(fallback, exist_ok=True)
+    return fallback
 
 
 def verificar_e_executar_auto_backup_20min(forcar: bool = False) -> dict | None:
