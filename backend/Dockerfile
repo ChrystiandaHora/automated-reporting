@@ -3,8 +3,12 @@ FROM python:3.12-slim
 # Evita o buffering dos logs do Python no console do Docker
 ENV PYTHONUNBUFFERED=1
 
-# Dependências do sistema necessárias para o Playwright/Chromium
+# Garante que o Playwright armazene navegadores em local acessível globalmente
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+# 1. Dependências do sistema + ca-certificates para revogar a CA eMudhra
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
     curl \
     libglib2.0-0 \
     libnss3 \
@@ -26,22 +30,31 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libx11-6 \
     libxext6 \
     fonts-liberation \
+    && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Instala dependências Python primeiro (cache de camada)
+# 2. Atualiza o pip para remover a raiz comprometida embutida nele
+RUN pip install --no-cache-dir --upgrade "pip>=26.2.2"
+
+# 3. Instala dependências Python (lembre de ter certifi>=2026.10.19 no requirements.txt)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Instala Chromium para o Playwright
-RUN playwright install chromium
+# 4. Instala Chromium para o Playwright no diretório compartilhado
+RUN mkdir -p /ms-playwright && playwright install chromium && chmod -R 755 /ms-playwright
 
 # Copia o código do backend
 COPY . .
 
-# Diretório de dados persistido via volume
-RUN mkdir -p /data
+# 5. Cria usuário sem privilégios e configura permissões
+RUN useradd -m -u 1000 appuser && \
+    mkdir -p /data && \
+    chown -R appuser:appuser /app /data
+
+# Troca para o usuário não-root
+USER appuser
 
 EXPOSE 8000
 

@@ -1,10 +1,20 @@
-playwright
+# 1. Correção direta para o incidente da eMudhra / emSign
+certifi>=2026.10.19
+
+# 2. Suas dependências diretas de requisições e IA
+requests>=2.32.0
 google-genai
 python-dotenv
+
+# 3. Web Framework
 fastapi
 uvicorn[standard]
 sqlalchemy
-requests
-celery[redis]==5.3.6
-redis==5.0.1
+
+# 4. Navegador / Automação (veja a observação do Docker abaixo)
+playwright
+
+# 5. Filas e Cache (Atualize versões antigas para evitar CVEs de desserialização/RCE)
+celery[redis]>=5.4.0
+redis>=5.0.8
 flower
