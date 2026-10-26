@@ -3,12 +3,14 @@ import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useFilaStore } from './stores/fila'
 import { api } from './api'
+import { useToastStore } from './stores/toast'
 import ToastManager from './components/ToastManager.vue'
 
 type ThemeMode = 'dark' | 'light' | 'auto'
 
 const route = useRoute()
 const filaStore = useFilaStore()
+const toastStore = useToastStore()
 
 const activeJobsCount = computed(() => {
   return filaStore.jobs.filter(j => j.status === 'pending' || j.status === 'running').length
@@ -42,10 +44,40 @@ watch([activeJobsCount, () => route.path], ([count, path]) => {
   }
 }, { immediate: true })
 
-watch(activeJobsCount, async (count) => {
-  if (count === 0 && isWakeLockActive.value) {
+const IDLE_TIMEOUT_MS = 3 * 60 * 1000 // 3 minutos de ociosidade
+let idleTimeoutId: number | null = null
+
+function iniciarIdleTimeout() {
+  cancelarIdleTimeout()
+  idleTimeoutId = window.setTimeout(async () => {
+    // Caso 1: Usuário clicou para ligar, passam 3 minutos e não tem nada executando na fila -> volta para off
+    if (isWakeLockActive.value && activeJobsCount.value === 0) {
+      await releaseWakeLock()
+      localStorage.setItem('nexus-anti-sleep', 'false')
+      toastStore.addToast('Anti-Sleep desativado automaticamente após 3 minutos sem processos na fila.', 'info')
+    }
+  }, IDLE_TIMEOUT_MS)
+}
+
+function cancelarIdleTimeout() {
+  if (idleTimeoutId !== null) {
+    clearTimeout(idleTimeoutId)
+    idleTimeoutId = null
+  }
+}
+
+watch(activeJobsCount, async (newCount, oldCount) => {
+  if (!isWakeLockActive.value) return
+
+  if (newCount > 0) {
+    // Caso 2: Existem processos rodando na fila -> cancela timer de ociosidade, mantém ativo
+    cancelarIdleTimeout()
+  } else if (newCount === 0 && oldCount !== undefined && oldCount > 0) {
+    // Caso 2: Concluiu todas as atividades e não restam mais processos na fila -> desliga automaticamente
+    cancelarIdleTimeout()
     await releaseWakeLock()
     localStorage.setItem('nexus-anti-sleep', 'false')
+    toastStore.addToast('Anti-Sleep desativado: todas as tarefas da fila foram concluídas.', 'info')
   }
 })
 
@@ -128,17 +160,35 @@ async function releaseWakeLock() {
 
 async function toggleWakeLock() {
   if (isWakeLockActive.value) {
+    // Regra: só pode ficar no off manualmente quando não houver nenhuma atividade na fila
+    if (activeJobsCount.value > 0) {
+      toastStore.addToast('O Anti-Sleep não pode ser desligado enquanto houver tarefas em execução na fila.', 'info')
+      return
+    }
+    cancelarIdleTimeout()
     await releaseWakeLock()
     localStorage.setItem('nexus-anti-sleep', 'false')
   } else {
     await requestWakeLock()
     localStorage.setItem('nexus-anti-sleep', 'true')
+    if (activeJobsCount.value === 0) {
+      // Caso 1: Usuário clicou para ligar e não tem nada na fila -> tolerância de 3 minutos
+      iniciarIdleTimeout()
+    } else {
+      // Caso 2: Já existem tarefas na fila -> permanece ativo até a fila esvaziar
+      cancelarIdleTimeout()
+    }
   }
 }
 
 function handleVisibilityChange() {
-  if (document.visibilityState === 'visible' && localStorage.getItem('nexus-anti-sleep') !== 'false') {
+  if (document.visibilityState === 'visible' && localStorage.getItem('nexus-anti-sleep') === 'true') {
     requestWakeLock()
+    if (activeJobsCount.value === 0) {
+      iniciarIdleTimeout()
+    } else {
+      cancelarIdleTimeout()
+    }
   }
 }
 
@@ -150,10 +200,12 @@ onMounted(() => {
     setMode('auto')
   }
 
-  // Ativa por padrão o Modo Anti-Sleep para garantir que o PC não durma durante execuções
   const antiSleepSalvo = localStorage.getItem('nexus-anti-sleep')
-  if (antiSleepSalvo !== 'false') {
+  if (antiSleepSalvo === 'true') {
     requestWakeLock()
+    if (activeJobsCount.value === 0) {
+      iniciarIdleTimeout()
+    }
   }
   document.addEventListener('visibilitychange', handleVisibilityChange)
 
@@ -166,6 +218,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('visibilitychange', handleVisibilityChange)
+  cancelarIdleTimeout()
   releaseWakeLock()
   if (timerInterval !== null) {
     clearInterval(timerInterval)
@@ -245,10 +298,15 @@ onUnmounted(() => {
       <div class="topbar-actions">
         <button 
           class="anti-sleep-btn" 
-          :class="{ active: isWakeLockActive }" 
+          :class="{ active: isWakeLockActive, 'is-locked': isWakeLockActive && activeJobsCount > 0 }" 
           @click="toggleWakeLock" 
           :aria-pressed="isWakeLockActive"
-          :title="isWakeLockActive ? 'Anti-Sleep ATIVO: Seu computador NÃO vai bloquear a tela nem entrar em modo de suspensão enquanto esta página estiver aberta.' : 'Clique para ativar o Modo Anti-Sleep (Impede bloqueio de tela e suspensão do computador).'"
+          :title="isWakeLockActive 
+            ? (activeJobsCount > 0 
+                ? `Anti-Sleep ATIVO: ${activeJobsCount} processo(s) na fila. Permanecerá ativo até a conclusão das tarefas.` 
+                : 'Anti-Sleep ATIVO: Fila vazia. O estado voltará para OFF após 3 minutos sem atividade, ou clique para desligar manualmente.')
+            : 'Clique para ativar o Modo Anti-Sleep (Impede suspensão do computador enquanto houver processos ou por até 3 minutos sem atividade).'
+          "
           aria-label="Alternar Modo Anti-Sleep"
         >
           <span class="anti-sleep-dot" aria-hidden="true"></span>
@@ -567,6 +625,10 @@ body {
   border-color: rgba(16, 185, 129, 0.4);
   color: #34d399;
   box-shadow: 0 0 12px rgba(16, 185, 129, 0.22);
+}
+
+.anti-sleep-btn.is-locked {
+  cursor: not-allowed;
 }
 
 .anti-sleep-dot {
