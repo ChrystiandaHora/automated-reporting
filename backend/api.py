@@ -226,6 +226,11 @@ class FilaEnvioRequest(BaseModel):
     atividade_idx: int
 
 
+class FilaEnvioLoteRequest(BaseModel):
+    commit_ids: list[str]
+    forcar_reenvio: bool = False
+
+
 # ─── Helpers ────────────────────────────────────────────────────────────────
 
 
@@ -1671,6 +1676,94 @@ def enfileirar_envio(req: FilaEnvioRequest, db: Session = Depends(get_db)):
     db.commit()
 
     return {"ok": True, "job_id": job.id}
+
+
+@app.post("/fila/envio-lote", status_code=201)
+def enfileirar_envio_lote(req: FilaEnvioLoteRequest, db: Session = Depends(get_db)):
+    """Enfileira em lote as tarefas de múltiplos commits para envio ao portal Munka.
+
+    Para cada commit informado, varre as atividades identificadas na análise e
+    enfileira aquelas que ainda não foram enviadas ou não estão em execução.
+    """
+    cfg = obter_config_valores()
+    if not cfg.get("MUNKA_USER") or not cfg.get("MUNKA_PASS"):
+        raise HTTPException(
+            status_code=400, detail="Credenciais MUNKA_USER/MUNKA_PASS não configuradas"
+        )
+
+    if not req.commit_ids:
+        raise HTTPException(status_code=400, detail="Nenhum commit informado")
+
+    jobs_criados = []
+
+    for commit_id in req.commit_ids:
+        c_clean = commit_id.strip()
+        if not c_clean:
+            continue
+        commit = (
+            db.query(models.Commit)
+            .filter(models.Commit.id.like(f"{c_clean}%"))
+            .first()
+        )
+        if not commit:
+            continue
+
+        analise = db.query(models.Analise).filter_by(commit_id=commit.id).first()
+        if not analise or not analise.atividades_json:
+            continue
+
+        try:
+            atividades = json.loads(analise.atividades_json)
+        except Exception:
+            continue
+
+        # Verifica histórico de atividades já enviadas
+        historicos = db.query(models.Historico).filter_by(commit_id=commit.id).all()
+        titulos_enviados = set(h.titulo for h in historicos)
+
+        # Evita duplicar tarefas já pendentes ou em execução na fila
+        jobs_ativos = (
+            db.query(models.Fila)
+            .filter(
+                models.Fila.commit_id == commit.id,
+                models.Fila.tipo == "envio",
+                models.Fila.status.in_(["pending", "running"]),
+            )
+            .all()
+        )
+        indices_em_fila = set(
+            j.atividade_idx for j in jobs_ativos if j.atividade_idx is not None
+        )
+
+        for idx, atv in enumerate(atividades):
+            if idx in indices_em_fila:
+                continue
+
+            ja_enviada = atv.get("enviado") is True or atv.get("titulo") in titulos_enviados
+            if ja_enviada and not req.forcar_reenvio:
+                continue
+
+            job = models.Fila(
+                tipo="envio",
+                commit_id=commit.id,
+                atividade_idx=idx,
+                status="pending",
+                criado_em=datetime.now().isoformat(),
+            )
+            db.add(job)
+            db.flush()
+
+            task = enviar_atividade_task.delay(commit.id, idx, cfg, job.id)
+            job.task_id = task.id
+            jobs_criados.append(job.id)
+
+    db.commit()
+    return {
+        "ok": True,
+        "total_enfileirados": len(jobs_criados),
+        "commits_processados": len(req.commit_ids),
+        "job_ids": jobs_criados,
+    }
 
 
 @app.post("/fila/retry-failed")

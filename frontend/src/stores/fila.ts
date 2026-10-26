@@ -139,6 +139,21 @@ export const useFilaStore = defineStore('fila', () => {
     }
   }
 
+  async function enfileirarEnvioLote(commitIds: string[], forcarReenvio: boolean = false) {
+    error.value = ''
+    try {
+      const res = await api.fila.enfileirarEnvioLote({ commit_ids: commitIds, forcar_reenvio: forcarReenvio })
+      toastStore.addToast(`⚡ ${res.total_enfileirados} tarefa(s) de ${res.commits_processados} commit(s) adicionada(s) à fila!`, 'success')
+      await fetchJobs(true)
+      startPolling()
+      return res
+    } catch (e: any) {
+      error.value = e.response?.data?.detail ?? String(e)
+      toastStore.addToast(`Erro ao enfileirar tarefas em lote: ${error.value}`, 'error')
+      throw e
+    }
+  }
+
   async function removerJob(id: number) {
     try {
       await api.fila.remover(id)
@@ -199,5 +214,5 @@ export const useFilaStore = defineStore('fila', () => {
     }
   }
 
-  return { jobs, loading, error, polling, fetchJobs, enfileirarAnalise, enfileirarEnvio, reenfileirarComErros, removerJob, cancelarJob, startPolling, stopPolling }
+  return { jobs, loading, error, polling, fetchJobs, enfileirarAnalise, enfileirarEnvio, enfileirarEnvioLote, reenfileirarComErros, removerJob, cancelarJob, startPolling, stopPolling }
 })

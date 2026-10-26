@@ -245,6 +245,8 @@ export const api = {
       http.post<{ ok: boolean; job_ids: number[] }>('/fila/analise', payload).then(r => r.data),
     enfileirarEnvio: (payload: { commit_id: string; atividade_idx: number }) =>
       http.post<{ ok: boolean; job_id: number }>('/fila/envio', payload).then(r => r.data),
+    enfileirarEnvioLote: (payload: { commit_ids: string[]; forcar_reenvio?: boolean }) =>
+      http.post<{ ok: boolean; total_enfileirados: number; commits_processados: number; job_ids: number[] }>('/fila/envio-lote', payload).then(r => r.data),
     remover: (id: number) => http.delete(`/fila/${id}`).then(r => r.data),
     cancelar: (id: number) => http.post<{ ok: boolean; message: string }>(`/fila/${id}/cancel`).then(r => r.data),
     verificar: (id: number) => http.post<any>(`/fila/${id}/verificar`).then(r => r.data),
