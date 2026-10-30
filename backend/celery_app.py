@@ -19,5 +19,7 @@ celery_app.conf.task_routes = {
     "tasks.enviar_atividade": {"queue": "envios"},
     "tasks.verificar_lancamento": {"queue": "envios"},
     "tasks.corrigir_lancamento": {"queue": "envios"},
+    "tasks.sincronizar_status_munka": {"queue": "envios"},
+    "tasks.ajustar_tarefas_munka": {"queue": "envios"},
 }
 

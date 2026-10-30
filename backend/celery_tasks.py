@@ -381,6 +381,12 @@ def enviar_atividade_task(
             if "Sem Data Fim" in str(hist_status) or "Incompleta" in str(hist_status):
                 tem_df = False
 
+        task_url = None
+        if task_id:
+            munka_url = cfg.get("MUNKA_URL", "").rstrip("/")
+            if munka_url:
+                task_url = f"{munka_url}/tarefamodelview/show/{task_id}"
+
         with SessionLocal() as db:
             hist = (
                 db.query(models.Historico)
@@ -392,6 +398,10 @@ def enviar_atividade_task(
                 hist.status = hist_status
                 hist.tem_data_fim = tem_df
                 hist.enviado_em = datetime.now().isoformat()
+                if task_id:
+                    hist.task_id = str(task_id)
+                if task_url:
+                    hist.task_url = task_url
                 if atividade.get("codigo_id"):
                     hist.codigo = atividade.get("codigo_id")
                 if atividade.get("hpa"):
@@ -405,6 +415,8 @@ def enviar_atividade_task(
                     status=hist_status,
                     enviado_em=datetime.now().isoformat(),
                     tem_data_fim=tem_df,
+                    task_id=str(task_id) if task_id else None,
+                    task_url=task_url,
                 )
                 db.add(hist)
 
@@ -420,12 +432,6 @@ def enviar_atividade_task(
                     pass
 
             db.commit()
-
-        task_url = None
-        if task_id:
-            munka_url = cfg.get("MUNKA_URL", "").rstrip("/")
-            if munka_url:
-                task_url = f"{munka_url}/tarefamodelview/show/{task_id}"
 
         res = {"resultado": resultado, "task_id": task_id, "task_url": task_url, "logs": logs}
         if fila_id:
@@ -789,5 +795,295 @@ def corrigir_lancamento_task(self, target_job_id: int, fila_id: int = None):
                     f.concluido_em = datetime.now().isoformat()
                     db_f.commit()
         raise e
+
+
+@celery_app.task(bind=True, name="tasks.sincronizar_status_munka")
+def sincronizar_status_munka_task(self, fila_id=None):
+    from database import SessionLocal
+    import models
+    from api import obter_config_valores
+    from automation import MunkaAutomation
+
+    logs = []
+
+    def log(msg):
+        logs.append(msg)
+        print(f"[sincronizar_status_munka] {msg}", flush=True)
+        self.update_state(state="PROGRESS", meta={"logs": logs})
+        if fila_id:
+            try:
+                with SessionLocal() as db_l:
+                    fl = db_l.query(models.Fila).filter_by(id=fila_id).first()
+                    if fl and fl.status == "running":
+                        fl.resultado = json.dumps({"resultado": "RUNNING", "logs": logs}, ensure_ascii=False)
+                        db_l.commit()
+            except Exception:
+                pass
+
+    try:
+        if fila_id:
+            with SessionLocal() as db_f:
+                f = db_f.query(models.Fila).filter_by(id=fila_id).first()
+                if f:
+                    f.status = "running"
+                    f.task_id = self.request.id
+                    db_f.commit()
+
+        cfg = obter_config_valores()
+        log("🚀 Iniciando tarefa de sincronização de status no portal Munka...")
+        auto = MunkaAutomation(
+            username=cfg.get("MUNKA_USER", ""),
+            password=cfg.get("MUNKA_PASS", ""),
+            munka_url=cfg.get("MUNKA_URL", ""),
+            headless=True,
+            log_callback=log,
+        )
+
+        tarefas_portal = auto.sincronizar_status_tarefas_do_mes()
+        log(f"📋 {len(tarefas_portal)} tarefa(s) lidas da listagem do portal.")
+
+        agora = datetime.now().isoformat()
+        total_atualizadas = 0
+
+        with SessionLocal() as db:
+            historicos = db.query(models.Historico).all()
+            for tp in tarefas_portal:
+                p_task_id = tp.get("task_id", "").strip()
+                p_titulo = tp.get("titulo", "").strip()
+                p_status = tp.get("status", "").strip()
+                p_show_url = tp.get("show_url", "")
+                if p_show_url and not p_show_url.startswith("http"):
+                    munka_base = cfg.get("MUNKA_URL", "").rstrip("/")
+                    p_show_url = f"{munka_base}{p_show_url if p_show_url.startswith('/') else '/' + p_show_url}"
+
+                # Tenta casar primeiro por task_id, depois por título
+                item = None
+                if p_task_id:
+                    item = next((h for h in historicos if h.task_id == p_task_id), None)
+                if not item and p_titulo:
+                    item = next((h for h in historicos if h.titulo and (h.titulo.strip().lower() == p_titulo.lower() or p_titulo.lower() in h.titulo.strip().lower() or h.titulo.strip().lower() in p_titulo.lower())), None)
+
+                if item:
+                    item.status_munka = p_status
+                    item.munka_atualizado_em = agora
+                    if p_task_id and not item.task_id:
+                        item.task_id = p_task_id
+                    if p_show_url and not item.task_url:
+                        item.task_url = p_show_url
+                    # Se no portal já está Concluído, sincroniza o status principal também
+                    if "conclu" in p_status.lower() or p_status == "21":
+                        item.status = "Concluído"
+                    total_atualizadas += 1
+            db.commit()
+
+        log(f"✅ Sincronização concluída com sucesso! {total_atualizadas} tarefa(s) do histórico local atualizadas.")
+        res = {
+            "resultado": "OK",
+            "total_portal": len(tarefas_portal),
+            "total_atualizadas": total_atualizadas,
+            "tarefas": tarefas_portal,
+            "logs": logs,
+        }
+
+        if fila_id:
+            with SessionLocal() as db_f:
+                f = db_f.query(models.Fila).filter_by(id=fila_id).first()
+                if f:
+                    f.status = "done"
+                    f.resultado = json.dumps(res, ensure_ascii=False)
+                    f.concluido_em = datetime.now().isoformat()
+                    db_f.commit()
+        return res
+    except Exception as e:
+        log(f"❌ Erro na sincronização de status: {str(e)}")
+        res_err = {"resultado": "ERRO", "logs": logs, "error": str(e)}
+        if fila_id:
+            with SessionLocal() as db_f:
+                f = db_f.query(models.Fila).filter_by(id=fila_id).first()
+                if f:
+                    f.status = "error"
+                    f.resultado = json.dumps(res_err, ensure_ascii=False)
+                    f.concluido_em = datetime.now().isoformat()
+                    db_f.commit()
+        raise e
+
+
+@celery_app.task(bind=True, name="tasks.ajustar_tarefas_munka")
+def ajustar_tarefas_munka_task(self, historico_ids: list[int], alteracoes: dict, fila_id=None):
+    from database import SessionLocal
+    import models
+    from api import obter_config_valores
+    from automation import MunkaAutomation
+
+    logs = []
+
+    def log(msg):
+        logs.append(msg)
+        print(f"[ajustar_tarefas_munka] {msg}", flush=True)
+        self.update_state(state="PROGRESS", meta={"logs": logs})
+        if fila_id:
+            try:
+                with SessionLocal() as db_l:
+                    fl = db_l.query(models.Fila).filter_by(id=fila_id).first()
+                    if fl and fl.status == "running":
+                        cur_data = {}
+                        if fl.resultado:
+                            try:
+                                cur_data = json.loads(fl.resultado)
+                            except Exception:
+                                pass
+                        cur_data["resultado"] = "RUNNING"
+                        cur_data["alteracoes"] = alteracoes
+                        cur_data["tarefas_ids"] = historico_ids
+                        cur_data["logs"] = logs
+                        fl.resultado = json.dumps(cur_data, ensure_ascii=False)
+                        db_l.commit()
+            except Exception:
+                pass
+
+    try:
+        if fila_id:
+            with SessionLocal() as db_f:
+                f = db_f.query(models.Fila).filter_by(id=fila_id).first()
+                if f:
+                    f.status = "running"
+                    f.task_id = self.request.id
+                    db_f.commit()
+
+        cfg = obter_config_valores()
+        log(f"🚀 Iniciando ajuste de {len(historico_ids)} tarefa(s) no portal Munka...")
+        log(f"📝 Alterações a serem aplicadas: {list(alteracoes.keys())}")
+
+        auto = MunkaAutomation(
+            username=cfg.get("MUNKA_USER", ""),
+            password=cfg.get("MUNKA_PASS", ""),
+            munka_url=cfg.get("MUNKA_URL", ""),
+            headless=True,
+            log_callback=log,
+        )
+
+        status_map = {
+            "15": "Backlog",
+            "16": "Backlog Prioritário",
+            "17": "Enviado ao Munka",
+            "18": "Desenvolvimento",
+            "20": "Homologação",
+            "21": "Concluído",
+        }
+
+        sucessos = 0
+        puladas = 0
+        detalhes = []
+        tarefas_para_ajuste = []
+
+        with SessionLocal() as db:
+            for h_id in historico_ids:
+                hist = db.query(models.Historico).filter_by(id=h_id).first()
+                if not hist:
+                    log(f"⚠️ Tarefa #{h_id} não encontrada no banco. Pulando...")
+                    puladas += 1
+                    continue
+
+                # Trava de segurança: se a tarefa já estiver concluída pelo supervisor, não alterar
+                st_atual = (hist.status_munka or hist.status or "").lower()
+                if "conclu" in st_atual or st_atual == "21":
+                    log(f"⛔ Tarefa #{h_id} ('{hist.titulo[:35]}...') já está CONCLUÍDA para o supervisor. Alteração bloqueada!")
+                    puladas += 1
+                    detalhes.append({"id": h_id, "titulo": hist.titulo, "status": "bloqueada_concluida"})
+                    continue
+
+                target_id = hist.task_id or hist.task_url or str(hist.id)
+                expected_data = {
+                    "titulo": hist.titulo or "",
+                    "commit": hist.commit_id or "",
+                    "task_id": hist.task_id or "",
+                    "task_url": hist.task_url or "",
+                }
+                tarefas_para_ajuste.append({
+                    "id": h_id,
+                    "target_id": target_id,
+                    "expected_data": expected_data,
+                    "titulo": hist.titulo or ""
+                })
+
+        def on_tarefa_sucesso(h_id: int, campos_alterados: list):
+            with SessionLocal() as db_up:
+                h = db_up.query(models.Historico).filter_by(id=h_id).first()
+                if h:
+                    novo_status_id = alteracoes.get("status_id") or alteracoes.get("status")
+                    if novo_status_id:
+                        novo_status_nome = status_map.get(str(novo_status_id), f"Status {novo_status_id}")
+                        h.status = novo_status_nome
+                        h.status_munka = novo_status_nome
+                    h.munka_atualizado_em = datetime.now().isoformat()
+                    db_up.commit()
+
+        # Executa todas as tarefas na mesma sessão do navegador para velocidade e estabilidade
+        resultados_portal = auto.ajustar_multiplas_tarefas_portal(
+            tarefas=tarefas_para_ajuste,
+            alteracoes=alteracoes,
+            on_success_callback=on_tarefa_sucesso
+        )
+
+        sucessos = sum(1 for r in resultados_portal if r.get("status") == "sucesso")
+        falhas = sum(1 for r in resultados_portal if r.get("status") == "erro")
+        detalhes.extend(resultados_portal)
+
+        log(f"🏁 Processamento finalizado! Sucessos: {sucessos}, Falhas: {falhas}, Bloqueadas/Puladas: {puladas}")
+        resultado_geral = "OK" if falhas == 0 else ("PARCIAL" if sucessos > 0 else "ERRO")
+        res = {
+            "resultado": resultado_geral,
+            "alteracoes": alteracoes,
+            "tarefas_ids": historico_ids,
+            "total": len(historico_ids),
+            "sucessos": sucessos,
+            "falhas": falhas,
+            "puladas": puladas,
+            "detalhes": detalhes,
+            "logs": logs,
+        }
+
+        if fila_id:
+            with SessionLocal() as db_f:
+                f = db_f.query(models.Fila).filter_by(id=fila_id).first()
+                if f:
+                    f.status = "done" if resultado_geral in ("OK", "PARCIAL") else "error"
+                    f.resultado = json.dumps(res, ensure_ascii=False)
+                    f.concluido_em = datetime.now().isoformat()
+                    try:
+                        hist_log = models.FilaLogsHistorico(
+                            fila_id=f.id,
+                            tipo=f.tipo,
+                            commit_id=f.commit_id,
+                            atividade_idx=f.atividade_idx,
+                            tentativa=1,
+                            status=f.status,
+                            logs=json.dumps(logs, ensure_ascii=False),
+                            criado_em=datetime.now().isoformat(),
+                        )
+                        db_f.add(hist_log)
+                    except Exception:
+                        pass
+                    db_f.commit()
+        return res
+    except Exception as e:
+        log(f"❌ Falha geral no processamento do lote de ajustes: {str(e)}")
+        res_err = {
+            "resultado": "ERRO",
+            "alteracoes": alteracoes,
+            "tarefas_ids": historico_ids,
+            "logs": logs,
+            "error": str(e),
+        }
+        if fila_id:
+            with SessionLocal() as db_f:
+                f = db_f.query(models.Fila).filter_by(id=fila_id).first()
+                if f:
+                    f.status = "error"
+                    f.resultado = json.dumps(res_err, ensure_ascii=False)
+                    f.concluido_em = datetime.now().isoformat()
+                    db_f.commit()
+        raise e
+
 
 

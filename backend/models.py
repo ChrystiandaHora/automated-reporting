@@ -29,6 +29,10 @@ class Historico(Base):
     status = Column(String)
     enviado_em = Column(String)
     tem_data_fim = Column(Boolean, default=True)
+    task_id = Column(String, nullable=True)
+    task_url = Column(String, nullable=True)
+    status_munka = Column(String, nullable=True)
+    munka_atualizado_em = Column(String, nullable=True)
 
 
 class Commit(Base):

@@ -2305,23 +2305,33 @@ class MunkaAutomation:
 
     def _obter_edit_url_tarefa(self, page, task_id_or_url: str, expected_data: dict) -> str:
         """Retorna a URL de EDIÇÃO (/edit/{id}) da tarefa no Munka.
-        Se não possuir ID numérico direto do Munka, busca na tabela pelo título da tarefa.
+        Se possuir ID numérico direto do Munka, monta a URL direta imediatamente.
+        Se não, busca na tabela pelo título da tarefa.
         """
-        m = re.search(r"tarefamodelview/(?:show|edit)/(\d+)", str(task_id_or_url))
-        if m and len(m.group(1)) >= 3:
-            return f"{self.base_url}/tarefamodelview/edit/{m.group(1)}"
+        target_str = str(task_id_or_url or "").strip()
+        if "/tarefamodelview/edit/" in target_str:
+            return target_str
 
-        t_url = expected_data.get("task_url") or expected_data.get("task_id") or ""
-        m_exp = re.search(r"tarefamodelview/(?:show|edit)/(\d+)", str(t_url))
-        if m_exp and len(m_exp.group(1)) >= 3:
-            return f"{self.base_url}/tarefamodelview/edit/{m_exp.group(1)}"
+        # 1. Tenta identificar ID numérico de 4 ou mais dígitos diretamente
+        for candidate in [target_str, (expected_data or {}).get("task_id"), (expected_data or {}).get("task_url")]:
+            if not candidate:
+                continue
+            s_cand = str(candidate).strip()
+            # Match com URL de show ou edit (ex: /tarefamodelview/show/180566)
+            m = re.search(r"tarefamodelview/(?:show|edit)/(\d+)", s_cand)
+            if m:
+                return f"{self.base_url}/tarefamodelview/edit/{m.group(1)}"
+            # Match com ID numérico direto (ex: "#180566" ou "180566")
+            m_num = re.search(r"#?(\d{4,})", s_cand)
+            if m_num:
+                return f"{self.base_url}/tarefamodelview/edit/{m_num.group(1)}"
 
         self._log("Buscando a tarefa existente na lista do portal Munka para edição...")
-        status_id = expected_data.get("status_id", "20")
-        self._navegar_tarefas_do_mes(page, expand_page_size=True, status_id=status_id)
+        # Não filtra por status específico aqui para permitir localizar tarefas em qualquer status
+        self._navegar_tarefas_do_mes(page, expand_page_size=True, status_id=None)
 
-        task_title = expected_data.get("titulo", "").strip()
-        commit_val = expected_data.get("commit", "").strip()
+        task_title = (expected_data or {}).get("titulo", "").strip()
+        commit_val = (expected_data or {}).get("commit", "").strip()
 
         row = None
         if task_title:
@@ -2568,4 +2578,307 @@ class MunkaAutomation:
 
         except Exception as e:
             self._log(f"❌ Erro ao corrigir tarefa no portal: {e}")
+            raise e
+
+    def sincronizar_status_tarefas_do_mes(self, mes: int = None, ano: int = None) -> list[dict]:
+        """Navega para 'Tarefas do Mês' no portal Munka e extrai a listagem com os status reais de cada tarefa."""
+        self._log("🔄 Iniciando sincronização de status das tarefas do mês no portal Munka...")
+        tarefas_encontradas = []
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch(
+                    headless=self.headless,
+                    args=["--no-sandbox", "--disable-setuid-sandbox"]
+                )
+                context = browser.new_context()
+                page = context.new_page()
+
+                self._login(page)
+                self._navegar_tarefas_do_mes(page, expand_page_size=True)
+                page.wait_for_timeout(1000)
+
+                # Extrai as linhas da tabela
+                tarefas_encontradas = page.evaluate(r"""() => {
+                    const table = document.querySelector('table.table-bordered');
+                    if (!table) return [];
+
+                    const headers = Array.from(table.querySelectorAll('thead th')).map(th => 
+                        (th.textContent || '').trim().toLowerCase()
+                    );
+                    const rows = Array.from(table.querySelectorAll('tbody tr'));
+                    
+                    return rows.map(tr => {
+                        const cells = Array.from(tr.querySelectorAll('td'));
+                        if (cells.length === 0) return null;
+
+                        const rowData = {
+                            task_id: '',
+                            titulo: '',
+                            status: '',
+                            responsavel: '',
+                            projeto: '',
+                            data_inicio: '',
+                            data_fim: '',
+                            edit_url: '',
+                            show_url: ''
+                        };
+
+                        const editLink = tr.querySelector("a[href*='tarefamodelview/edit']");
+                        const showLink = tr.querySelector("a[href*='tarefamodelview/show']");
+
+                        if (editLink) rowData.edit_url = editLink.getAttribute('href') || '';
+                        if (showLink) rowData.show_url = showLink.getAttribute('href') || '';
+
+                        const m = (rowData.edit_url || '').match(/tarefamodelview\/edit\/(\d+)/) ||
+                                  (rowData.show_url || '').match(/tarefamodelview\/show\/(\d+)/);
+                        if (m) {
+                            rowData.task_id = m[1];
+                        }
+
+                        // Mapeia colunas por cabeçalho
+                        headers.forEach((h, idx) => {
+                            const val = cells[idx] ? (cells[idx].textContent || '').trim() : '';
+                            if (!val) return;
+                            if (h.includes('id') && !rowData.task_id) rowData.task_id = val;
+                            else if (h.includes('nome') || h.includes('título') || h.includes('titulo')) rowData.titulo = val;
+                            else if (h.includes('status')) rowData.status = val;
+                            else if (h.includes('respons') || h.includes('atribu')) rowData.responsavel = val;
+                            else if (h.includes('projeto') || h.includes('produto')) rowData.projeto = val;
+                            else if (h.includes('início') || h.includes('inicio')) rowData.data_inicio = val;
+                            else if (h.includes('fim')) rowData.data_fim = val;
+                        });
+
+                        // Fallbacks posicionais caso headers não tenham correspondido exatamente
+                        if (!rowData.task_id && cells[1]) rowData.task_id = (cells[1].textContent || '').trim();
+                        if (!rowData.titulo && cells[2]) rowData.titulo = (cells[2].textContent || '').trim();
+                        if (!rowData.status) {
+                            for (const c of cells) {
+                                const txt = (c.textContent || '').trim();
+                                if (/^(homolog|conclu|backlog|desenv|aberto|pendente)/i.test(txt)) {
+                                    rowData.status = txt;
+                                    break;
+                                }
+                            }
+                        }
+
+                        return rowData;
+                    }).filter(Boolean);
+                }""")
+
+                browser.close()
+                self._log(f"✅ Sincronização concluída: {len(tarefas_encontradas)} tarefa(s) encontradas na listagem do Munka.")
+                return tarefas_encontradas
+        except Exception as e:
+            self._log(f"❌ Erro ao sincronizar status com o portal: {e}")
+            raise e
+
+    def _aplicar_campos_e_salvar_tarefa(self, page, edit_url: str, alteracoes: dict) -> list[str]:
+        """Aplica os campos em 'alteracoes' na página de edição aberta e salva o formulário."""
+        campos_ajustados = []
+
+        self._log(f"Navegando para formulário de edição: {edit_url}")
+        self._safe_goto(page, edit_url)
+        page.wait_for_selector("form, #nome, #status", state="visible", timeout=15000)
+
+        # 1. Tipo (deve ser ajustado antes do produto/projeto se presente)
+        tipo_val = alteracoes.get("tipo")
+        if tipo_val:
+            self._log(f"Ajustando Tipo para '{tipo_val}'...")
+            page.evaluate(f"() => {{ $('#tipo').val('{tipo_val}').trigger('change'); }}")
+            page.wait_for_timeout(300)
+            campos_ajustados.append("tipo")
+
+        # 2. Produto via Select2
+        produto_val = alteracoes.get("produto")
+        if produto_val:
+            self._log(f"Ajustando Produto para '{produto_val}'...")
+            try:
+                self._preencher_select2_ajax(page, "produto", produto_val, force_ui=True)
+                page.wait_for_timeout(400)
+                campos_ajustados.append("produto")
+            except Exception as e_prod:
+                self._log(f"⚠️ Aviso ao preencher produto: {e_prod}")
+
+        # 3. Projeto via Select2
+        projeto_val = alteracoes.get("projeto")
+        if projeto_val:
+            self._log(f"Ajustando Projeto para '{projeto_val}'...")
+            try:
+                self._preencher_select2_ajax(page, "projeto", projeto_val, force_ui=True)
+                page.wait_for_timeout(400)
+                campos_ajustados.append("projeto")
+            except Exception as e_proj:
+                self._log(f"⚠️ Aviso ao preencher projeto: {e_proj}")
+
+        # 4. Cargo (Perfil do profissional)
+        cargo_val = alteracoes.get("cargo")
+        if cargo_val:
+            self._log(f"Ajustando Perfil do profissional (Cargo) para '{cargo_val}'...")
+            page.evaluate(f"() => {{ $('#cargo').val('{cargo_val}').trigger('change'); }}")
+            page.wait_for_timeout(100)
+            campos_ajustados.append("cargo")
+
+        # 5. Nível
+        nivel_val = alteracoes.get("nivel")
+        if nivel_val:
+            self._log(f"Ajustando Nível para '{nivel_val}'...")
+            page.evaluate(f"() => {{ $('#nivel').val('{nivel_val}').trigger('change'); }}")
+            page.wait_for_timeout(100)
+            campos_ajustados.append("nivel")
+
+        # 6. Responsável via Select2
+        responsavel_val = alteracoes.get("responsavel")
+        if responsavel_val:
+            self._log(f"Ajustando Responsável para '{responsavel_val}'...")
+            try:
+                self._preencher_select2_ajax(page, "responsavel", responsavel_val, force_ui=True)
+                page.wait_for_timeout(300)
+                campos_ajustados.append("responsavel")
+            except Exception as e_resp:
+                self._log(f"⚠️ Aviso ao preencher responsável: {e_resp}")
+
+        # 7. Status (garante atualização tanto nativa quanto via Select2/jQuery)
+        status_val = alteracoes.get("status_id") or alteracoes.get("status")
+        if status_val:
+            self._log(f"Ajustando Status para '{status_val}'...")
+            try:
+                page.locator("select#status, select[name='status']").select_option(value=str(status_val))
+            except Exception:
+                pass
+            page.evaluate(f"""([stVal]) => {{
+                const el = document.querySelector('select#status') || document.querySelector('select[name="status"]') || document.querySelector('#status');
+                if (el) {{
+                    el.value = String(stVal);
+                    el.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                }}
+                if (typeof $ !== 'undefined') {{
+                    var $status = $('#status, select[name="status"]');
+                    if ($status.length) {{
+                        $status.val(String(stVal)).trigger('change');
+                        if (typeof $status.select2 === 'function') {{
+                            $status.select2('val', String(stVal));
+                        }}
+                    }}
+                }}
+            }}""", [str(status_val)])
+            page.wait_for_timeout(200)
+            campos_ajustados.append("status")
+
+        # Sincroniza TinyMCE e fecha Select2 antes de salvar
+        self._log("Sincronizando formulário e fechando overlays...")
+        page.keyboard.press("Escape")
+        page.evaluate("""() => {
+            if (typeof tinymce !== 'undefined' && typeof tinymce.triggerSave === 'function') {
+                tinymce.triggerSave();
+            }
+            if (typeof $ !== 'undefined') {
+                $('.my_select2, select').select2('close');
+            }
+        }""")
+        page.wait_for_timeout(300)
+
+        # Salva o formulário
+        self._log("Salvando alterações no portal Munka...")
+        save_btn = page.locator("form#model_form button[type='submit'], form#model_form input[type='submit'], form button[type='submit'], button[type='submit']").first
+
+        try:
+            with page.expect_navigation(timeout=25000):
+                save_btn.click()
+            self._log("✅ Formulário salvo com sucesso no Munka (navegação confirmada)!")
+        except Exception:
+            self._log("⚠️ Tentando submissão forçada via requestSubmit...")
+            try:
+                page.evaluate("""() => {
+                    const form = document.querySelector('form#model_form') || document.querySelector('form');
+                    if (form) {
+                        if (typeof form.requestSubmit === 'function') form.requestSubmit();
+                        else form.submit();
+                    }
+                }""")
+                page.wait_for_load_state("networkidle", timeout=10000)
+            except Exception as e_sub:
+                self._log(f"⚠️ Erro ao submeter formulário: {e_sub}")
+
+        # Checa se o formulário foi rejeitado com erros de validação
+        curr_url = page.url
+        if "/tarefamodelview/edit/" in curr_url:
+            erros = page.evaluate("""() => {
+                const els = Array.from(document.querySelectorAll('.alert-danger, .has-error .help-block, .field-error'));
+                return els.map(e => (e.textContent || '').trim()).filter(Boolean);
+            }""")
+            if erros:
+                raise ValueError(f"Munka rejeitou as alterações: {'; '.join(erros[:2])}")
+
+        return campos_ajustados
+
+    def ajustar_tarefa_portal(self, task_id_or_url: str, alteracoes: dict, expected_data: dict = None) -> dict:
+        """Navega até o formulário de edição de uma tarefa no portal Munka e aplica os ajustes solicitados."""
+        self._log(f"⚡ Iniciando ajuste individual da tarefa {task_id_or_url} no portal Munka...")
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch(
+                    headless=self.headless,
+                    args=["--no-sandbox", "--disable-setuid-sandbox"]
+                )
+                context = browser.new_context()
+                page = context.new_page()
+
+                self._login(page)
+                target_url = self._obter_edit_url_tarefa(page, task_id_or_url, expected_data or {})
+                campos = self._aplicar_campos_e_salvar_tarefa(page, target_url, alteracoes)
+
+                browser.close()
+                self._log(f"✅ Tarefa {task_id_or_url} ajustada com sucesso! Campos alterados: {', '.join(campos)}")
+                return {
+                    "ok": True,
+                    "task_id": str(task_id_or_url),
+                    "campos_ajustados": campos,
+                    "ajustado_em": datetime.now().isoformat(),
+                }
+        except Exception as e:
+            self._log(f"❌ Erro ao ajustar tarefa no portal: {e}")
+            raise e
+
+    def ajustar_multiplas_tarefas_portal(self, tarefas: list[dict], alteracoes: dict, on_success_callback=None) -> list[dict]:
+        """Ajusta uma lista de tarefas reutilizando UMA ÚNICA sessão do browser Playwright."""
+        self._log(f"🚀 Iniciando ajuste em lote de {len(tarefas)} tarefa(s) no portal Munka...")
+        resultados = []
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch(
+                    headless=self.headless,
+                    args=["--no-sandbox", "--disable-setuid-sandbox"]
+                )
+                context = browser.new_context()
+                page = context.new_page()
+
+                self._login(page)
+
+                for idx, item in enumerate(tarefas, start=1):
+                    t_id = item.get("id")
+                    task_target = item.get("target_id")
+                    expected = item.get("expected_data", {})
+                    titulo = expected.get("titulo", f"Tarefa #{t_id}")
+
+                    self._log(f"🔄 [{idx}/{len(tarefas)}] Ajustando: '{titulo[:40]}...' (ID: {task_target})")
+                    try:
+                        target_url = self._obter_edit_url_tarefa(page, task_target, expected)
+                        campos = self._aplicar_campos_e_salvar_tarefa(page, target_url, alteracoes)
+                        res_item = {"id": t_id, "status": "sucesso", "campos": campos}
+                        resultados.append(res_item)
+                        if on_success_callback:
+                            try:
+                                on_success_callback(t_id, campos)
+                            except Exception as e_cb:
+                                self._log(f"⚠️ Erro no callback da tarefa #{t_id}: {e_cb}")
+                        self._log(f"✅ [{idx}/{len(tarefas)}] Sucesso!")
+                    except Exception as ex:
+                        self._log(f"❌ [{idx}/{len(tarefas)}] Erro na tarefa #{t_id}: {ex}")
+                        resultados.append({"id": t_id, "status": "erro", "error": str(ex)})
+
+                browser.close()
+                self._log(f"🏁 Ajuste em lote finalizado para as {len(tarefas)} tarefas.")
+                return resultados
+        except Exception as e:
+            self._log(f"❌ Falha geral na sessão do browser de ajuste em lote: {e}")
             raise e

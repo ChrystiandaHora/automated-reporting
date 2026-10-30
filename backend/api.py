@@ -231,6 +231,18 @@ class FilaEnvioLoteRequest(BaseModel):
     forcar_reenvio: bool = False
 
 
+class AjusteTarefasRequest(BaseModel):
+    historico_ids: list[int]
+    cargo: Optional[str] = None
+    nivel: Optional[str] = None
+    responsavel: Optional[str] = None
+    produto: Optional[str] = None
+    tipo: Optional[str] = None
+    projeto: Optional[str] = None
+    status: Optional[str] = None
+    status_id: Optional[str] = None
+
+
 # ─── Helpers ────────────────────────────────────────────────────────────────
 
 
@@ -1264,6 +1276,10 @@ def listar_historico(db: Session = Depends(get_db)):
             "codigo": h.codigo,
             "hpa": h.hpa,
             "status": h.status,
+            "status_munka": getattr(h, "status_munka", None),
+            "munka_atualizado_em": getattr(h, "munka_atualizado_em", None),
+            "task_id": getattr(h, "task_id", None),
+            "task_url": getattr(h, "task_url", None),
             "tem_data_fim": h.tem_data_fim if getattr(h, "tem_data_fim", None) is not None else True,
             "enviado_em": h.enviado_em,
             "commit_data": c.data if c else None,
@@ -1283,6 +1299,234 @@ def deletar_historico_item(item_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Item do histórico não encontrado")
     db.delete(item)
     db.commit()
+
+
+# ─── Endpoints: Tarefas do Mês / Ajuste Munka ───────────────────────────────
+
+
+@app.get("/tarefas-mes")
+def listar_tarefas_mes(
+    mes: Optional[int] = None,
+    ano: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    """Retorna as tarefas lançadas no mês/ano indicado (padrão: mês atual).
+    Calcula se cada tarefa pode ser alterada (ou seja, NÃO está na aba de concluído pelo supervisor).
+    """
+    now = datetime.now()
+    alvo_mes = mes if mes is not None else now.month
+    alvo_ano = ano if ano is not None else now.year
+
+    prefixo_iso = f"{alvo_ano:04d}-{alvo_mes:02d}"
+    padrao_br = f"/{alvo_mes:02d}/{alvo_ano:04d}"
+
+    itens = (
+        db.query(models.Historico, models.Commit)
+        .outerjoin(models.Commit, models.Historico.commit_id == models.Commit.id)
+        .order_by(models.Historico.enviado_em.desc())
+        .all()
+    )
+
+    tarefas = []
+    total = 0
+    editaveis = 0
+    concluidas = 0
+
+    cfg = obter_config_valores()
+    munka_base = cfg.get("MUNKA_URL", "").rstrip("/")
+
+    for h, c in itens:
+        pertence_ao_mes = False
+        if h.enviado_em and h.enviado_em.startswith(prefixo_iso):
+            pertence_ao_mes = True
+        elif c and c.data and (padrao_br in c.data or c.data.endswith(f"{alvo_mes:02d}/{alvo_ano:04d}")):
+            pertence_ao_mes = True
+
+        if not pertence_ao_mes:
+            continue
+
+        total += 1
+
+        # Verifica se tem task_id
+        task_id = getattr(h, "task_id", None)
+        task_url = getattr(h, "task_url", None)
+        if not task_id:
+            f_job = (
+                db.query(models.Fila)
+                .filter(
+                    models.Fila.commit_id == h.commit_id,
+                    models.Fila.tipo == "envio",
+                    models.Fila.status == "done",
+                )
+                .first()
+            )
+            if f_job and f_job.resultado:
+                try:
+                    res_json = json.loads(f_job.resultado)
+                    if isinstance(res_json, dict):
+                        t_id = res_json.get("task_id")
+                        if t_id:
+                            task_id = str(t_id)
+                            h.task_id = task_id
+                            if not task_url and munka_base:
+                                task_url = f"{munka_base}/tarefamodelview/show/{task_id}"
+                                h.task_url = task_url
+                            db.commit()
+                except Exception:
+                    pass
+
+        if not task_url and task_id and munka_base:
+            task_url = f"{munka_base}/tarefamodelview/show/{task_id}"
+
+        status_str = (h.status_munka or h.status or "").strip()
+        # Se estiver em Concluído pelo supervisor, não pode mais alterar
+        is_concluida = (
+            "conclu" in status_str.lower()
+            or status_str == "21"
+            or "aprovad" in status_str.lower()
+            or "finalizad" in status_str.lower()
+        )
+        pode_alterar = not is_concluida
+
+        if pode_alterar:
+            editaveis += 1
+        else:
+            concluidas += 1
+
+        tarefas.append({
+            "id": h.id,
+            "commit_id": h.commit_id,
+            "titulo": h.titulo,
+            "codigo": h.codigo,
+            "hpa": h.hpa,
+            "status": h.status,
+            "status_munka": getattr(h, "status_munka", None),
+            "munka_atualizado_em": getattr(h, "munka_atualizado_em", None),
+            "task_id": task_id,
+            "task_url": task_url,
+            "tem_data_fim": h.tem_data_fim if getattr(h, "tem_data_fim", None) is not None else True,
+            "enviado_em": h.enviado_em,
+            "commit_data": c.data if c else None,
+            "commit_autor": c.autor if c else None,
+            "commit_mensagem": c.mensagem if c else None,
+            "pode_alterar": pode_alterar,
+        })
+
+    return {
+        "mes": alvo_mes,
+        "ano": alvo_ano,
+        "total": total,
+        "editaveis": editaveis,
+        "concluidas": concluidas,
+        "tarefas": tarefas,
+    }
+
+
+@app.post("/tarefas-mes/sincronizar", status_code=201)
+def sincronizar_status_munka(db: Session = Depends(get_db)):
+    """Enfileira job no Celery para ler os status das tarefas no portal Munka."""
+    from celery_tasks import sincronizar_status_munka_task
+
+    info_sync = {
+        "resultado": "PENDING",
+        "logs": ["Job de sincronização registrado. Aguardando worker da fila..."],
+    }
+    job = models.Fila(
+        tipo="verificacao",
+        commit_id="",
+        status="pending",
+        resultado=json.dumps(info_sync, ensure_ascii=False),
+        criado_em=datetime.now().isoformat(),
+    )
+    db.add(job)
+    db.flush()
+
+    task = sincronizar_status_munka_task.delay(job.id)
+    job.task_id = task.id
+    db.commit()
+
+    return {"ok": True, "job_id": job.id, "message": "Sincronização com o portal Munka enfileirada com sucesso!"}
+
+
+@app.post("/tarefas-mes/ajustar", status_code=201)
+def ajustar_tarefas_munka(req: AjusteTarefasRequest, db: Session = Depends(get_db)):
+    """Enfileira job no Celery para alterar campos de uma ou múltiplas tarefas lançadas no portal Munka."""
+    if not req.historico_ids:
+        raise HTTPException(status_code=400, detail="Nenhuma tarefa selecionada para ajuste.")
+
+    alteracoes = {}
+    if req.cargo:
+        alteracoes["cargo"] = req.cargo
+    if req.nivel:
+        alteracoes["nivel"] = req.nivel
+    if req.responsavel:
+        alteracoes["responsavel"] = req.responsavel
+    if req.produto:
+        alteracoes["produto"] = req.produto
+    if req.tipo:
+        alteracoes["tipo"] = req.tipo
+    if req.projeto:
+        alteracoes["projeto"] = req.projeto
+    if req.status_id:
+        alteracoes["status_id"] = req.status_id
+    elif req.status:
+        alteracoes["status"] = req.status
+
+    if not alteracoes:
+        raise HTTPException(status_code=400, detail="Nenhum campo fornecido para alteração.")
+
+    tarefas_alvo = db.query(models.Historico).filter(models.Historico.id.in_(req.historico_ids)).all()
+    editaveis = []
+    concluidas_ignoradas = []
+    for t in tarefas_alvo:
+        st = (t.status_munka or t.status or "").lower()
+        if "conclu" in st or st == "21":
+            concluidas_ignoradas.append(t.id)
+        else:
+            editaveis.append(t.id)
+
+    if not editaveis:
+        raise HTTPException(
+            status_code=400,
+            detail="Todas as tarefas selecionadas já estão na aba de Concluído para o supervisor e não podem ser alteradas."
+        )
+
+    from celery_tasks import ajustar_tarefas_munka_task
+
+    primeiro_commit = tarefas_alvo[0].commit_id if tarefas_alvo else ""
+    info_inicial = {
+        "resultado": "PENDING",
+        "alteracoes": alteracoes,
+        "total_tarefas": len(editaveis),
+        "tarefas_titulos": [t.titulo for t in tarefas_alvo if t.id in editaveis][:5],
+        "tarefas_ids": editaveis,
+        "logs": [f"Job de ajuste para {len(editaveis)} tarefa(s) registrado. Aguardando worker..."],
+    }
+    job = models.Fila(
+        tipo="ajuste",
+        commit_id=primeiro_commit or "",
+        status="pending",
+        resultado=json.dumps(info_inicial, ensure_ascii=False),
+        criado_em=datetime.now().isoformat(),
+    )
+    db.add(job)
+    db.flush()
+
+    task = ajustar_tarefas_munka_task.delay(editaveis, alteracoes, job.id)
+    job.task_id = task.id
+    db.commit()
+
+    msg = f"Ajuste de {len(editaveis)} tarefa(s) enfileirado com sucesso!"
+    if concluidas_ignoradas:
+        msg += f" ({len(concluidas_ignoradas)} tarefa(s) já estavam concluídas e foram ignoradas)."
+
+    return {
+        "ok": True,
+        "job_id": job.id,
+        "total_enfileiradas": len(editaveis),
+        "total_ignoradas": len(concluidas_ignoradas),
+        "message": msg,
+    }
 
 
 # ─── Endpoints: Projeto / Atualização do Git ────────────────────────────────
@@ -1794,6 +2038,29 @@ def reenfileirar_tarefas_com_falha(commit_id: Optional[str] = None, db: Session 
             job.task_id = task.id
             job.resultado = None
             count += 1
+        elif job.tipo == "verificacao":
+            task = sincronizar_status_munka_task.delay(job.id)
+            job.status = "pending"
+            job.task_id = task.id
+            job.resultado = json.dumps({"logs": ["Reenfileirando sincronização com Munka..."]}, ensure_ascii=False)
+            count += 1
+        elif job.tipo == "ajuste":
+            res_ant = {}
+            if job.resultado:
+                try:
+                    res_ant = json.loads(job.resultado)
+                except Exception:
+                    pass
+            t_ids = res_ant.get("tarefas_ids") or []
+            alt = res_ant.get("alteracoes") or {}
+            if t_ids and alt:
+                res_ant["logs"] = ["Reenfileirando ajuste de tarefas no Munka..."]
+                res_ant.pop("error", None)
+                task = ajustar_tarefas_munka_task.delay(t_ids, alt, job.id)
+                job.status = "pending"
+                job.task_id = task.id
+                job.resultado = json.dumps(res_ant, ensure_ascii=False)
+                count += 1
 
     db.commit()
     return {"ok": True, "re_enqueued": count, "message": f"{count} tarefa(s) reenfileirada(s) com sucesso!"}
@@ -1889,6 +2156,14 @@ def listar_fila(db: Session = Depends(get_db)):
                 except:
                     pass
 
+        if not titulo_atividade:
+            if j.tipo == "verificacao":
+                titulo_atividade = "Sincronização de Status com Munka"
+                mensagem = "Varredura de status na listagem do portal Munka"
+            elif j.tipo == "ajuste":
+                titulo_atividade = "Ajuste de Tarefas no Munka"
+                mensagem = "Ajuste de campos de tarefas no portal"
+
         resultado_data = None
         if j.resultado:
             try:
@@ -1901,10 +2176,40 @@ def listar_fila(db: Session = Depends(get_db)):
             except:
                 resultado_data = {"logs": [], "resultado": j.resultado}
 
-        if j.task_id and j.status == "running":
+        if j.task_id and j.status in ("pending", "running"):
             try:
                 task_res = celery_app.AsyncResult(j.task_id)
-                if task_res and task_res.info and isinstance(task_res.info, dict):
+                if task_res.state == "FAILURE":
+                    # Se um job de ajuste/verificacao ficou em pending porque o worker anterior falhou antes de iniciar, reenfileira 1x automaticamente
+                    if j.status == "pending" and j.tipo in ("ajuste", "verificacao") and isinstance(resultado_data, dict) and not resultado_data.get("auto_retried"):
+                        resultado_data["auto_retried"] = True
+                        if j.tipo == "ajuste":
+                            t_ids = resultado_data.get("tarefas_ids") or []
+                            alt = resultado_data.get("alteracoes") or {}
+                            if t_ids and alt:
+                                new_task = ajustar_tarefas_munka_task.delay(t_ids, alt, j.id)
+                                j.task_id = new_task.id
+                                j.resultado = json.dumps(resultado_data, ensure_ascii=False)
+                                db.commit()
+                        elif j.tipo == "verificacao":
+                            new_task = sincronizar_status_munka_task.delay(j.id)
+                            j.task_id = new_task.id
+                            j.resultado = json.dumps(resultado_data, ensure_ascii=False)
+                            db.commit()
+                    else:
+                        err_str = str(task_res.result) if task_res.result else "Falha na execução da tarefa no worker"
+                        if not isinstance(resultado_data, dict):
+                            resultado_data = {}
+                        resultado_data["resultado"] = "ERRO"
+                        resultado_data["error"] = err_str
+                        logs_atuais = resultado_data.get("logs") or []
+                        logs_atuais.append(f"❌ Erro no worker: {err_str}")
+                        resultado_data["logs"] = logs_atuais
+                        j.status = "error"
+                        j.resultado = json.dumps(resultado_data, ensure_ascii=False)
+                        j.concluido_em = datetime.now().isoformat()
+                        db.commit()
+                elif j.status == "running" and task_res and task_res.info and isinstance(task_res.info, dict):
                     live_logs = task_res.info.get("logs", [])
                     if live_logs:
                         if not resultado_data:
