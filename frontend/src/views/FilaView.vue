@@ -1,5 +1,5 @@
 <template>
-  <div class="page">
+  <div class="page fila-page">
     <div class="page-header">
       <div class="title-row">
         <h1>Fila de Execução</h1>
@@ -20,124 +20,268 @@
       </div>
     </div>
 
+    <!-- Feedback de carregamento inicial -->
     <div v-if="filaStore.loading && filaStore.jobs.length === 0" class="loading">Carregando fila...</div>
-    
-    <div v-else-if="filaStore.jobs.length === 0" class="empty">
-      Nenhuma tarefa na fila de execução.
-    </div>
 
-    <div v-else class="fila-grouped">
-      <!-- Percorre os commits agrupados -->
-      <div v-for="grupo in jobsAgrupados" :key="grupo.commit_id" class="commit-group">
-        <!-- Cabeçalho do Commit -->
-        <button 
-          class="commit-group-header" 
-          type="button"
-          :aria-expanded="!isGrupoColapsado(grupo.commit_id)"
-          :aria-controls="'group-jobs-' + grupo.commit_id"
-          @click="alternarGrupo(grupo.commit_id)" 
-          style="cursor: pointer; user-select: none; border: none; font-family: inherit; color: inherit; width: 100%; text-align: left;"
-        >
-          <div class="commit-group-info">
-            <span class="collapse-icon" aria-hidden="true">{{ isGrupoColapsado(grupo.commit_id) ? '▶' : '▼' }}</span>
-            <router-link :to="`/commits/${grupo.commit_id}`" class="commit-hash-link" @click.stop>
-              {{ grupo.commit_id.slice(0, 8) }}
-            </router-link>
-            <router-link :to="`/commits/${grupo.commit_id}`" class="commit-msg-link" :title="grupo.commit_mensagem" @click.stop>
-              {{ grupo.commit_mensagem }}
-            </router-link>
+    <!-- Layout Dividido Verticalmente: Lançamentos (Esquerda) e Ajustes (Direita) -->
+    <div v-else class="fila-split-layout">
+      
+      <!-- COLUNA ESQUERDA: Lançamentos ao Munka & Análises -->
+      <section class="fila-coluna coluna-lancamentos">
+        <div class="coluna-header">
+          <div class="coluna-title-left">
+            <div class="coluna-icon icon-lancamentos">
+              <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i>
+            </div>
+            <div>
+              <h2>Lançamentos</h2>
+              <span class="coluna-sub">Análises AI e Envios ao Portal Munka</span>
+            </div>
           </div>
-          <div class="commit-group-right" style="display: flex; align-items: center; gap: 0.6rem;">
+          <span class="coluna-badge">{{ jobsLancamentos.length }}</span>
+        </div>
+
+        <div v-if="jobsLancamentos.length === 0" class="empty-coluna">
+          <i class="fa-regular fa-folder-open empty-coluna-icon" aria-hidden="true"></i>
+          <span>Nenhum lançamento de atividade na fila.</span>
+        </div>
+
+        <div v-else class="fila-grouped">
+          <!-- Percorre os commits agrupados -->
+          <div v-for="grupo in jobsLancamentosAgrupados" :key="grupo.commit_id" class="commit-group">
+            <!-- Cabeçalho do Commit -->
             <button 
-              v-if="temErrosNoGrupo(grupo)" 
-              class="btn-retry-commit" 
-              @click.stop="reenfileirarGrupo(grupo)"
-              :title="`Reenfileirar ${errosNoGrupoCount(grupo)} tarefa(s) com falha deste commit`"
+              class="commit-group-header" 
+              type="button"
+              :aria-expanded="!isGrupoColapsado(grupo.commit_id)"
+              :aria-controls="'group-jobs-' + grupo.commit_id"
+              @click="alternarGrupo(grupo.commit_id)" 
             >
-              ⚡ Reenfileirar Falhas ({{ errosNoGrupoCount(grupo) }})
-            </button>
-            <span class="job-count-badge">{{ grupo.jobs.length }} tarefa{{ grupo.jobs.length > 1 ? 's' : '' }}</span>
-          </div>
-        </button>
-
-        <!-- Lista de tarefas deste commit -->
-        <div v-show="!isGrupoColapsado(grupo.commit_id)" :id="'group-jobs-' + grupo.commit_id" class="commit-group-jobs">
-          <div 
-            v-for="job in grupo.jobs" 
-            :key="job.id" 
-            class="job-row"
-            :class="`job-row-${job.status}`"
-          >
-            <div class="job-header">
-              <span 
-                class="badge" 
-                :class="job.tipo === 'analise' ? 'badge-blue' : job.tipo === 'verificacao' ? 'badge-orange' : 'badge-purple'"
-              >
-                {{ job.tipo === 'analise' ? 'Análise AI' : job.tipo === 'verificacao' ? 'Verificação Portal' : 'Envio Portal' }}
-              </span>
-              
-              <span class="job-time">{{ formatarData(job.criado_em) }}</span>
-              
-              <div class="job-actions">
-                <!-- Botão Dinâmico de Verificação / Correção (para envio concluído) -->
+              <div class="commit-group-info">
+                <span class="collapse-icon" aria-hidden="true">{{ isGrupoColapsado(grupo.commit_id) ? '▶' : '▼' }}</span>
+                <router-link v-if="grupo.commit_id && grupo.commit_id !== 'sem-commit'" :to="`/commits/${grupo.commit_id}`" class="commit-hash-link" @click.stop>
+                  {{ grupo.commit_id.slice(0, 8) }}
+                </router-link>
+                <span class="commit-msg-link" :title="grupo.commit_mensagem">
+                  {{ grupo.commit_mensagem }}
+                </span>
+              </div>
+              <div class="commit-group-right">
                 <button 
-                  v-if="job.status === 'done' && job.tipo === 'envio'" 
-                  class="btn-xs btn-verificacao-status" 
-                  :class="{
-                    'btn-status-ok': !isVerificando(job.id) && obterStatusVerificacao(job) === 'ok',
-                    'btn-status-divergencia': !isVerificando(job.id) && obterStatusVerificacao(job) === 'divergencia',
-                    'btn-status-default': isVerificando(job.id) || !obterStatusVerificacao(job)
-                  }"
-                  style="margin-right: 0.5rem; display: inline-flex; align-items: center; gap: 0.3rem;"
-                  @click="handleAcaoVerificacao(job)"
-                  :disabled="isVerificando(job.id)"
-                  :title="obterTituloVerificacao(job)"
+                  v-if="temErrosNoGrupo(grupo)" 
+                  class="btn-retry-commit" 
+                  @click.stop="reenfileirarGrupo(grupo)"
+                  :title="`Reenfileirar ${errosNoGrupoCount(grupo)} tarefa(s) com falha deste commit`"
                 >
-                  <template v-if="isVerificando(job.id)">
-                    ⏳ Verificando...
-                  </template>
-                  <template v-else-if="obterStatusVerificacao(job) === 'ok'">
-                    ✅ Lançamento OK
-                  </template>
-                  <template v-else-if="obterStatusVerificacao(job) === 'divergencia'">
-                    ⚠️ Corrigir Lançamento
-                  </template>
-                  <template v-else>
-                    🔍 Verificar Lançamento
-                  </template>
+                  ⚡ Falhas ({{ errosNoGrupoCount(grupo) }})
                 </button>
+                <span class="job-count-badge">{{ grupo.jobs.length }}</span>
+              </div>
+            </button>
 
-                <!-- Botão de Ver Tarefa (para envio concluído com sucesso) -->
-                <a 
-                  v-if="job.status === 'done' && job.resultado && job.resultado.task_url" 
-                  :href="job.resultado.task_url" 
-                  target="_blank" 
-                  class="btn-ghost btn-xs" 
-                  style="text-decoration: none; margin-right: 0.5rem; display: inline-block;"
-                >
-                  Ver Tarefa
-                </a>
-                
-                <!-- Botão de Ver Logs (para envio em andamento, concluído ou com erro) -->
+            <!-- Lista de tarefas deste commit -->
+            <div v-show="!isGrupoColapsado(grupo.commit_id)" :id="'group-jobs-' + grupo.commit_id" class="commit-group-jobs">
+              <div 
+                v-for="job in grupo.jobs" 
+                :key="job.id" 
+                class="job-row"
+                :class="`job-row-${job.status}`"
+              >
+                <div class="job-header">
+                  <span 
+                    class="badge" 
+                    :class="job.tipo === 'analise' ? 'badge-blue' : 'badge-purple'"
+                  >
+                    {{ job.tipo === 'analise' ? 'Análise AI' : 'Envio Portal' }}
+                  </span>
+                  
+                  <span class="job-time">{{ formatarData(job.criado_em) }}</span>
+                  
+                  <div class="job-actions">
+                    <!-- Botão de Verificação / Correção -->
+                    <button 
+                      v-if="job.status === 'done' && job.tipo === 'envio'" 
+                      class="btn-xs btn-verificacao-status" 
+                      :class="{
+                        'btn-status-ok': !isVerificando(job.id) && obterStatusVerificacao(job) === 'ok',
+                        'btn-status-divergencia': !isVerificando(job.id) && obterStatusVerificacao(job) === 'divergencia',
+                        'btn-status-default': isVerificando(job.id) || !obterStatusVerificacao(job)
+                      }"
+                      @click="handleAcaoVerificacao(job)"
+                      :disabled="isVerificando(job.id)"
+                      :title="obterTituloVerificacao(job)"
+                    >
+                      <template v-if="isVerificando(job.id)">⏳ Verificando...</template>
+                      <template v-else-if="obterStatusVerificacao(job) === 'ok'">✅ Lançamento OK</template>
+                      <template v-else-if="obterStatusVerificacao(job) === 'divergencia'">⚠️ Corrigir</template>
+                      <template v-else>🔍 Verificar</template>
+                    </button>
+
+                    <!-- Botão de Ver Tarefa -->
+                    <a 
+                      v-if="job.status === 'done' && job.resultado && job.resultado.task_url" 
+                      :href="job.resultado.task_url" 
+                      target="_blank" 
+                      class="btn-ghost btn-xs" 
+                    >
+                      Ver Tarefa
+                    </a>
+                    
+                    <!-- Botão de Ver Logs -->
+                    <button 
+                      v-if="job.status === 'running' || (job.resultado && job.resultado.logs && job.resultado.logs.length)" 
+                      class="btn-ghost btn-xs" 
+                      @click="abrirLogs(job)"
+                    >
+                      {{ job.status === 'running' ? '📋 Logs (Ao Vivo)' : 'Ver Logs' }}
+                    </button>
+                    
+                    <!-- Botão Cancelar -->
+                    <button 
+                      v-if="job.status === 'pending' || job.status === 'running'" 
+                      class="btn-danger-link" 
+                      @click="cancelarJob(job.id)"
+                      :title="job.status === 'running' ? 'Interrompe a execução' : 'Remove da fila'"
+                    >
+                      ❌ Cancelar
+                    </button>
+
+                    <!-- Botão Limpar -->
+                    <button 
+                      v-if="['done', 'error'].includes(job.status)" 
+                      class="btn-danger-link" 
+                      @click="removerJob(job.id)"
+                    >
+                      Limpar
+                    </button>
+                  </div>
+                </div>
+
+                <div class="job-body">
+                  <div v-if="job.tipo === 'analise'" class="job-meta">
+                    <strong>Modelo:</strong> {{ job.modelo }}
+                  </div>
+                  
+                  <div v-else-if="job.tipo === 'envio'" class="job-meta">
+                    <strong>Atividade:</strong> "{{ job.titulo_atividade || 'Carregando título...' }}"
+                  </div>
+
+                  <!-- Mensagem de Erro -->
+                  <div v-if="job.status === 'error'" class="error-box">
+                    <span>{{ obterMensagemErro(job) }}</span>
+                  </div>
+
+                  <!-- Faixa de Logs em Tempo Real durante Execução -->
+                  <div v-if="job.status === 'running'" class="running-log-box">
+                    <span class="live-dot-pulse"></span>
+                    <span class="live-log-text">{{ obterUltimoLog(job) }}</span>
+                  </div>
+
+                  <!-- Seleção de outro modelo em caso de limite atingido -->
+                  <div v-if="podeMudarModelo(job)" class="mudar-modelo-box">
+                    <label :for="'select-model-' + job.id" class="mudar-modelo-label">Limite atingido. Tentar outro modelo:</label>
+                    <div class="mudar-modelo-control">
+                      <select 
+                        :id="'select-model-' + job.id"
+                        :value="obterModeloSelecionado(job.id, job.modelo)" 
+                        @change="atualizarModeloSelecionado(job.id, $event)"
+                        class="select-modelo"
+                      >
+                        <option v-for="m in models" :key="m.name" :value="m.name">
+                          {{ m.name }}
+                        </option>
+                      </select>
+                      <button class="btn-primary-mudar" @click="reprocessarComOutroModelo(job)">
+                        Reprocessar
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Reenviar em caso de término ou falha de envio -->
+                  <div v-if="job.tipo === 'envio' && (job.status === 'error' || job.status === 'completed')" class="mudar-modelo-box">
+                    <span class="mudar-modelo-label">
+                      {{ job.status === 'completed' ? 'Atividade concluída. Deseja re-enviar ao portal?' : 'Esta atividade falhou no envio. Deseja tentar novamente?' }}
+                    </span>
+                    <div class="mudar-modelo-control">
+                      <button class="btn-primary-mudar" @click="reenviarAtividade(job)">
+                        {{ job.status === 'completed' ? 'Re-enviar Envio' : 'Tentar Novamente' }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="job-footer">
+                  <div class="status-indicator">
+                    <span class="status-dot" :class="`status-${job.status}`"></span>
+                    <span class="status-text">{{ formatarStatus(job.status) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- COLUNA DIREITA: Ajustes dos Cards & Sincronizações -->
+      <section class="fila-coluna coluna-ajustes">
+        <div class="coluna-header">
+          <div class="coluna-title-left">
+            <div class="coluna-icon icon-ajustes">
+              <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+            </div>
+            <div>
+              <h2>Ajustes & Sincronizações</h2>
+              <span class="coluna-sub">Ajustes de campos e auditoria de status no Munka</span>
+            </div>
+          </div>
+          <span class="coluna-badge badge-ajuste">{{ jobsAjustes.length }}</span>
+        </div>
+
+        <div v-if="jobsAjustes.length === 0" class="empty-coluna">
+          <i class="fa-solid fa-sliders empty-coluna-icon" aria-hidden="true"></i>
+          <span>Nenhum ajuste ou sincronização na fila.</span>
+          <router-link to="/tarefas-mes" class="btn-link-tarefas-mes">
+            Ir para Tarefas do Mês para ajustar cards →
+          </router-link>
+        </div>
+
+        <div v-else class="ajustes-cards-list">
+          <div 
+            v-for="job in jobsAjustes" 
+            :key="job.id" 
+            class="ajuste-card"
+            :class="`ajuste-card-${job.status}`"
+          >
+            <!-- Card Header -->
+            <div class="ajuste-card-header">
+              <div class="ajuste-card-header-left">
+                <span class="badge" :class="job.tipo === 'ajuste' ? 'badge-purple' : 'badge-orange'">
+                  <i :class="job.tipo === 'ajuste' ? 'fa-solid fa-sliders' : 'fa-solid fa-arrows-rotate'" aria-hidden="true"></i>
+                  <span>{{ job.tipo === 'ajuste' ? 'Ajuste Munka' : 'Sincronização' }}</span>
+                </span>
+                <span class="job-time">{{ formatarData(job.criado_em) }}</span>
+              </div>
+
+              <div class="job-actions">
+                <!-- Botão Ver Logs -->
                 <button 
                   v-if="job.status === 'running' || (job.resultado && job.resultado.logs && job.resultado.logs.length)" 
                   class="btn-ghost btn-xs" 
                   @click="abrirLogs(job)"
                 >
-                  {{ job.status === 'running' ? '📋 Ver Logs (Ao Vivo)' : 'Ver Logs' }}
+                  {{ job.status === 'running' ? '📋 Logs (Ao Vivo)' : 'Ver Logs' }}
                 </button>
-                
-                <!-- Botão Cancelar (para pending ou running) -->
+
+                <!-- Botão Cancelar -->
                 <button 
                   v-if="job.status === 'pending' || job.status === 'running'" 
                   class="btn-danger-link" 
                   @click="cancelarJob(job.id)"
-                  :title="job.status === 'running' ? 'Interrompe a execução em andamento' : 'Remove da fila antes de iniciar'"
                 >
-                  ❌ Cancelar Envio
+                  ❌ Cancelar
                 </button>
 
-                <!-- Botão de Deletar (para done ou error) -->
+                <!-- Botão Limpar -->
                 <button 
                   v-if="['done', 'error'].includes(job.status)" 
                   class="btn-danger-link" 
@@ -148,13 +292,35 @@
               </div>
             </div>
 
-            <div class="job-body">
-              <div v-if="job.tipo === 'analise'" class="job-meta">
-                <strong>Modelo:</strong> {{ job.modelo }}
+            <!-- Card Body -->
+            <div class="ajuste-card-body">
+              <div class="ajuste-title-row">
+                <span class="ajuste-title">
+                  {{ job.titulo_atividade || (job.tipo === 'ajuste' ? 'Ajuste de Tarefa no Munka' : 'Sincronização de Status') }}
+                </span>
               </div>
-              
-              <div v-else-if="job.tipo === 'envio'" class="job-meta">
-                <strong>Atividade:</strong> "{{ job.titulo_atividade || 'Carregando título...' }}"
+
+              <!-- Chips com os campos alterados -->
+              <div v-if="obterAlteracoesJob(job)" class="ajuste-chips-container">
+                <span class="chips-label">Campos alterados:</span>
+                <div class="chips-list">
+                  <span v-for="(val, chave) in obterAlteracoesJob(job)" :key="chave" class="param-chip">
+                    <strong>{{ formatarNomeCampo(String(chave)) }}:</strong>
+                    <span>{{ formatarValorCampo(String(chave), String(val)) }}</span>
+                  </span>
+                </div>
+              </div>
+
+              <!-- Se for sincronização -->
+              <div v-else-if="job.tipo === 'verificacao'" class="sync-desc-box">
+                <i class="fa-solid fa-circle-nodes" aria-hidden="true"></i>
+                <span>Varredura da listagem de tarefas do mês e atualização dos status no portal.</span>
+              </div>
+
+              <!-- Faixa de Logs ao Vivo durante Execução -->
+              <div v-if="job.status === 'running'" class="running-log-box">
+                <span class="live-dot-pulse"></span>
+                <span class="live-log-text">{{ obterUltimoLog(job) }}</span>
               </div>
 
               <!-- Mensagem de Erro -->
@@ -162,54 +328,19 @@
                 <span>{{ obterMensagemErro(job) }}</span>
               </div>
 
-              <!-- Mensagem de Retry / Aguardando -->
-              <div v-if="job.status === 'running' && job.resultado && job.resultado.status === 'retrying'" class="warning-box">
-                <span>{{ job.resultado.mensagem || 'Aguardando tempo limite para tentar novamente...' }}</span>
-              </div>
-
-              <!-- Faixa de Logs em Tempo Real durante Execução -->
-              <div v-if="job.status === 'running'" class="running-log-box" style="margin-top: 0.5rem; padding: 0.5rem 0.75rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 6px; display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; color: #60a5fa;">
-                <div style="display: flex; align-items: center; gap: 0.5rem; overflow: hidden; max-width: 80%;">
-                  <span style="display: inline-block; width: 8px; height: 8px; background-color: #3b82f6; border-radius: 50%;"></span>
-                  <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: monospace;">
-                    {{ obterUltimoLog(job) }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- Seleção de outro modelo em caso de limite atingido -->
-              <div v-if="podeMudarModelo(job)" class="mudar-modelo-box">
-                <label :for="'select-model-' + job.id" class="mudar-modelo-label">Limite atingido. Tentar outro modelo:</label>
-                <div class="mudar-modelo-control">
-                  <select 
-                    :id="'select-model-' + job.id"
-                    :value="obterModeloSelecionado(job.id, job.modelo)" 
-                    @change="atualizarModeloSelecionado(job.id, $event)"
-                    class="select-modelo"
-                  >
-                    <option v-for="m in models" :key="m.name" :value="m.name">
-                      {{ m.name }}
-                    </option>
-                  </select>
-                  <button class="btn-primary-mudar" @click="reprocessarComOutroModelo(job)">
-                    Reprocessar
-                  </button>
-                </div>
-              </div>
-
-              <!-- Opção de Reenviar em caso de término ou falha de envio -->
-              <div v-if="job.tipo === 'envio' && (job.status === 'error' || job.status === 'completed')" class="mudar-modelo-box">
-                <span class="mudar-modelo-label">
-                  {{ job.status === 'completed' ? 'Atividade concluída. Deseja re-enviar ao portal?' : 'Esta atividade falhou no envio. Deseja tentar novamente?' }}
-                </span>
-                <div class="mudar-modelo-control">
-                  <button class="btn-primary-mudar" @click="reenviarAtividade(job)">
-                    {{ job.status === 'completed' ? 'Re-enviar Envio' : 'Tentar Novamente' }}
-                  </button>
-                </div>
+              <!-- Resumo de Conclusão -->
+              <div v-if="job.status === 'done' && job.resultado" class="done-summary-box">
+                <template v-if="job.tipo === 'ajuste'">
+                  <span class="summary-check">✔ Sucesso: {{ job.resultado.sucessos || 1 }} tarefa(s) ajustada(s) no portal.</span>
+                  <span v-if="job.resultado.puladas" class="summary-warn">⚠️ {{ job.resultado.puladas }} tarefa(s) já estavam concluídas pelo supervisor e foram preservadas.</span>
+                </template>
+                <template v-else>
+                  <span class="summary-check">✔ Sincronização concluída: {{ job.resultado.total_portal || 0 }} tarefas lidas no portal, {{ job.resultado.total_atualizadas || 0 }} atualizadas no banco.</span>
+                </template>
               </div>
             </div>
 
+            <!-- Card Footer -->
             <div class="job-footer">
               <div class="status-indicator">
                 <span class="status-dot" :class="`status-${job.status}`"></span>
@@ -218,7 +349,8 @@
             </div>
           </div>
         </div>
-      </div>
+      </section>
+
     </div>
 
     <!-- Modal de Logs -->
@@ -273,6 +405,39 @@ async function reenfileirarTodasComFalha() {
   }
 }
 
+// ── Divisão entre Lançamentos e Ajustes ──
+const jobsLancamentos = computed(() => {
+  return filaStore.jobs.filter(j => j.tipo === 'analise' || j.tipo === 'envio')
+})
+
+const jobsAjustes = computed(() => {
+  return filaStore.jobs
+    .filter(j => j.tipo === 'ajuste' || j.tipo === 'verificacao')
+    .sort((a, b) => new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime())
+})
+
+const jobsLancamentosAgrupados = computed(() => {
+  const grupos: Record<string, { commit_id: string; commit_mensagem: string; jobs: any[] }> = {}
+  
+  for (const job of jobsLancamentos.value) {
+    const key = job.commit_id || 'sem-commit'
+    if (!grupos[key]) {
+      grupos[key] = {
+        commit_id: job.commit_id,
+        commit_mensagem: job.commit_mensagem || '(sem mensagem)',
+        jobs: []
+      }
+    }
+    grupos[key].jobs.push(job)
+  }
+  
+  return Object.values(grupos).sort((a, b) => {
+    const maxA = Math.max(...a.jobs.map(j => new Date(j.criado_em).getTime()))
+    const maxB = Math.max(...b.jobs.map(j => new Date(j.criado_em).getTime()))
+    return maxB - maxA
+  })
+})
+
 function temErrosNoGrupo(grupo: { commit_id: string; jobs: any[] }) {
   return grupo.jobs.some(j => j.status === 'error')
 }
@@ -298,29 +463,6 @@ function isGrupoColapsado(commitId: string) {
   return !!gruposColapsados.value[commitId]
 }
 
-const jobsAgrupados = computed(() => {
-  const grupos: Record<string, { commit_id: string; commit_mensagem: string; jobs: any[] }> = {}
-  
-  for (const job of filaStore.jobs) {
-    if (job.tipo === 'verificacao') continue
-    const key = job.commit_id
-    if (!grupos[key]) {
-      grupos[key] = {
-        commit_id: job.commit_id,
-        commit_mensagem: job.commit_mensagem || '(sem mensagem)',
-        jobs: []
-      }
-    }
-    grupos[key].jobs.push(job)
-  }
-  
-  return Object.values(grupos).sort((a, b) => {
-    const maxA = Math.max(...a.jobs.map(j => new Date(j.criado_em).getTime()))
-    const maxB = Math.max(...b.jobs.map(j => new Date(j.criado_em).getTime()))
-    return maxB - maxA
-  })
-})
-
 let globalPollInterval: any = null
 
 onMounted(async () => {
@@ -335,7 +477,7 @@ onMounted(async () => {
   }
 
   globalPollInterval = setInterval(() => {
-    filaStore.fetchJobs()
+    filaStore.fetchJobs(true)
   }, 3500)
 })
 
@@ -367,11 +509,66 @@ function formatarStatus(status: string) {
   return map[status] ?? status
 }
 
+function formatarNomeCampo(chave: string): string {
+  const map: Record<string, string> = {
+    cargo: 'Perfil',
+    nivel: 'Nível',
+    responsavel: 'Responsável',
+    produto: 'Produto',
+    tipo: 'Tipo',
+    projeto: 'Projeto',
+    status: 'Status',
+    status_id: 'Status'
+  }
+  return map[chave] || chave
+}
+
+function formatarValorCampo(chave: string, val: string): string {
+  if (chave === 'cargo') {
+    const cMap: Record<string, string> = {
+      '9': 'Desenvolvedor',
+      '11': 'Analista de Sistemas',
+      '12': 'Arquiteto de Software',
+      '16': 'Analista de Testes'
+    }
+    return cMap[val] ? `${val} (${cMap[val]})` : val
+  }
+  if (chave === 'nivel') {
+    const nMap: Record<string, string> = {
+      '1': 'Júnior',
+      '2': 'Pleno',
+      '3': 'Sênior',
+      '4': 'Único'
+    }
+    return nMap[val] ? `${val} (${nMap[val]})` : val
+  }
+  if (chave === 'status' || chave === 'status_id') {
+    const sMap: Record<string, string> = {
+      '15': 'Backlog',
+      '16': 'Backlog Prioritário',
+      '17': 'Aberto / Pendente',
+      '18': 'Desenvolvimento',
+      '20': 'Homologação',
+      '21': 'Concluído'
+    }
+    return sMap[val] ? `${val} (${sMap[val]})` : val
+  }
+  return val
+}
+
+function obterAlteracoesJob(job: any): Record<string, any> | null {
+  if (!job.resultado) return null
+  let res = job.resultado
+  if (typeof res === 'string') {
+    try { res = JSON.parse(res) } catch { return null }
+  }
+  return res.alteracoes || null
+}
+
 function obterMensagemErro(job: any) {
   if (!job.resultado) return 'Erro desconhecido.'
   if (job.resultado.error) return job.resultado.error
   if (job.resultado.logs && job.resultado.logs.length) {
-    // Retorna a última linha de erro dos logs
     const erroLog = [...job.resultado.logs].reverse().find((l: string) => l.startsWith('❌') || l.includes('ERRO'))
     if (erroLog) return erroLog
   }
@@ -398,23 +595,6 @@ function obterUltimoLog(job: any): string {
 function handleLogsKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
     fecharLogs()
-  }
-  if (e.key === 'Tab' && logsModalRef.value) {
-    const focusable = logsModalRef.value.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
-    if (focusable.length === 0) return
-    const first = focusable[0] as HTMLElement
-    const last = focusable[focusable.length - 1] as HTMLElement
-    if (e.shiftKey) {
-      if (document.activeElement === first) {
-        last.focus()
-        e.preventDefault()
-      }
-    } else {
-      if (document.activeElement === last) {
-        first.focus()
-        e.preventDefault()
-      }
-    }
   }
 }
 
@@ -443,7 +623,7 @@ function abrirLogs(job: any) {
   
   logsInterval = setInterval(async () => {
     if (!logJobSelecionado.value) return
-    await filaStore.fetchJobs()
+    await filaStore.fetchJobs(true)
     const updated = filaStore.jobs.find(j => j.id === logJobSelecionado.value.id)
     if (updated) {
       logJobSelecionado.value = updated
@@ -476,8 +656,8 @@ function obterStatusVerificacao(job: any) {
 
 function obterTituloVerificacao(job: any) {
   const status = obterStatusVerificacao(job)
-  if (status === 'ok') return 'Todos os 5 campos (Data Início, Data Fim, Serviço, Status e Commit) conferidos com sucesso no portal. Clique para re-verificar.'
-  if (status === 'divergencia') return 'Inconformidade detectada nos campos do portal Munka. Clique para corrigir e re-salvar automaticamente.'
+  if (status === 'ok') return 'Todos os campos conferidos com sucesso no portal. Clique para re-verificar.'
+  if (status === 'divergencia') return 'Inconformidade detectada nos campos do portal Munka. Clique para corrigir.'
   return 'Clique para verificar se os campos da tarefa no portal Munka correspondem ao commit.'
 }
 
@@ -515,7 +695,6 @@ async function executarCorrigir(job: any) {
   }
 }
 
-
 const models = [
   { name: 'Gemini 3.8 Flash' },
   { name: 'Gemini 3.7 Flash' },
@@ -541,7 +720,7 @@ function podeMudarModelo(job: any) {
   if (job.tipo !== 'analise') return false
   if (job.status === 'error') {
     const msg = obterMensagemErro(job).toLowerCase()
-    return msg.includes('429') || msg.includes('quota') || msg.includes('limit') || msg.includes('exhausted') || msg.includes('resource') || msg.includes('503')
+    return msg.includes('429') || msg.includes('quota') || msg.includes('limit') || msg.includes('exhausted')
   }
   if (job.status === 'running' && job.resultado && job.resultado.status === 'retrying') {
     return true
@@ -556,7 +735,7 @@ async function reprocessarComOutroModelo(job: any) {
       await filaStore.removerJob(job.id)
       await filaStore.enfileirarAnalise([job.commit_id], modeloSelecionado)
     } catch {
-      // Erro já tratado pelo toast
+      // Erro tratado pelo toast
     }
   }
 }
@@ -575,352 +754,35 @@ async function reenviarAtividade(job: any) {
 </script>
 
 <style scoped>
-.title-row { display: flex; align-items: center; gap: 0.5rem; }
-.jobs-list { display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem; }
-
-.job-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
-}
-.job-time {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-}
-.job-actions {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.job-body {
-  margin-bottom: 0.85rem;
-}
-.commit-info {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.35rem;
-}
-.commit-hash {
-  font-family: monospace;
-  font-size: 0.78rem;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-.commit-msg {
-  font-weight: 700;
-  font-size: 0.9rem;
-}
-.job-meta {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-
-.error-box {
-  background: rgba(239, 68, 68, 0.08);
-  border-left: 3px solid var(--error);
-  padding: 0.6rem 0.85rem;
-  font-size: 0.78rem;
-  color: var(--error);
-  margin-top: 0.6rem;
-  font-weight: 500;
-  border-radius: 0 6px 6px 0;
-}
-
-.job-footer {
-  display: flex;
-  align-items: center;
-  border-top: 1px solid rgba(255,255,255,0.04);
-  padding-top: 0.75rem;
-}
-.status-indicator {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-.status-pending { background: #6b7280; }
-.status-running { 
-  background: var(--accent-light); 
-  box-shadow: 0 0 10px var(--accent-light);
-  animation: pulse 1.5s infinite;
-}
-.status-done { background: var(--success); box-shadow: 0 0 8px rgba(16, 185, 129, 0.3); }
-.status-error { background: var(--error); box-shadow: 0 0 8px rgba(239, 68, 68, 0.3); }
-
-.status-text {
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-size: 0.7rem;
-}
-
-@keyframes pulse {
-  0% { transform: scale(0.9); opacity: 0.5; }
-  50% { transform: scale(1.1); opacity: 1; }
-  100% { transform: scale(0.9); opacity: 0.5; }
-}
-
-/* Modal de logs */
-.modal-wide { 
-  width: 100%; 
-  max-width: 800px; 
-  max-height: 85vh; 
-  overflow-y: auto; 
-  box-sizing: border-box;
-}
-.modal-subtitle {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin-top: -0.5rem;
-  margin-bottom: 0.75rem;
-}
-.terminal-container {
-  background: #060813;
-  border: 1px solid var(--card-border);
-  border-radius: 10px;
-  margin-top: 0.75rem;
-  overflow: hidden;
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
-}
-.terminal-header {
-  background: rgba(255, 255, 255, 0.02);
-  padding: 0.6rem 1rem;
-  font-size: 0.72rem;
-  font-weight: 600;
-  display: flex;
-  justify-content: space-between;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-.status-badge {
-  text-transform: uppercase;
-  font-size: 0.65rem;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 700;
-}
-.badge-done { background: rgba(16, 185, 129, 0.1); color: var(--success); }
-.badge-error { background: rgba(239, 68, 68, 0.1); color: var(--error); }
-
-.terminal-body {
-  padding: 1rem;
-  font-size: 0.78rem;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
-  max-height: 380px;
-  overflow-y: auto;
-  overflow-x: auto;
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-all;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  background: #03050a;
-  color: #d1d5db;
-}
-.terminal-body div.error-line {
-  color: #f87171;
-}
-
-.btn-xs {
-  padding: 0.25rem 0.6rem;
-  font-size: 0.72rem;
-  border-radius: 6px;
-  box-shadow: none;
-}
-
-.btn-danger-link {
-  background: transparent;
-  border: none;
-  color: var(--error);
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  transition: all 0.2s ease;
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
-}
-.btn-danger-link:hover {
-  background: rgba(239, 68, 68, 0.08);
-  color: #f87171;
-}
-
-.warning-box {
-  background: rgba(245, 158, 11, 0.08);
-  border-left: 3px solid var(--warning);
-  padding: 0.6rem 0.85rem;
-  font-size: 0.78rem;
-  color: var(--warning);
-  margin-top: 0.6rem;
-  font-weight: 500;
-  border-radius: 0 6px 6px 0;
-}
-
-.mudar-modelo-box {
-  margin-top: 0.75rem;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px dashed rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-.mudar-modelo-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-.mudar-modelo-control {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-.select-modelo {
-  background: #0b0f19 !important;
-  color: var(--text) !important;
-  border: 1px solid var(--card-border) !important;
-  border-radius: 6px !important;
-  font-size: 0.75rem !important;
-  padding: 0.25rem 0.5rem !important;
-  font-weight: 600 !important;
-  width: auto !important;
-}
-.btn-primary-mudar {
-  background: var(--accent-grad) !important;
-  color: #fff !important;
-  border: none !important;
-  font-size: 0.72rem !important;
-  font-weight: 700 !important;
-  padding: 0.35rem 0.75rem !important;
-  cursor: pointer !important;
-  border-radius: 6px !important;
-  text-transform: uppercase;
-  transition: all 0.2s ease !important;
-  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.15) !important;
-}
-.btn-primary-mudar:hover {
-  filter: brightness(1.1) !important;
-  transform: translateY(-1px) !important;
-  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3) !important;
-}
-
-/* Agrupamento da fila por Commit */
-.fila-grouped {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  margin-top: 1rem;
-}
-.commit-group {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-button.commit-group-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.85rem 1.25rem !important;
-  background: rgba(255, 255, 255, 0.01) !important;
-  border-bottom: 1px solid var(--card-border) !important;
-  outline: none;
-  font-family: inherit;
-  font-size: inherit;
-  color: inherit;
-  border: none;
+.fila-page {
   width: 100%;
-  text-align: left;
+  max-width: 100%;
+  overflow-x: hidden;
 }
-.commit-group-info {
+
+.title-row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  min-width: 0;
-  flex: 1;
-}
-.collapse-icon {
-  font-size: 0.65rem !important;
-  color: var(--text-muted) !important;
-  padding: 2px 6px !important;
-  display: inline-block;
-  cursor: pointer;
-}
-.commit-hash-link {
-  color: var(--accent-light) !important;
-  text-decoration: none;
-  font-family: monospace;
-}
-.commit-msg-link {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-decoration: none;
-  min-width: 0;
-  flex: 1;
-  transition: color 0.2s ease;
-}
-.commit-msg-link:hover {
-  color: var(--accent-light);
-}
-.job-count-badge {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.03);
-  padding: 2px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 6px;
-  margin-left: 1rem;
-  flex-shrink: 0;
-}
-.commit-group-jobs {
-  display: flex;
-  flex-direction: column;
-  padding-top: 0 !important;
-}
-.job-row {
-  padding: 1.25rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
-  transition: all 0.2s ease;
-}
-.job-row:last-child {
-  border-bottom: none !important;
-}
-.job-row:hover {
-  background-color: rgba(255, 255, 255, 0.015) !important;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .concurrency-badge {
   font-size: 0.78rem;
   font-weight: 600;
-  color: #60a5fa;
-  background: rgba(96, 165, 250, 0.08);
-  border: 1px solid rgba(96, 165, 250, 0.3);
+  color: var(--accent);
+  background: var(--accent-glow);
+  border: 1px solid var(--accent);
   padding: 4px 10px;
   border-radius: 99px;
-  margin-left: 0.75rem;
+  margin-left: 0.5rem;
 }
 
 .header-actions {
   display: flex;
   gap: 0.6rem;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .btn-retry-all {
@@ -945,13 +807,245 @@ button.commit-group-header {
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.45);
 }
 
+/* Layout Dividido Verticalmente */
+.fila-split-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.75rem;
+  align-items: start;
+  margin-top: 1rem;
+  width: 100%;
+  max-width: 100%;
+}
+
+.coluna-lancamentos {
+  border-right: 1px solid var(--border);
+  padding-right: 1.75rem;
+}
+
+@media (max-width: 1024px) {
+  .fila-split-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .coluna-lancamentos {
+    border-right: none;
+    padding-right: 0;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1.5rem;
+  }
+}
+
+/* Colunas */
+.fila-coluna {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.coluna-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  min-width: 0;
+}
+
+.coluna-title-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.coluna-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.icon-lancamentos {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.icon-ajustes {
+  background: var(--accent-glow);
+  color: var(--accent);
+}
+
+.coluna-header h2 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.coluna-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.coluna-badge {
+  background: var(--header-group-bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 3px 10px;
+  border-radius: 99px;
+  flex-shrink: 0;
+}
+
+.badge-ajuste {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.empty-coluna {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  background: var(--card-bg);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  text-align: center;
+  gap: 0.5rem;
+}
+
+.empty-coluna-icon {
+  font-size: 2rem;
+  opacity: 0.5;
+  margin-bottom: 0.25rem;
+}
+
+.btn-link-tarefas-mes {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 0.82rem;
+  margin-top: 0.5rem;
+}
+
+.btn-link-tarefas-mes:hover {
+  text-decoration: underline;
+}
+
+/* Grupos de Commits (Lançamentos) */
+.fila-grouped {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.commit-group {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  width: 100%;
+}
+
+button.commit-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 0.75rem 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  font-size: 0.88rem;
+  cursor: pointer;
+  user-select: none;
+  font-family: inherit;
+  color: inherit;
+  width: 100%;
+  text-align: left;
+  gap: 0.75rem;
+  min-width: 0;
+  outline: none;
+}
+
+.commit-group-info {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  overflow: hidden;
+  min-width: 0;
+  flex: 1;
+}
+
+.collapse-icon {
+  font-size: 0.65rem !important;
+  color: var(--text-muted) !important;
+  padding: 2px 6px !important;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.commit-hash-link {
+  font-family: monospace;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.commit-msg-link {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+  display: block;
+}
+
+.commit-group-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.job-count-badge {
+  background: var(--header-group-bg);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
 .btn-retry-commit {
   background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
   color: #ffffff;
   border: none;
   padding: 0.25rem 0.65rem;
   border-radius: 6px;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
   cursor: pointer;
   box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
@@ -959,14 +1053,104 @@ button.commit-group-header {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
+  flex-shrink: 0;
 }
 
 .btn-retry-commit:hover {
   filter: brightness(1.15);
   transform: translateY(-1px);
-  box-shadow: 0 3px 10px rgba(239, 68, 68, 0.4);
 }
 
+.commit-group-jobs {
+  border: none !important;
+  background: transparent !important;
+  display: flex;
+  flex-direction: column;
+  padding-top: 0.5rem !important;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.job-row {
+  padding: 1rem 1.15rem;
+  border-bottom: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 0.35rem;
+  transition: background 0.15s;
+  min-width: 0;
+}
+
+.job-row:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.job-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.job-time {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.job-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.job-body {
+  margin-bottom: 0.65rem;
+  min-width: 0;
+}
+
+.job-meta {
+  font-size: 0.85rem;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.job-footer {
+  display: flex;
+  align-items: center;
+  font-size: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-dot.status-pending { background: #eab308; }
+.status-dot.status-running { background: #3b82f6; box-shadow: 0 0 8px #3b82f6; animation: pulseDot 1.5s infinite; }
+.status-dot.status-done { background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.3); }
+.status-dot.status-error { background: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.3); }
+
+.status-text {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.7rem;
+}
+
+/* Botões de Verificação */
 .btn-verificacao-status {
   transition: all 0.2s ease;
   font-weight: 600;
@@ -977,30 +1161,353 @@ button.commit-group-header {
 }
 .btn-status-default {
   border: 1px solid rgba(96, 165, 250, 0.4) !important;
-  color: #60a5fa !important;
-  background: rgba(96, 165, 250, 0.05) !important;
+  color: var(--accent) !important;
+  background: rgba(96, 165, 250, 0.08) !important;
 }
 .btn-status-default:hover {
-  background: rgba(96, 165, 250, 0.15) !important;
+  background: rgba(96, 165, 250, 0.18) !important;
   transform: translateY(-1px);
 }
 .btn-status-ok {
   border: 1px solid rgba(16, 185, 129, 0.4) !important;
-  color: #10b981 !important;
-  background: rgba(16, 185, 129, 0.08) !important;
+  color: var(--success) !important;
+  background: rgba(16, 185, 129, 0.1) !important;
 }
 .btn-status-ok:hover {
-  background: rgba(16, 185, 129, 0.18) !important;
+  background: rgba(16, 185, 129, 0.2) !important;
   transform: translateY(-1px);
 }
 .btn-status-divergencia {
   border: 1px solid rgba(245, 158, 11, 0.5) !important;
-  color: #fbbf24 !important;
+  color: var(--warning) !important;
   background: rgba(245, 158, 11, 0.12) !important;
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
 }
 .btn-status-divergencia:hover {
   background: rgba(245, 158, 11, 0.25) !important;
   transform: translateY(-1px);
+}
+
+/* Mudar Modelo / Reenviar Box */
+.mudar-modelo-box {
+  margin-top: 0.75rem;
+  padding: 0.85rem;
+  background: var(--header-group-bg);
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.mudar-modelo-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.mudar-modelo-control {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.select-modelo {
+  background: var(--card-bg) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px !important;
+  font-size: 0.75rem !important;
+  padding: 0.25rem 0.5rem !important;
+  font-weight: 600 !important;
+  width: auto !important;
+}
+.btn-primary-mudar {
+  background: var(--accent-grad) !important;
+  color: #fff !important;
+  border: none !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  padding: 0.35rem 0.75rem !important;
+  cursor: pointer !important;
+  border-radius: 6px !important;
+  text-transform: uppercase;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.15) !important;
+}
+.btn-primary-mudar:hover {
+  filter: brightness(1.1) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Coluna de Ajustes (Cards) */
+.ajustes-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.ajuste-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+  min-width: 0;
+  width: 100%;
+}
+
+.ajuste-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.ajuste-card-running {
+  border-color: var(--accent) !important;
+  border-left: 3px solid var(--accent) !important;
+  background: linear-gradient(135deg, var(--card-bg) 0%, var(--accent-glow) 100%);
+}
+
+.ajuste-card-done {
+  border-left: 3px solid var(--success) !important;
+}
+
+.ajuste-card-error {
+  border-left: 3px solid var(--error) !important;
+}
+
+.ajuste-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ajuste-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.ajuste-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+  min-width: 0;
+}
+
+.ajuste-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.ajuste-chips-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.2rem;
+}
+
+.chips-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.chips-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.param-chip {
+  background: var(--header-group-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 0.78rem;
+  color: var(--text);
+  display: inline-flex;
+  gap: 0.3rem;
+}
+
+.param-chip strong {
+  color: var(--accent);
+}
+
+.sync-desc-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--badge-orange-bg);
+  border: 1px solid var(--badge-orange-border);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--badge-orange-color);
+}
+
+.running-log-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: var(--accent);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.live-dot-pulse {
+  width: 8px;
+  height: 8px;
+  background: #3b82f6;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #3b82f6;
+  animation: pulseDot 1.2s infinite ease-in-out;
+  flex-shrink: 0;
+}
+
+.live-log-text {
+  font-family: monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.error-box {
+  padding: 0.6rem 0.85rem;
+  background: rgba(239, 68, 68, 0.08);
+  border-left: 3px solid var(--error);
+  border-radius: 0 6px 6px 0;
+  color: var(--error);
+  font-size: 0.78rem;
+  font-weight: 500;
+  margin-top: 0.4rem;
+  word-break: break-word;
+}
+
+.done-summary-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0.5rem 0.75rem;
+  background: var(--badge-green-bg);
+  border: 1px solid var(--badge-green-border);
+  border-radius: 6px;
+  font-size: 0.8rem;
+}
+
+.summary-check {
+  color: var(--badge-green-color);
+  font-weight: 600;
+}
+
+.summary-warn {
+  color: var(--warning);
+  font-size: 0.75rem;
+}
+
+/* Modais e Terminais */
+.modal-wide {
+  width: 100% !important;
+  max-width: 800px !important;
+  max-height: 85vh !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+}
+
+.modal-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: -0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.terminal-container {
+  background: #0d1117;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.terminal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  background: #161b22;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.status-badge {
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+.badge-done { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+.badge-error { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+
+.terminal-body {
+  padding: 1rem;
+  max-height: 380px;
+  overflow-y: auto;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.78rem;
+  color: #e6edf3;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.error-line {
+  color: #f85149;
+}
+
+.btn-xs {
+  padding: 0.25rem 0.6rem !important;
+  font-size: 0.72rem !important;
+  border-radius: 6px !important;
+}
+
+.btn-danger-link {
+  background: transparent;
+  border: none;
+  color: var(--error);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-danger-link:hover {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+@keyframes pulseDot {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.6; }
 }
 </style>

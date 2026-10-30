@@ -25,6 +25,7 @@ const routeTitles: Record<string, string> = {
   '/fila-logs': 'Logs de Execução',
   '/modelos': 'Modelos',
   '/historico': 'Histórico',
+  '/tarefas-mes': 'Tarefas do Mês - Ajuste Munka',
   '/config': 'Configuração'
 }
 
@@ -288,6 +289,10 @@ onUnmounted(() => {
         <router-link to="/historico">
           <i class="fa-solid fa-clock-rotate-left nav-icon" aria-hidden="true"></i>
           <span>Histórico</span>
+        </router-link>
+        <router-link to="/tarefas-mes">
+          <i class="fa-solid fa-calendar-check nav-icon" aria-hidden="true"></i>
+          <span>Tarefas do Mês</span>
         </router-link>
         <router-link to="/config">
           <i class="fa-solid fa-gear nav-icon" aria-hidden="true"></i>
@@ -766,6 +771,10 @@ body {
   box-sizing: border-box;
 }
 
+.content:has(.fila-page) {
+  max-width: 96rem;
+}
+
 @media (min-width: 640px) {
   .content { padding: 2rem 1.5rem; }
 }
@@ -904,15 +913,24 @@ input:focus, textarea:focus, select:focus {
   background: var(--card-bg) !important;
   border: 1px solid var(--border) !important;
   border-radius: 16px !important;
-  padding: 2rem !important;
+  padding: 1.75rem !important;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2) !important;
-  width: 500px !important;
-  max-width: 95vw !important;
+  width: 520px;
+  max-width: 95vw;
   display: flex;
   flex-direction: column;
   gap: 1rem;
   color: var(--text) !important;
   animation: scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.modal.modal-md {
+  width: 640px !important;
+}
+.modal.modal-lg {
+  width: 860px !important;
+}
+.modal.modal-xl {
+  width: 1060px !important;
 }
 .modal h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem; color: var(--text); }
 .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; }

@@ -54,6 +54,50 @@ export interface HistoricoItem {
   commit_data_autor?: string
   commit_autor?: string
   commit_mensagem?: string
+  task_id?: string
+  task_url?: string
+  status_munka?: string
+  munka_atualizado_em?: string
+}
+
+export interface TarefaMesItem {
+  id: number
+  commit_id: string
+  titulo: string
+  codigo: string
+  hpa: number
+  status: string
+  status_munka?: string
+  munka_atualizado_em?: string
+  task_id?: string
+  task_url?: string
+  tem_data_fim?: boolean
+  enviado_em: string
+  commit_data?: string
+  commit_autor?: string
+  commit_mensagem?: string
+  pode_alterar: boolean
+}
+
+export interface TarefasMesResponse {
+  mes: number
+  ano: number
+  total: number
+  editaveis: number
+  concluidas: number
+  tarefas: TarefaMesItem[]
+}
+
+export interface AjusteTarefasPayload {
+  historico_ids: number[]
+  cargo?: string
+  nivel?: string
+  responsavel?: string
+  produto?: string
+  tipo?: string
+  projeto?: string
+  status?: string
+  status_id?: string
 }
 
 export interface Config {
@@ -105,7 +149,7 @@ export interface TaskStatus {
 
 export interface FilaItem {
   id: number
-  tipo: 'analise' | 'envio' | 'verificacao'
+  tipo: 'analise' | 'envio' | 'verificacao' | 'ajuste'
   commit_id: string
   atividade_idx?: number
   modelo?: string
@@ -273,6 +317,14 @@ export const api = {
   backup: {
     criar: () => http.post<any>('/backup/criar').then(r => r.data),
     listar: () => http.get<any>('/backup/listar').then(r => r.data),
+  },
+  tarefasMes: {
+    listar: (mes?: number, ano?: number) =>
+      http.get<TarefasMesResponse>('/tarefas-mes', { params: { mes, ano } }).then(r => r.data),
+    sincronizar: () =>
+      http.post<{ ok: boolean; job_id: number; message: string }>('/tarefas-mes/sincronizar').then(r => r.data),
+    ajustar: (payload: AjusteTarefasPayload) =>
+      http.post<{ ok: boolean; job_id: number; total_enfileiradas: number; total_ignoradas: number; message: string }>('/tarefas-mes/ajustar', payload).then(r => r.data),
   },
   pingMunka: () => http.get<{ ok: boolean; mensagem: string; munka_url: string }>('/ping-munka').then(r => r.data),
 }

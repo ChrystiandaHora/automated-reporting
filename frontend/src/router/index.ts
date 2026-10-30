@@ -4,6 +4,7 @@ import CommitsView from '../views/CommitsView.vue'
 import CommitDetailView from '../views/CommitDetailView.vue'
 import ImportarCommitsView from '../views/ImportarCommitsView.vue'
 import HistoryView from '../views/HistoryView.vue'
+import TarefasMesView from '../views/TarefasMesView.vue'
 import ConfigView from '../views/ConfigView.vue'
 import AnalisarView from '../views/AnalisarView.vue'
 import FilaView from '../views/FilaView.vue'
@@ -23,6 +24,7 @@ export default createRouter({
     { path: '/fila-logs', component: FilaLogsView },
     { path: '/modelos', component: ModelosView },
     { path: '/historico', component: HistoryView },
+    { path: '/tarefas-mes', component: TarefasMesView },
     { path: '/config', component: ConfigView },
   ],
 })
