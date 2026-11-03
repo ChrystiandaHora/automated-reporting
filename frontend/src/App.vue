@@ -1100,4 +1100,197 @@ td {
   color: var(--accent) !important;
   border-bottom-color: var(--accent) !important;
 }
+
+/* ── Padronização Global de Botões ── */
+button,
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-ghost,
+.btn-danger,
+.btn-link,
+.btn-sm,
+.btn-xs,
+.action-btn,
+.pill-btn,
+.filter-pill,
+.mode-tab-btn {
+  text-decoration: none !important;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:hover,
+.btn:hover,
+.btn-primary:hover,
+.btn-secondary:hover,
+.btn-ghost:hover,
+.btn-danger:hover,
+.btn-link:hover,
+.action-btn:hover,
+.pill-btn:hover,
+.filter-pill:hover,
+.mode-tab-btn:hover {
+  text-decoration: none !important;
+}
+
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-ghost,
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  border-radius: 8px;
+  line-height: 1;
+}
+
+.btn-sm {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.82rem;
+  border-radius: 6px;
+}
+
+.btn-xs {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.75rem;
+  border-radius: 5px;
+}
+
+/* ── Toolbar de Filtros e Busca Padronizada ── */
+.filters-toolbar,
+.filters-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+  padding: 0.75rem 1rem;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+}
+
+.search-box,
+.search-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 1;
+  min-width: 240px;
+  max-width: 480px;
+}
+
+.search-box .search-icon,
+.search-wrap .search-icon {
+  position: absolute;
+  left: 0.85rem;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.search-input,
+.input-search {
+  width: 100%;
+  height: 38px;
+  background: var(--bg);
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 0 2.35rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.search-input:focus,
+.input-search:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.clear-search-btn,
+.btn-clear-search {
+  position: absolute;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  transition: all 0.15s ease;
+}
+
+.clear-search-btn:hover,
+.btn-clear-search:hover {
+  background: var(--card-border);
+  color: var(--text);
+}
+
+.status-filters,
+.status-filter-pills,
+.status-segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.filter-pill,
+.pill-btn,
+.status-btn {
+  height: 34px;
+  padding: 0 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.filter-pill:hover,
+.pill-btn:hover,
+.status-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.filter-pill.active,
+.pill-btn.active,
+.status-btn.active {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ── Efeito Global de Destaque no Tutorial (Spotlight Target) ── */
+.tutorial-target-highlighted {
+  position: relative !important;
+  z-index: 9998 !important;
+  box-shadow: 0 0 0 3px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.6) !important;
+  border-radius: 8px;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease !important;
+}
 </style>

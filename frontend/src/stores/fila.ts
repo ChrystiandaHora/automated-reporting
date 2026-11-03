@@ -84,10 +84,10 @@ export const useFilaStore = defineStore('fila', () => {
                 : `Atividade "${job.titulo_atividade || 'sem título'}"`
 
               if (job.status === 'done') {
-                toastStore.addToast(`✔ ${identificador} concluída com sucesso!`, 'success')
+                toastStore.addToast(`${identificador} concluída com sucesso!`, 'success')
                 playJobStatusTone('success')
               } else {
-                toastStore.addToast(`❌ Falha na execução: ${identificador}.`, 'error')
+                toastStore.addToast(`Falha na execução: ${identificador}.`, 'error')
                 playJobStatusTone('error')
               }
             }
@@ -113,7 +113,7 @@ export const useFilaStore = defineStore('fila', () => {
     error.value = ''
     try {
       const res = await api.fila.enfileirarAnalise({ commit_ids: commitIds, modelo })
-      toastStore.addToast(`📥 ${commitIds.length} commit(s) enfileirado(s) para análise.`, 'info')
+      toastStore.addToast(`${commitIds.length} commit(s) enfileirado(s) para análise.`, 'info')
       await fetchJobs(true)
       startPolling()
       return res
@@ -128,7 +128,7 @@ export const useFilaStore = defineStore('fila', () => {
     error.value = ''
     try {
       const res = await api.fila.enfileirarEnvio({ commit_id: commitId, atividade_idx: atividadeIdx })
-      toastStore.addToast(`📥 Envio da atividade enfileirado com sucesso.`, 'info')
+      toastStore.addToast(`Envio da atividade enfileirado com sucesso.`, 'info')
       await fetchJobs(true)
       startPolling()
       return res
@@ -143,7 +143,7 @@ export const useFilaStore = defineStore('fila', () => {
     error.value = ''
     try {
       const res = await api.fila.enfileirarEnvioLote({ commit_ids: commitIds, forcar_reenvio: forcarReenvio })
-      toastStore.addToast(`⚡ ${res.total_enfileirados} tarefa(s) de ${res.commits_processados} commit(s) adicionada(s) à fila!`, 'success')
+      toastStore.addToast(`${res.total_enfileirados} tarefa(s) de ${res.commits_processados} commit(s) adicionada(s) à fila!`, 'success')
       await fetchJobs(true)
       startPolling()
       return res
@@ -168,7 +168,7 @@ export const useFilaStore = defineStore('fila', () => {
   async function cancelarJob(id: number) {
     try {
       await api.fila.cancelar(id)
-      toastStore.addToast(`❌ Tarefa cancelada com sucesso.`, 'info')
+      toastStore.addToast(`Tarefa cancelada com sucesso.`, 'info')
       await fetchJobs(true)
     } catch (e: any) {
       toastStore.addToast(`Erro ao cancelar tarefa: ${e.response?.data?.detail ?? String(e)}`, 'error')
@@ -203,7 +203,7 @@ export const useFilaStore = defineStore('fila', () => {
     error.value = ''
     try {
       const res = await api.fila.retryFailed(commitId)
-      toastStore.addToast(`⚡ ${res.message}`, 'success')
+      toastStore.addToast(`${res.message}`, 'success')
       await fetchJobs(true)
       startPolling()
       return res
