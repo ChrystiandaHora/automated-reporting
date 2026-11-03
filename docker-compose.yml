@@ -42,7 +42,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
     depends_on:
       - redis
-    command: celery -A celery_app worker --loglevel=info -Q analises -c 3
+    command: celery -A celery_app worker --loglevel=info -Q analises -c 4
     restart: unless-stopped
 
   celery_worker_envios:
@@ -60,7 +60,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
     depends_on:
       - redis
-    command: celery -A celery_app worker --loglevel=info -Q envios -c 4
+    command: celery -A celery_app worker --loglevel=info -Q envios -c 8
     restart: unless-stopped
 
   celery_flower:

@@ -1,6 +1,6 @@
 import os
 import shutil
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import create_engine, inspect, text, event
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///nexus.db")
@@ -52,6 +52,18 @@ def _migrar_banco_antigo_se_necessario(db_url: str):
 _migrar_banco_antigo_se_necessario(DATABASE_URL)
 
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    """Habilita Write-Ahead Logging (WAL) e timeout para suportar concorrência paralela no SQLite."""
+    try:
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=30000")
+        cursor.close()
+    except Exception:
+        pass
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

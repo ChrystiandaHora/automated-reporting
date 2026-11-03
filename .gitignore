@@ -15,3 +15,7 @@ dist/
 node_modules/
 graphify-out/
 docs/media/
+
+# AI Agent skills e configurações locais
+.agents/
+.cache/

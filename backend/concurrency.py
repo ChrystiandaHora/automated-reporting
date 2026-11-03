@@ -17,6 +17,22 @@ def get_concurrency_config(cpu_cores: int | None = None) -> dict:
         cpu_cores = 1
 
     env_override = os.environ.get("CELERY_CONCURRENCY") or os.environ.get("CELERY_WORKER_CONCURRENCY")
+    env_envios = os.environ.get("CELERY_CONCURRENCY_ENVIOS")
+    env_analises = os.environ.get("CELERY_CONCURRENCY_ANALISES")
+
+    if env_envios and env_envios.isdigit() and env_analises and env_analises.isdigit():
+        c_envios = int(env_envios)
+        c_analises = int(env_analises)
+        return {
+            "cpu_cores": cpu_cores,
+            "total": c_envios + c_analises,
+            "dynamic_sharing": True,
+            "queues": {
+                "analises": c_analises,
+                "envios": c_envios,
+            },
+        }
+
     if env_override and env_override.isdigit():
         custom = int(env_override)
         return {
@@ -29,14 +45,24 @@ def get_concurrency_config(cpu_cores: int | None = None) -> dict:
             },
         }
 
-    analises = 3
-    # 4 envios simultâneos para automação no portal Munka
-    envios = 4
+    # Cálculo dinâmico baseado nos núcleos de CPU (70% do total)
+    if cpu_cores >= 14:
+        analises = 4
+        envios = 8
+    elif cpu_cores >= 8:
+        analises = 3
+        envios = 5
+    elif cpu_cores >= 4:
+        analises = 2
+        envios = 3
+    else:
+        analises = 1
+        envios = 2
 
     return {
         "cpu_cores": cpu_cores,
         "total": analises + envios,
-        "dynamic_sharing": False,
+        "dynamic_sharing": True,
         "queues": {
             "analises": analises,
             "envios": envios,
