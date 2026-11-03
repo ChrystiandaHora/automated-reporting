@@ -1304,6 +1304,43 @@ def deletar_historico_item(item_id: int, db: Session = Depends(get_db)):
 # ─── Endpoints: Tarefas do Mês / Ajuste Munka ───────────────────────────────
 
 
+def _task_id_do_envio_da_atividade(db: Session, commit_id: str, titulo: str) -> Optional[str]:
+    """Retorna o task_id do Munka da atividade exata (commit + título), via job de envio concluído.
+
+    Cada atividade de um commit gera uma tarefa própria no Munka; casar só por commit
+    atribuiria o mesmo ID a todas as atividades.
+    """
+    analise = db.query(models.Analise).filter_by(commit_id=commit_id).first()
+    if not analise or not analise.atividades_json or not titulo:
+        return None
+    try:
+        atividades = json.loads(analise.atividades_json)
+    except Exception:
+        return None
+    indices = [i for i, a in enumerate(atividades) if (a.get("titulo") or "").strip() == titulo.strip()]
+    if not indices:
+        return None
+    jobs = (
+        db.query(models.Fila)
+        .filter(
+            models.Fila.commit_id == commit_id,
+            models.Fila.tipo == "envio",
+            models.Fila.status == "done",
+            models.Fila.atividade_idx.in_(indices),
+        )
+        .order_by(models.Fila.id.desc())
+        .all()
+    )
+    for j in jobs:
+        try:
+            t_id = (json.loads(j.resultado or "{}") or {}).get("task_id")
+        except Exception:
+            t_id = None
+        if t_id:
+            return str(t_id)
+    return None
+
+
 @app.get("/tarefas-mes")
 def listar_tarefas_mes(
     mes: Optional[int] = None,
@@ -1374,24 +1411,34 @@ def listar_tarefas_mes(
                             db.commit()
                 except Exception:
                     pass
+            # Vínculo preciso por atividade: título do histórico == título da atividade (atividade_idx) do envio.
+            task_id_encontrado = _task_id_do_envio_da_atividade(db, h.commit_id, h.titulo)
+            if task_id_encontrado:
+                task_id = task_id_encontrado
+                h.task_id = task_id
+                if not task_url and munka_base:
+                    task_url = f"{munka_base}/tarefamodelview/show/{task_id}"
+                    h.task_url = task_url
+                db.commit()
 
         if not task_url and task_id and munka_base:
             task_url = f"{munka_base}/tarefamodelview/show/{task_id}"
 
         status_str = (h.status_munka or h.status or "").strip()
-        # Se estiver em Concluído pelo supervisor, não pode mais alterar
         is_concluida = (
             "conclu" in status_str.lower()
-            or status_str == "21"
+            or status_str in ("19", "21")
+            or "supervisor" in status_str.lower()
             or "aprovad" in status_str.lower()
             or "finalizad" in status_str.lower()
         )
-        pode_alterar = not is_concluida
-
-        if pode_alterar:
-            editaveis += 1
-        else:
+        if is_concluida:
             concluidas += 1
+        else:
+            editaveis += 1
+
+        # Todas as tarefas estão liberadas para seleção e alteração quantas vezes for necessário
+        pode_alterar = True
 
         tarefas.append({
             "id": h.id,
@@ -1416,7 +1463,7 @@ def listar_tarefas_mes(
         "mes": alvo_mes,
         "ano": alvo_ano,
         "total": total,
-        "editaveis": editaveis,
+        "editaveis": total,  # Todas as tarefas lançadas estão disponíveis para ajuste livre
         "concluidas": concluidas,
         "tarefas": tarefas,
     }
@@ -1476,55 +1523,85 @@ def ajustar_tarefas_munka(req: AjusteTarefasRequest, db: Session = Depends(get_d
         raise HTTPException(status_code=400, detail="Nenhum campo fornecido para alteração.")
 
     tarefas_alvo = db.query(models.Historico).filter(models.Historico.id.in_(req.historico_ids)).all()
-    editaveis = []
-    concluidas_ignoradas = []
-    for t in tarefas_alvo:
-        st = (t.status_munka or t.status or "").lower()
-        if "conclu" in st or st == "21":
-            concluidas_ignoradas.append(t.id)
-        else:
-            editaveis.append(t.id)
+    if not tarefas_alvo:
+        raise HTTPException(status_code=400, detail="Nenhuma tarefa encontrada para os IDs informados.")
 
-    if not editaveis:
-        raise HTTPException(
-            status_code=400,
-            detail="Todas as tarefas selecionadas já estão na aba de Concluído para o supervisor e não podem ser alteradas."
-        )
+    from celery_tasks import ajustar_tarefa_individual_task
 
-    from celery_tasks import ajustar_tarefas_munka_task
-
-    primeiro_commit = tarefas_alvo[0].commit_id if tarefas_alvo else ""
-    info_inicial = {
-        "resultado": "PENDING",
-        "alteracoes": alteracoes,
-        "total_tarefas": len(editaveis),
-        "tarefas_titulos": [t.titulo for t in tarefas_alvo if t.id in editaveis][:5],
-        "tarefas_ids": editaveis,
-        "logs": [f"Job de ajuste para {len(editaveis)} tarefa(s) registrado. Aguardando worker..."],
+    status_map = {
+        "15": "Backlog",
+        "16": "Backlog Prioritário",
+        "17": "Enviado ao Munka",
+        "18": "Desenvolvimento",
+        "19": "Concluído para o Supervisor",
+        "20": "Homologação",
+        "21": "Concluído",
+        "22": "Arquivado",
+        "35": "Evidência com Pendência",
     }
-    job = models.Fila(
-        tipo="ajuste",
-        commit_id=primeiro_commit or "",
-        status="pending",
-        resultado=json.dumps(info_inicial, ensure_ascii=False),
-        criado_em=datetime.now().isoformat(),
-    )
-    db.add(job)
-    db.flush()
+    target_status_id = alteracoes.get("status_id") or alteracoes.get("status")
+    target_status_nome = status_map.get(str(target_status_id)) if target_status_id else None
 
-    task = ajustar_tarefas_munka_task.delay(editaveis, alteracoes, job.id)
-    job.task_id = task.id
+    # Se a alteração for apenas status, verifica quais já estão no status desejado
+    apenas_status = len(alteracoes) == 1 and target_status_nome is not None
+
+    jobs_criados = []
+    tarefas_para_enfileirar = []
+    ja_atualizadas = []
+
+    for t in tarefas_alvo:
+        # Se for apenas mudança de status e a tarefa já estiver no status desejado, pula
+        if apenas_status:
+            st = (t.status_munka or t.status or "").strip()
+            if st.lower() == target_status_nome.lower():
+                ja_atualizadas.append(t.id)
+                continue
+        tarefas_para_enfileirar.append(t)
+
+    if not tarefas_para_enfileirar and ja_atualizadas:
+        return {
+            "ok": True,
+            "job_id": None,
+            "job_ids": [],
+            "total_enfileiradas": 0,
+            "total_ignoradas": len(ja_atualizadas),
+            "message": f"Todas as {len(ja_atualizadas)} tarefa(s) já estavam no status '{target_status_nome}'."
+        }
+
+    for t in tarefas_para_enfileirar:
+        info_inicial = {
+            "resultado": "PENDING",
+            "alteracoes": alteracoes,
+            "tarefa_id": t.id,
+            "titulo": t.titulo,
+            "logs": [f"Tarefa #{t.id} ('{t.titulo[:40]}...') enfileirada para ajuste paralelo."],
+        }
+        job = models.Fila(
+            tipo="ajuste",
+            commit_id=t.commit_id or "",
+            status="pending",
+            resultado=json.dumps(info_inicial, ensure_ascii=False),
+            criado_em=datetime.now().isoformat(),
+        )
+        db.add(job)
+        db.flush()
+
+        task = ajustar_tarefa_individual_task.delay(t.id, alteracoes, job.id)
+        job.task_id = task.id
+        jobs_criados.append(job.id)
+
     db.commit()
 
-    msg = f"Ajuste de {len(editaveis)} tarefa(s) enfileirado com sucesso!"
-    if concluidas_ignoradas:
-        msg += f" ({len(concluidas_ignoradas)} tarefa(s) já estavam concluídas e foram ignoradas)."
+    msg = f"{len(jobs_criados)} tarefa(s) enfileirada(s) para ajuste concorrente em paralelo!"
+    if ja_atualizadas:
+        msg += f" ({len(ja_atualizadas)} já estavam atualizadas)."
 
     return {
         "ok": True,
-        "job_id": job.id,
-        "total_enfileiradas": len(editaveis),
-        "total_ignoradas": len(concluidas_ignoradas),
+        "job_id": jobs_criados[0] if jobs_criados else None,
+        "job_ids": jobs_criados,
+        "total_enfileiradas": len(jobs_criados),
+        "total_ignoradas": len(ja_atualizadas),
         "message": msg,
     }
 
@@ -2051,9 +2128,19 @@ def reenfileirar_tarefas_com_falha(commit_id: Optional[str] = None, db: Session 
                     res_ant = json.loads(job.resultado)
                 except Exception:
                     pass
+            t_single_id = res_ant.get("tarefa_id")
             t_ids = res_ant.get("tarefas_ids") or []
             alt = res_ant.get("alteracoes") or {}
-            if t_ids and alt:
+            if t_single_id and alt:
+                from celery_tasks import ajustar_tarefa_individual_task
+                res_ant["logs"] = [f"Reenfileirando ajuste individual da tarefa #{t_single_id}..."]
+                res_ant.pop("error", None)
+                task = ajustar_tarefa_individual_task.delay(t_single_id, alt, job.id)
+                job.status = "pending"
+                job.task_id = task.id
+                job.resultado = json.dumps(res_ant, ensure_ascii=False)
+                count += 1
+            elif t_ids and alt:
                 res_ant["logs"] = ["Reenfileirando ajuste de tarefas no Munka..."]
                 res_ant.pop("error", None)
                 task = ajustar_tarefas_munka_task.delay(t_ids, alt, job.id)
@@ -2161,8 +2248,18 @@ def listar_fila(db: Session = Depends(get_db)):
                 titulo_atividade = "Sincronização de Status com Munka"
                 mensagem = "Varredura de status na listagem do portal Munka"
             elif j.tipo == "ajuste":
-                titulo_atividade = "Ajuste de Tarefas no Munka"
-                mensagem = "Ajuste de campos de tarefas no portal"
+                res_obj = None
+                if j.resultado:
+                    try:
+                        res_obj = json.loads(j.resultado)
+                    except Exception:
+                        pass
+                if isinstance(res_obj, dict) and res_obj.get("titulo"):
+                    t_id_str = f"#{res_obj.get('tarefa_id')} - " if res_obj.get('tarefa_id') else ""
+                    titulo_atividade = f"{t_id_str}{res_obj.get('titulo')}"
+                else:
+                    titulo_atividade = "Ajuste de Tarefas no Munka"
+                mensagem = "Ajuste de campos no portal Munka"
 
         resultado_data = None
         if j.resultado:
@@ -2184,9 +2281,16 @@ def listar_fila(db: Session = Depends(get_db)):
                     if j.status == "pending" and j.tipo in ("ajuste", "verificacao") and isinstance(resultado_data, dict) and not resultado_data.get("auto_retried"):
                         resultado_data["auto_retried"] = True
                         if j.tipo == "ajuste":
-                            t_ids = resultado_data.get("tarefas_ids") or []
                             alt = resultado_data.get("alteracoes") or {}
-                            if t_ids and alt:
+                            t_single_id = resultado_data.get("tarefa_id")
+                            t_ids = resultado_data.get("tarefas_ids") or []
+                            if t_single_id and alt:
+                                from celery_tasks import ajustar_tarefa_individual_task
+                                new_task = ajustar_tarefa_individual_task.delay(t_single_id, alt, j.id)
+                                j.task_id = new_task.id
+                                j.resultado = json.dumps(resultado_data, ensure_ascii=False)
+                                db.commit()
+                            elif t_ids and alt:
                                 new_task = ajustar_tarefas_munka_task.delay(t_ids, alt, j.id)
                                 j.task_id = new_task.id
                                 j.resultado = json.dumps(resultado_data, ensure_ascii=False)
@@ -2253,6 +2357,28 @@ def remover_job_fila(job_id: int, db: Session = Depends(get_db)):
 
     db.delete(job)
     db.commit()
+
+
+@app.post("/fila/limpar-meses-anteriores")
+def limpar_fila_meses_anteriores(db: Session = Depends(get_db)):
+    """Remove da fila de execução todos os itens concluídos ou com erro criados antes do mês atual."""
+    primeiro_dia_mes = datetime(datetime.now().year, datetime.now().month, 1).isoformat()
+    jobs_antigos = db.query(models.Fila).filter(
+        models.Fila.criado_em < primeiro_dia_mes,
+        models.Fila.status.in_(["done", "error"])
+    ).all()
+
+    ids_antigos = [j.id for j in jobs_antigos]
+    if ids_antigos:
+        db.query(models.FilaLogsHistorico).filter(models.FilaLogsHistorico.fila_id.in_(ids_antigos)).delete(synchronize_session=False)
+        db.query(models.Fila).filter(models.Fila.id.in_(ids_antigos)).delete(synchronize_session=False)
+        db.commit()
+
+    return {
+        "ok": True,
+        "removidos": len(ids_antigos),
+        "message": f"{len(ids_antigos)} tarefas da fila de meses anteriores foram removidas com sucesso."
+    }
 
 
 # ─── Fila Logs Historico Endpoints ──────────────────────────────────────────

@@ -11,7 +11,7 @@
           </span>
         </div>
         <p class="page-subtitle">
-          Audite e gerencie tarefas lançadas no portal Munka. Tarefas que ainda não foram marcadas como concluídas pelo supervisor podem ser alteradas individualmente ou em lote.
+          Audite e gerencie tarefas lançadas no portal Munka. Selecione e ajuste atividades livremente quantas vezes for necessário, de forma individual ou em lote.
         </p>
       </div>
 
@@ -111,19 +111,19 @@
         </div>
         <div class="metrica-info">
           <span class="metrica-label">Disponíveis p/ Ajuste</span>
-          <span class="metrica-valor text-green">{{ dados.editaveis }}</span>
-          <span class="metrica-hint">Não concluídas pelo supervisor</span>
+          <span class="metrica-valor text-green">{{ dados.total }}</span>
+          <span class="metrica-hint">Seleção e edição livre</span>
         </div>
       </div>
 
       <div class="metrica-card">
         <div class="metrica-icon icon-concluida">
-          <i class="fa-solid fa-lock" aria-hidden="true"></i>
+          <i class="fa-solid fa-check-double" aria-hidden="true"></i>
         </div>
         <div class="metrica-info">
-          <span class="metrica-label">Concluídas (Bloqueadas)</span>
+          <span class="metrica-label">Concluídas no Munka</span>
           <span class="metrica-valor text-muted">{{ dados.concluidas }}</span>
-          <span class="metrica-hint">Aprovadas no Munka</span>
+          <span class="metrica-hint">Aprovadas no portal</span>
         </div>
       </div>
 
@@ -188,7 +188,7 @@
         </button>
       </div>
 
-      <div class="status-filter-pills" role="radiogroup" aria-label="Filtrar por editabilidade">
+      <div class="status-filter-pills" role="radiogroup" aria-label="Filtrar por status">
         <button 
           type="button" 
           class="pill-btn" 
@@ -200,11 +200,11 @@
         <button 
           type="button" 
           class="pill-btn pill-editavel" 
-          :class="{ active: filtroStatus === 'editaveis' }" 
-          @click="filtroStatus = 'editaveis'"
+          :class="{ active: filtroStatus === 'abertas' }" 
+          @click="filtroStatus = 'abertas'"
         >
-          <i class="fa-solid fa-pen" aria-hidden="true"></i>
-          <span>Editáveis ({{ contagemEditaveis }})</span>
+          <i class="fa-solid fa-spinner" aria-hidden="true"></i>
+          <span>Em Aberto ({{ contagemAbertas }})</span>
         </button>
         <button 
           type="button" 
@@ -212,7 +212,7 @@
           :class="{ active: filtroStatus === 'concluidas' }" 
           @click="filtroStatus = 'concluidas'"
         >
-          <i class="fa-solid fa-lock" aria-hidden="true"></i>
+          <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
           <span>Concluídas ({{ contagemConcluidas }})</span>
         </button>
       </div>
@@ -256,10 +256,10 @@
               <input 
                 type="checkbox" 
                 class="custom-checkbox" 
-                :checked="todosEditaveisSelecionados" 
-                :disabled="tarefasEditaveisVisiveis.length === 0"
-                :title="todosEditaveisSelecionados ? 'Desmarcar todas' : 'Selecionar todas as editáveis visíveis'"
-                aria-label="Selecionar todas as tarefas editáveis"
+                :checked="todosSelecionados" 
+                :disabled="tarefasExibidas.length === 0"
+                :title="todosSelecionados ? 'Desmarcar todas' : 'Selecionar todas as tarefas visíveis'"
+                aria-label="Selecionar todas as tarefas"
                 @change="toggleSelecionarTodas"
               />
             </th>
@@ -276,7 +276,6 @@
             v-for="t in tarefasExibidas" 
             :key="t.id" 
             :class="{ 
-              'row-concluida': !t.pode_alterar, 
               'row-selected': isSelecionada(t.id) 
             }"
           >
@@ -286,8 +285,7 @@
                 type="checkbox" 
                 class="custom-checkbox" 
                 :checked="isSelecionada(t.id)" 
-                :disabled="!t.pode_alterar"
-                :title="!t.pode_alterar ? 'Tarefa já concluída pelo supervisor (bloqueada para alteração)' : 'Selecionar tarefa para ajuste'"
+                :title="isSelecionada(t.id) ? 'Desmarcar tarefa' : 'Selecionar tarefa para ajuste'"
                 :aria-label="`Selecionar tarefa ${t.titulo}`"
                 @change="toggleSelecao(t.id)"
               />
@@ -360,23 +358,23 @@
               </div>
             </td>
 
-            <!-- Condição do Supervisor (Editabilidade) -->
+            <!-- Condição do Supervisor / Status -->
             <td class="col-supervisor">
               <span 
-                v-if="t.pode_alterar" 
-                class="badge-condicao badge-editavel" 
-                title="Esta tarefa ainda não foi para a aba de concluído pelo supervisor, portanto pode ser alterada."
+                v-if="isTarefaConcluida(t)" 
+                class="badge-condicao badge-concluida" 
+                title="Tarefa concluída no Munka. Seleção e edições continuam liberadas a qualquer momento."
               >
-                <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
-                <span>Pode Alterar</span>
+                <i class="fa-solid fa-check-double" aria-hidden="true"></i>
+                <span>Concluída</span>
               </span>
               <span 
                 v-else 
-                class="badge-condicao badge-bloqueada" 
-                title="Tarefa concluída pelo supervisor no Munka. Edições estão travadas para manter conformidade."
+                class="badge-condicao badge-editavel" 
+                title="Tarefa em andamento no Munka. Disponível para ajuste."
               >
-                <i class="fa-solid fa-lock" aria-hidden="true"></i>
-                <span>Concluída (Bloqueada)</span>
+                <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+                <span>Em Aberto</span>
               </span>
             </td>
 
@@ -385,8 +383,7 @@
               <button 
                 type="button" 
                 class="btn-ajustar-single" 
-                :disabled="!t.pode_alterar"
-                :title="!t.pode_alterar ? 'Esta tarefa já foi concluída pelo supervisor' : 'Ajustar campos desta tarefa no Munka'"
+                title="Ajustar campos desta tarefa no Munka"
                 @click="abrirModalAjusteSingle(t)"
               >
                 <i class="fa-solid fa-sliders" aria-hidden="true"></i>
@@ -433,6 +430,7 @@
                   <option value="16">Backlog Prioritário (16)</option>
                   <option value="17">Aberto / Pendente (17)</option>
                   <option value="18">Desenvolvimento (18)</option>
+                  <option value="19">Concluído para o Supervisor (19)</option>
                   <option value="20">Homologação (20)</option>
                   <option value="21">Concluído (21)</option>
                 </select>
@@ -570,6 +568,7 @@
                     <option value="16">Backlog Prioritário (16)</option>
                     <option value="17">Aberto / Pendente (17)</option>
                     <option value="18">Desenvolvimento (18)</option>
+                    <option value="19">Concluído para o Supervisor (19)</option>
                     <option value="20">Homologação (20)</option>
                     <option value="21">Concluído (21)</option>
                   </select>
@@ -748,8 +747,8 @@ const helpItems = [
     text: 'Lista todas as tarefas enviadas pelo sistema no mês selecionado, consolidando informações de status lidas diretamente da plataforma Munka.' 
   },
   { 
-    title: 'Condição do Supervisor (Editabilidade)', 
-    text: 'Se uma tarefa já foi aprovada e movida para a aba de Concluído pelo supervisor no Munka, ela fica bloqueada para prevenir divergências. Todas as demais tarefas continuam disponíveis para alteração.' 
+    title: 'Condição no Munka e Ajustes', 
+    text: 'Todas as tarefas lançadas podem ser selecionadas e editadas quantas vezes você precisar, seja individualmente ou em lote, independente da fase ou status.' 
   },
   { 
     title: 'Sincronizar no Munka', 
@@ -793,7 +792,7 @@ const dados = ref<TarefasMesResponse>({
 
 // Filtros locais
 const filtroTexto = ref<string>('')
-const filtroStatus = ref<'todos' | 'editaveis' | 'concluidas'>('todos')
+const filtroStatus = ref<'todos' | 'abertas' | 'concluidas'>('todos')
 
 // Seleção de itens
 const selecionadosIds = ref<number[]>([])
@@ -838,6 +837,18 @@ const totalCamposHabilitados = computed(() => {
   return Object.values(habilitarCampo).filter(Boolean).length
 })
 
+function isTarefaConcluida(t: TarefaMesItem): boolean {
+  const s = (t.status_munka || t.status || '').toLowerCase()
+  return (
+    s.includes('conclu') ||
+    s === '19' ||
+    s === '21' ||
+    s.includes('supervisor') ||
+    s.includes('aprovad') ||
+    s.includes('finalizad')
+  )
+}
+
 // Contagens e Filtros
 const tarefasFiltradasPorTexto = computed(() => {
   const q = filtroTexto.value.trim().toLowerCase()
@@ -854,31 +865,27 @@ const tarefasFiltradasPorTexto = computed(() => {
   })
 })
 
-const contagemEditaveis = computed(() => {
-  return tarefasFiltradasPorTexto.value.filter(t => t.pode_alterar).length
+const contagemAbertas = computed(() => {
+  return tarefasFiltradasPorTexto.value.filter(t => !isTarefaConcluida(t)).length
 })
 
 const contagemConcluidas = computed(() => {
-  return tarefasFiltradasPorTexto.value.filter(t => !t.pode_alterar).length
+  return tarefasFiltradasPorTexto.value.filter(t => isTarefaConcluida(t)).length
 })
 
 const tarefasExibidas = computed(() => {
   return tarefasFiltradasPorTexto.value.filter(t => {
-    if (filtroStatus.value === 'editaveis') return t.pode_alterar
-    if (filtroStatus.value === 'concluidas') return !t.pode_alterar
+    if (filtroStatus.value === 'abertas') return !isTarefaConcluida(t)
+    if (filtroStatus.value === 'concluidas') return isTarefaConcluida(t)
     return true
   })
 })
 
-const tarefasEditaveisVisiveis = computed(() => {
-  return tarefasExibidas.value.filter(t => t.pode_alterar)
-})
-
 const selecionadasCount = computed(() => selecionadosIds.value.length)
 
-const todosEditaveisSelecionados = computed(() => {
-  if (tarefasEditaveisVisiveis.value.length === 0) return false
-  return tarefasEditaveisVisiveis.value.every(t => selecionadosIds.value.includes(t.id))
+const todosSelecionados = computed(() => {
+  if (tarefasExibidas.value.length === 0) return false
+  return tarefasExibidas.value.every(t => selecionadosIds.value.includes(t.id))
 })
 
 function isSelecionada(id: number): boolean {
@@ -895,13 +902,13 @@ function toggleSelecao(id: number) {
 }
 
 function toggleSelecionarTodas() {
-  if (todosEditaveisSelecionados.value) {
+  if (todosSelecionados.value) {
     // Desmarca as visíveis
-    const idsVisiveis = new Set(tarefasEditaveisVisiveis.value.map(t => t.id))
+    const idsVisiveis = new Set(tarefasExibidas.value.map(t => t.id))
     selecionadosIds.value = selecionadosIds.value.filter(id => !idsVisiveis.has(id))
   } else {
-    // Marca todas as editáveis visíveis
-    const novoSet = new Set([...selecionadosIds.value, ...tarefasEditaveisVisiveis.value.map(t => t.id)])
+    // Marca todas as visíveis
+    const novoSet = new Set([...selecionadosIds.value, ...tarefasExibidas.value.map(t => t.id)])
     selecionadosIds.value = Array.from(novoSet)
   }
 }
@@ -964,7 +971,6 @@ async function sincronizarComMunka() {
 }
 
 function abrirModalAjusteSingle(t: TarefaMesItem) {
-  if (!t.pode_alterar) return
   tarefaAlvoSingle.value = t
   formSingle.cargo = configPadrao.value.munka_cargo || '9'
   formSingle.nivel = configPadrao.value.munka_nivel || '3'
@@ -1003,6 +1009,7 @@ async function salvarAjusteSingle() {
       '16': 'Backlog Prioritário',
       '17': 'Aberto / Pendente',
       '18': 'Desenvolvimento',
+      '19': 'Concluído para o Supervisor',
       '20': 'Homologação',
       '21': 'Concluído'
     }
@@ -1079,6 +1086,7 @@ async function salvarAjusteLote() {
         '16': 'Backlog Prioritário',
         '17': 'Aberto / Pendente',
         '18': 'Desenvolvimento',
+        '19': 'Concluído para o Supervisor',
         '20': 'Homologação',
         '21': 'Concluído'
       }
@@ -1106,6 +1114,7 @@ async function salvarAjusteLote() {
 function obterClasseBadgeStatus(status?: string): string {
   if (!status) return 'badge-gray'
   const s = status.toLowerCase()
+  if (s.includes('supervisor') || s === '19') return 'badge-green'
   if (s.includes('conclu') || s === '21' || s.includes('aprov')) return 'badge-green'
   if (s.includes('homolog') || s === '20') return 'badge-blue'
   if (s.includes('desenv') || s === '18') return 'badge-orange'
@@ -1780,7 +1789,8 @@ onMounted(async () => {
   border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
-.badge-bloqueada {
+.badge-bloqueada,
+.badge-concluida {
   background: rgba(148, 163, 184, 0.12);
   color: var(--text-muted);
   border: 1px solid var(--border);

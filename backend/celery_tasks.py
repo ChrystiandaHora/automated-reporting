@@ -967,8 +967,11 @@ def ajustar_tarefas_munka_task(self, historico_ids: list[int], alteracoes: dict,
             "16": "Backlog Prioritário",
             "17": "Enviado ao Munka",
             "18": "Desenvolvimento",
+            "19": "Concluído para o Supervisor",
             "20": "Homologação",
             "21": "Concluído",
+            "22": "Arquivado",
+            "35": "Evidência com Pendência",
         }
 
         sucessos = 0
@@ -982,14 +985,6 @@ def ajustar_tarefas_munka_task(self, historico_ids: list[int], alteracoes: dict,
                 if not hist:
                     log(f"⚠️ Tarefa #{h_id} não encontrada no banco. Pulando...")
                     puladas += 1
-                    continue
-
-                # Trava de segurança: se a tarefa já estiver concluída pelo supervisor, não alterar
-                st_atual = (hist.status_munka or hist.status or "").lower()
-                if "conclu" in st_atual or st_atual == "21":
-                    log(f"⛔ Tarefa #{h_id} ('{hist.titulo[:35]}...') já está CONCLUÍDA para o supervisor. Alteração bloqueada!")
-                    puladas += 1
-                    detalhes.append({"id": h_id, "titulo": hist.titulo, "status": "bloqueada_concluida"})
                     continue
 
                 target_id = hist.task_id or hist.task_url or str(hist.id)
@@ -1072,6 +1067,150 @@ def ajustar_tarefas_munka_task(self, historico_ids: list[int], alteracoes: dict,
             "resultado": "ERRO",
             "alteracoes": alteracoes,
             "tarefas_ids": historico_ids,
+            "logs": logs,
+            "error": str(e),
+        }
+        if fila_id:
+            with SessionLocal() as db_f:
+                f = db_f.query(models.Fila).filter_by(id=fila_id).first()
+                if f:
+                    f.status = "error"
+                    f.resultado = json.dumps(res_err, ensure_ascii=False)
+                    f.concluido_em = datetime.now().isoformat()
+                    db_f.commit()
+        raise e
+
+
+@celery_app.task(bind=True, name="tasks.ajustar_tarefa_individual")
+def ajustar_tarefa_individual_task(self, historico_id: int, alteracoes: dict, fila_id=None):
+    from database import SessionLocal
+    import models
+    from api import obter_config_valores
+    from automation import MunkaAutomation
+
+    logs = []
+
+    def log(msg):
+        logs.append(msg)
+        print(f"[ajustar_tarefa #{historico_id}] {msg}", flush=True)
+        self.update_state(state="PROGRESS", meta={"logs": logs})
+        if fila_id:
+            try:
+                with SessionLocal() as db_l:
+                    fl = db_l.query(models.Fila).filter_by(id=fila_id).first()
+                    if fl and fl.status == "running":
+                        cur_data = {}
+                        if fl.resultado:
+                            try:
+                                cur_data = json.loads(fl.resultado)
+                            except Exception:
+                                pass
+                        cur_data["resultado"] = "RUNNING"
+                        cur_data["alteracoes"] = alteracoes
+                        cur_data["tarefa_id"] = historico_id
+                        cur_data["logs"] = logs
+                        fl.resultado = json.dumps(cur_data, ensure_ascii=False)
+                        db_l.commit()
+            except Exception:
+                pass
+
+    try:
+        if fila_id:
+            with SessionLocal() as db_f:
+                f = db_f.query(models.Fila).filter_by(id=fila_id).first()
+                if f:
+                    f.status = "running"
+                    f.task_id = self.request.id
+                    db_f.commit()
+
+        status_map = {
+            "15": "Backlog",
+            "16": "Backlog Prioritário",
+            "17": "Enviado ao Munka",
+            "18": "Desenvolvimento",
+            "19": "Concluído para o Supervisor",
+            "20": "Homologação",
+            "21": "Concluído",
+            "22": "Arquivado",
+            "35": "Evidência com Pendência",
+        }
+
+        # 1. Carrega dados da tarefa no SQLite
+        with SessionLocal() as db:
+            hist = db.query(models.Historico).filter_by(id=historico_id).first()
+            if not hist:
+                raise ValueError(f"Tarefa #{historico_id} não encontrada no banco.")
+
+            target_id = hist.task_id or hist.task_url or str(hist.id)
+            expected_data = {
+                "titulo": hist.titulo or "",
+                "commit": hist.commit_id or "",
+                "task_id": hist.task_id or "",
+                "task_url": hist.task_url or "",
+            }
+
+        cfg = obter_config_valores()
+        log(f"⚡ Iniciando ajuste da tarefa #{historico_id} (Target: {target_id}) no portal Munka...")
+        auto = MunkaAutomation(
+            username=cfg.get("MUNKA_USER", ""),
+            password=cfg.get("MUNKA_PASS", ""),
+            munka_url=cfg.get("MUNKA_URL", ""),
+            headless=True,
+            log_callback=log,
+        )
+
+        res_ajuste = auto.ajustar_tarefa_portal(target_id, alteracoes, expected_data)
+        campos_alterados = res_ajuste.get("campos_ajustados", [])
+
+        # 2. Atualiza no SQLite
+        with SessionLocal() as db_up:
+            h = db_up.query(models.Historico).filter_by(id=historico_id).first()
+            if h:
+                novo_status_id = alteracoes.get("status_id") or alteracoes.get("status")
+                if novo_status_id:
+                    novo_status_nome = status_map.get(str(novo_status_id), f"Status {novo_status_id}")
+                    h.status = novo_status_nome
+                    h.status_munka = novo_status_nome
+                h.munka_atualizado_em = datetime.now().isoformat()
+                db_up.commit()
+
+        log(f"✅ Tarefa #{historico_id} ajustada com sucesso no Munka e atualizada no banco!")
+        res = {
+            "resultado": "OK",
+            "tarefa_id": historico_id,
+            "campos_ajustados": campos_alterados,
+            "alteracoes": alteracoes,
+            "logs": logs,
+        }
+        if fila_id:
+            with SessionLocal() as db_f:
+                f = db_f.query(models.Fila).filter_by(id=fila_id).first()
+                if f:
+                    f.status = "done"
+                    f.resultado = json.dumps(res, ensure_ascii=False)
+                    f.concluido_em = datetime.now().isoformat()
+                    try:
+                        hist_log = models.FilaLogsHistorico(
+                            fila_id=f.id,
+                            tipo=f.tipo,
+                            commit_id=f.commit_id,
+                            atividade_idx=None,
+                            tentativa=1,
+                            status="done",
+                            logs=json.dumps(logs, ensure_ascii=False),
+                            criado_em=datetime.now().isoformat(),
+                        )
+                        db_f.add(hist_log)
+                    except Exception:
+                        pass
+                    db_f.commit()
+        return res
+    except Exception as e:
+        log(f"❌ Erro ao ajustar tarefa #{historico_id}: {str(e)}")
+        res_err = {
+            "resultado": "ERRO",
+            "tarefa_id": historico_id,
+            "alteracoes": alteracoes,
             "logs": logs,
             "error": str(e),
         }

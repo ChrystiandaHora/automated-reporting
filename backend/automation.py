@@ -2740,12 +2740,39 @@ class MunkaAutomation:
         # 7. Status (garante atualização tanto nativa quanto via Select2/jQuery)
         status_val = alteracoes.get("status_id") or alteracoes.get("status")
         if status_val:
-            self._log(f"Ajustando Status para '{status_val}'...")
+            st_raw = str(status_val).strip()
+            # Mapeamento de texto amigável para ID real no Munka
+            status_map_munka = {
+                "backlog": "15",
+                "backlog prioritário": "16",
+                "backlog prioritario": "16",
+                "pendente": "17",
+                "aberto": "17",
+                "aberto / pendente": "17",
+                "desenvolvimento": "18",
+                "concluído para o supervisor": "19",
+                "concluido para o supervisor": "19",
+                "concluído para supervisor": "19",
+                "concluido para supervisor": "19",
+                "homologação": "20",
+                "homologacao": "20",
+                "concluído": "21",
+                "concluido": "21",
+                "arquivado": "22",
+                "evidência com pendência": "35",
+                "evidencia com pendencia": "35",
+            }
+            final_status_id = status_map_munka.get(st_raw.lower(), st_raw)
+            self._log(f"Ajustando Status para '{final_status_id}' (origem: '{st_raw}')...")
             try:
-                page.locator("select#status, select[name='status']").select_option(value=str(status_val))
+                page.locator("select#status, select[name='status']").select_option(value=str(final_status_id))
             except Exception:
-                pass
-            page.evaluate(f"""([stVal]) => {{
+                try:
+                    page.locator("select#status, select[name='status']").select_option(label=st_raw)
+                except Exception:
+                    pass
+
+            page.evaluate(f"""([stVal, stLabel]) => {{
                 const el = document.querySelector('select#status') || document.querySelector('select[name="status"]') || document.querySelector('#status');
                 if (el) {{
                     el.value = String(stVal);
@@ -2760,7 +2787,7 @@ class MunkaAutomation:
                         }}
                     }}
                 }}
-            }}""", [str(status_val)])
+            }}""", [str(final_status_id), st_raw])
             page.wait_for_timeout(200)
             campos_ajustados.append("status")
 
