@@ -5,7 +5,7 @@
       <div class="header-main-col">
         <div class="title-row">
           <h1>Dashboard de Indicadores</h1>
-          <HelpModal title="Sobre o Dashboard" :items="helpItems" />
+          <TutorialModal screenId="dashboard" />
         </div>
         <p class="dashboard-subtitle">
           Métricas consolidadas de commits, análise preditiva com IA e faturamento HPA integrado ao Munka.
@@ -581,20 +581,12 @@ import { useRouter } from 'vue-router'
 import { useCommitsStore } from '../stores/commits'
 import { useFilaStore } from '../stores/fila'
 import { api } from '../api'
-import HelpModal from '../components/HelpModal.vue'
+import TutorialModal from '../components/TutorialModal.vue'
 import type { CommitSummary } from '../api'
 
 const router = useRouter()
 const store = useCommitsStore()
 const filaStore = useFilaStore()
-
-const helpItems = [
-  { title: 'Visão Geral Executiva', text: 'Painel consolidado com indicadores de faturamento HPA, esforço médio, tarefas mapeadas e taxas de conversão do código para o Munka.' },
-  { title: 'Filtro Temporal', text: 'Selecione um mês específico para avaliar a produtividade mensal ou mantenha em "Consolidado" para visualizar o acumulado histórico.' },
-  { title: 'Gráfico Interativo', text: 'Clique nas barras mensais para alternar rapidamente o período exibido no dashboard.' },
-  { title: 'Pipeline de Automação', text: 'Acompanhe as 4 etapas do fluxo operacional: Ingestão de Commits Git, Análise por IA (Gemini), Extração de Atividades HPA e Envio ao Timesheet Munka.' },
-  { title: 'Quantificação por Código', text: 'Analise a distribuição de esforço e faturamento por categoria e código de serviço prestado.' },
-]
 
 const mesSelecionado = ref<string>('todos')
 const atualizando = ref(false)
@@ -1331,7 +1323,8 @@ const codigosProcessados = computed(() => {
 }
 
 .kpi-queue-link:hover {
-  text-decoration: underline;
+  text-decoration: none;
+  color: var(--text);
   gap: 0.55rem;
 }
 
@@ -1551,7 +1544,8 @@ const codigosProcessados = computed(() => {
 }
 
 .link-panel-action:hover {
-  text-decoration: underline;
+  text-decoration: none;
+  color: var(--text);
   gap: 0.55rem;
 }
 

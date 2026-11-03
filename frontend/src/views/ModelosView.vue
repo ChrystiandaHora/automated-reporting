@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { api, type ModelStatus } from '../api'
+import TutorialModal from '../components/TutorialModal.vue'
 
 const modelos = ref<ModelStatus[]>([])
 const loading = ref(true)
@@ -144,10 +145,10 @@ onUnmounted(() => {
   <div class="modelos-view">
     <div class="header-section">
       <div class="header-text">
-        <h1 class="page-title">
-          Limites de taxa por modelo
-          <button class="info-icon" type="button" aria-label="Informações sobre limite de uso: Máximo de uso por modelo em comparação com o limite estabelecido" title="Máximo de uso por modelo em comparação com o limite estabelecido" style="border: none; background: transparent; color: inherit; cursor: help; font-size: 1rem; opacity: 0.6;">ⓘ</button>
-        </h1>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <h1 class="page-title">Limites de taxa por modelo</h1>
+          <TutorialModal screenId="modelos" />
+        </div>
         <p class="page-subtitle">
           Monitoramento em tempo real do volume de requisições (RPM), consumo de tokens (TPM) e uso diário (RPD).
         </p>
@@ -271,10 +272,11 @@ onUnmounted(() => {
                 @click="simularChamada(model.id)"
                 title="Simular 1 chamada para este modelo"
               >
-                {{ testingModelId === model.id ? 'Testando...' : '⚡ Testar' }}
+                <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+                <span>{{ testingModelId === model.id ? 'Testando...' : 'Testar' }}</span>
               </button>
-              <button class="btn-sm btn-icon" @click="abrirEdicao(model)" title="Editar Limites">
-                ⚙️
+              <button class="btn-sm btn-icon" @click="abrirEdicao(model)" title="Editar Limites" aria-label="Editar limites do modelo">
+                <i class="fa-solid fa-gear" aria-hidden="true"></i>
               </button>
             </td>
           </tr>

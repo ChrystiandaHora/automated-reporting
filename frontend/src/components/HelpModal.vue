@@ -6,7 +6,9 @@
       <div ref="modalRef" class="modal help-modal" role="dialog" aria-modal="true" :aria-labelledby="titleId">
         <div class="help-modal-header">
           <h2 :id="titleId">{{ title }}</h2>
-          <button class="close-btn" @click="open = false" aria-label="Fechar ajuda">✕</button>
+          <button class="close-btn" @click="open = false" aria-label="Fechar ajuda">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          </button>
         </div>
         <div class="help-modal-body">
           <div v-for="item in items" :key="item.title" class="help-item">

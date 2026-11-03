@@ -4,6 +4,7 @@
     <div class="page-header">
       <div class="title-row">
         <h1>Logs de Execução</h1>
+        <TutorialModal screenId="fila-logs" />
         <span v-if="logs.length > 0" class="logs-count-badge">
           {{ logsFiltrados.length }} de {{ logs.length }} log{{ logs.length > 1 ? 's' : '' }}
         </span>
@@ -19,17 +20,21 @@
           :title="`Excluir ${selecionados.length} log(s) selecionado(s)`"
           aria-label="Excluir logs selecionados"
         >
-          🗑️ Excluir Selecionados ({{ selecionados.length }})
+          <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+          <span>Excluir Selecionados ({{ selecionados.length }})</span>
         </button>
 
-        <button type="button" class="btn-ghost btn-sm" @click="carregarLogs">↻ Atualizar</button>
+        <button type="button" class="btn-ghost btn-sm" @click="carregarLogs">
+          <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
+          <span>Atualizar</span>
+        </button>
       </div>
     </div>
 
     <!-- Barra de Filtros e Seleção -->
     <div class="filters-bar" role="search" aria-label="Filtros de logs">
       <div class="search-box">
-        <span class="search-icon" aria-hidden="true">🔍</span>
+        <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true"></i>
         <input 
           id="search-logs-input"
           v-model="filtroTexto" 
@@ -45,7 +50,7 @@
           @click="filtroTexto = ''"
           aria-label="Limpar busca"
         >
-          ✕
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
       </div>
 
@@ -65,7 +70,8 @@
           :class="{ active: filtroStatus === 'retrying' }"
           @click="filtroStatus = 'retrying'"
         >
-          🔄 Retries ({{ countStatus('retrying') }})
+          <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
+          <span>Retries ({{ countStatus('retrying') }})</span>
         </button>
         <button 
           type="button"
@@ -73,7 +79,8 @@
           :class="{ active: filtroStatus === 'error' }"
           @click="filtroStatus = 'error'"
         >
-          ❌ Erros ({{ countStatus('error') }})
+          <i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>
+          <span>Erros ({{ countStatus('error') }})</span>
         </button>
         <button 
           type="button"
@@ -81,7 +88,8 @@
           :class="{ active: filtroStatus === 'done' }"
           @click="filtroStatus = 'done'"
         >
-          ✔ Sucesso ({{ countStatus('done') }})
+          <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+          <span>Sucesso ({{ countStatus('done') }})</span>
         </button>
       </div>
 
@@ -141,6 +149,9 @@
 
             <!-- Badge Status / Tentativa -->
             <span class="badge" :class="obterClasseStatusBadge(log.status)">
+              <i v-if="log.status === 'done'" class="fa-solid fa-circle-check" aria-hidden="true" style="margin-right: 4px;"></i>
+              <i v-else-if="log.status === 'retrying'" class="fa-solid fa-arrows-rotate" aria-hidden="true" style="margin-right: 4px;"></i>
+              <i v-else-if="log.status === 'error'" class="fa-solid fa-circle-xmark" aria-hidden="true" style="margin-right: 4px;"></i>
               {{ obterTextoStatus(log) }}
             </span>
 
@@ -169,7 +180,8 @@
               :aria-controls="`terminal-body-${log.id}`"
               @click="alternarExpandir(log.id)"
             >
-              {{ isExpandido(log.id) ? '▲ Ocultar Texto' : '▼ Expandir Logs' }}
+              <i :class="isExpandido(log.id) ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'" aria-hidden="true" style="margin-right: 4px;"></i>
+              <span>{{ isExpandido(log.id) ? 'Ocultar Texto' : 'Expandir Logs' }}</span>
             </button>
 
             <!-- Botão Deletar Individual -->
@@ -180,7 +192,8 @@
               :aria-label="`Excluir log #${log.id}`"
               title="Excluir este log"
             >
-              🗑️ Excluir
+              <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+              <span>Excluir</span>
             </button>
           </div>
         </div>
@@ -217,10 +230,11 @@
                 @click="copiarTextoLog(log)"
                 aria-label="Copiar texto dos logs para a área de transferência"
               >
-                📋 Copiar
+                <i class="fa-solid fa-copy" aria-hidden="true"></i>
+                <span>Copiar</span>
               </button>
             </div>
-            <pre class="terminal-body"><div v-for="(linha, idx) in log.logs" :key="idx" :class="{'error-line': linha.startsWith('❌') || linha.includes('ERRO') || linha.includes('Falha'), 'warning-line': linha.startsWith('⚠️') || linha.startsWith('⏸️')}">{{ linha }}</div></pre>
+            <pre class="terminal-body"><div v-for="(linha, idx) in log.logs" :key="idx" :class="{'error-line': linha.includes('\u274c') || linha.includes('ERRO') || linha.includes('Falha'), 'warning-line': linha.includes('\u26a0') || linha.includes('\u23f8')}">{{ linha }}</div></pre>
           </div>
         </div>
       </article>
@@ -232,6 +246,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { api, type FilaLogItem } from '../api'
 import { useToastStore } from '../stores/toast'
+import TutorialModal from '../components/TutorialModal.vue'
 
 const toastStore = useToastStore()
 
@@ -346,9 +361,9 @@ async function removerSelecionados() {
 }
 
 function obterTextoStatus(log: FilaLogItem) {
-  if (log.status === 'done') return `✔ Sucesso (Tentativa ${log.tentativa})`
-  if (log.status === 'retrying') return `🔄 Retry (Tentativa ${log.tentativa})`
-  if (log.status === 'error') return `❌ Falha Final (Tentativa ${log.tentativa})`
+  if (log.status === 'done') return `Sucesso (Tentativa ${log.tentativa})`
+  if (log.status === 'retrying') return `Retry (Tentativa ${log.tentativa})`
+  if (log.status === 'error') return `Falha Final (Tentativa ${log.tentativa})`
   return log.status
 }
 
@@ -494,12 +509,13 @@ function formatarDataRelativa(iso: string) {
 
 .input-search {
   width: 100%;
-  padding: 0.5rem 2.2rem 0.5rem 2.2rem;
+  height: 38px;
+  padding: 0 2.35rem;
   border-radius: 8px;
   border: 1px solid var(--input-border);
   background: var(--bg);
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   outline: none;
   transition: all 0.2s ease;
 }
@@ -512,27 +528,44 @@ function formatarDataRelativa(iso: string) {
 .btn-clear-search {
   position: absolute;
   right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
   background: transparent;
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 0.2rem;
-  font-size: 0.85rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  transition: all 0.15s ease;
+}
+
+.btn-clear-search:hover {
+  background: var(--card-border);
+  color: var(--text);
 }
 
 .status-filters {
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  flex-wrap: wrap;
 }
 
 .filter-pill {
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   background: var(--bg);
   border: 1px solid var(--card-border);
   color: var(--text-muted);
-  padding: 0.35rem 0.8rem;
-  border-radius: 20px;
+  padding: 0 0.8rem;
+  border-radius: 8px;
   font-size: 0.82rem;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
 }

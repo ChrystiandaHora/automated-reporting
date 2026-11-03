@@ -3,7 +3,7 @@
     <div class="page-header">
       <div class="title-row">
         <h1>Commits</h1>
-        <HelpModal title="Como funciona esta página" :items="helpItems" />
+        <TutorialModal screenId="commits" />
       </div>
       <button class="btn-primary" @click="$router.push('/importar')">
         <i class="fa-solid fa-file-import" aria-hidden="true"></i>
@@ -784,20 +784,10 @@ import { useRoute } from 'vue-router'
 import { useCommitsStore } from '../stores/commits'
 import { useFilaStore } from '../stores/fila'
 import { useToastStore } from '../stores/toast'
-import HelpModal from '../components/HelpModal.vue'
+import TutorialModal from '../components/TutorialModal.vue'
 import type { CommitSummary } from '../api'
 
 const route = useRoute()
-
-const helpItems = [
-  { title: 'Seleção em Lote e Automação', text: 'Clique na barra do commit ou marque o checkbox para selecioná-lo. Use os botões de seleção rápida no topo ou a barra flutuante para adicionar tarefas diretamente na fila do Munka!' },
-  { title: 'Abrir Detalhes do Commit', text: 'Para evitar cliques acidentais, use o ícone de olho na lateral direita de cada commit para entrar e ver suas atividades e detalhes.' },
-  { title: 'Copiar Hash SHA', text: 'Clique diretamente no número do hash SHA para copiá-lo para a área de transferência.' },
-  { title: 'Visualização por Repositório', text: 'Permite inspecionar commits organizados por projeto do GitLab com métricas consolidadas (tarefas, status e horas HPA).' },
-  { title: 'Linha do Tempo', text: 'Exibe a ordem cronológica dos commits de todos os repositórios, com badges coloridos identificando a origem de cada commit.' },
-  { title: 'Dinamismo da Fila em Tempo Real', text: 'Os commits mostram um badge dinâmico indicando quantas tarefas daquele commit estão na fila do Celery aguardando ou em processamento.' },
-  { title: 'Importar Commit', text: 'Clique em "+ Importar Commit" e informe um ou mais SHAs ou URLs completos do GitLab (um por linha) para importação.' },
-]
 
 const store = useCommitsStore()
 const filaStore = useFilaStore()
@@ -1607,7 +1597,8 @@ async function executarEnfileirarAnaliseLote() {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 0.9rem;
+  height: 34px;
+  padding: 0 0.85rem;
   font-size: 0.88rem;
   font-weight: 600;
   color: var(--text-muted, #8b949e);
@@ -1663,14 +1654,15 @@ async function executarEnfileirarAnaliseLote() {
 
 .search-input {
   width: 100%;
-  padding: 0.55rem 2.2rem 0.55rem 2.4rem;
+  height: 38px;
+  padding: 0 2.35rem;
   font-size: 0.88rem;
   background: var(--bg, #0d1117);
   color: var(--text, #f0f6fc);
   border: 1px solid var(--border, #30363d);
   border-radius: 8px;
   outline: none;
-  transition: border-color 0.15s;
+  transition: all 0.2s ease;
 }
 
 .search-input:focus {
@@ -1883,12 +1875,15 @@ async function executarEnfileirarAnaliseLote() {
   font-weight: 600;
   color: var(--accent, #58a6ff);
   cursor: pointer;
-  padding: 0.2rem 0.4rem;
+  padding: 0.2rem 0.5rem;
   border-radius: 4px;
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .btn-clear-all:hover {
-  text-decoration: underline;
+  text-decoration: none;
+  background: var(--accent-glow);
 }
 
 /* ── CARDS DE REPOSITÓRIO (MODO "POR REPOSITÓRIO") ── */

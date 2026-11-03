@@ -3,12 +3,15 @@
     <div class="page-header">
       <div class="title-row">
         <h1>Histórico de Envios</h1>
-        <HelpModal title="Histórico de Envios" :items="helpItems" />
+        <TutorialModal screenId="historico" />
         <span v-if="items.length > 0" class="history-count-badge">
           {{ items.length }} atividade{{ items.length > 1 ? 's' : '' }}
         </span>
       </div>
-      <button class="btn-ghost btn-sm" @click="carregarHistorico()">↻ Atualizar</button>
+      <button class="btn-ghost btn-sm" @click="carregarHistorico()">
+        <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
+        <span>Atualizar</span>
+      </button>
     </div>
 
     <div v-if="loading" class="loading">Carregando...</div>
@@ -17,7 +20,70 @@
       Nenhuma atividade enviada ainda.
     </div>
 
-    <div v-else class="history-list-grouped">
+    <div v-else class="history-content">
+      <!-- Barra de Filtros e Busca -->
+      <div class="filters-toolbar" role="search" aria-label="Filtros de histórico">
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true"></i>
+          <input 
+            v-model="termoBusca"
+            type="search"
+            placeholder="Buscar por título, código, autor ou commit..."
+            class="search-input"
+            aria-label="Buscar atividades no histórico"
+          />
+          <button 
+            v-if="termoBusca"
+            type="button"
+            class="clear-search-btn"
+            @click="termoBusca = ''"
+            title="Limpar busca"
+            aria-label="Limpar busca"
+          >
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div class="status-segmented" role="group" aria-label="Filtrar por status">
+          <button 
+            type="button"
+            class="status-btn"
+            :class="{ active: filtroStatus === 'todos' }"
+            @click="filtroStatus = 'todos'"
+          >
+            Todas ({{ items.length }})
+          </button>
+          <button 
+            type="button"
+            class="status-btn"
+            :class="{ active: filtroStatus === 'concluidas' }"
+            @click="filtroStatus = 'concluidas'"
+          >
+            <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+            <span>Concluídas ({{ totalConcluidas }})</span>
+          </button>
+          <button 
+            type="button"
+            class="status-btn"
+            :class="{ active: filtroStatus === 'sem_data' }"
+            @click="filtroStatus = 'sem_data'"
+          >
+            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+            <span>Sem Data Fim ({{ totalSemDataFim }})</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Estado sem resultados nos filtros -->
+      <div v-if="itemsFiltrados.length === 0" class="empty">
+        <p>Nenhuma atividade encontrada para os filtros selecionados.</p>
+        <button type="button" class="btn-ghost btn-sm" style="margin-top: 0.5rem;" @click="limparFiltros">
+          <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
+          <span>Limpar Filtros</span>
+        </button>
+      </div>
+
+      <div v-else class="history-list-grouped">
       <!-- Percorre os dias agrupados por data (data do commit ou envio) -->
       <div v-for="grupo in historicoAgrupado" :key="grupo.data" class="date-group">
         
@@ -55,7 +121,8 @@
                   <span class="badge badge-code"><code>{{ item.codigo }}</code></span>
                   <span class="hpa-badge">{{ item.hpa }}h</span>
                   <span class="badge" :class="item.tem_data_fim === false || item.status?.includes('Sem Data Fim') || item.status?.includes('Incompleta') ? 'badge-orange' : 'badge-green'">
-                    {{ item.tem_data_fim === false ? '⚠️ Sem Data Fim' : item.status }}
+                    <i v-if="item.tem_data_fim === false" class="fa-solid fa-triangle-exclamation" aria-hidden="true" style="margin-right: 4px;"></i>
+                    {{ item.tem_data_fim === false ? 'Sem Data Fim' : item.status }}
                   </span>
                 </div>
               </div>
@@ -110,6 +177,7 @@
 
       </div>
     </div>
+  </div>
 
     <!-- Modal de Confirmação de Exclusão -->
     <div v-if="exibindoModalConfirmacao" class="modal-overlay" @click.self="fecharModalConfirmacao">
@@ -130,19 +198,51 @@ import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { api, type HistoricoItem } from '../api'
 import { useToastStore } from '../stores/toast'
 import { useFilaStore } from '../stores/fila'
-import HelpModal from '../components/HelpModal.vue'
-
-const helpItems = [
-  { title: 'O que é exibido aqui', text: 'Todas as atividades enviadas com sucesso aos portais de faturamento. Organizadas por data de commit e envio de forma cronológica.' },
-  { title: 'Código (coluna)', text: 'Código do catálogo de serviços identificado pelo Gemini (ex: 21a, 57b). Determina o tipo de serviço faturado e o valor por hora correspondente.' },
-  { title: 'HPA', text: 'Horas Previstas para Execução da Atividade — quantidade de horas faturadas para aquela atividade, conforme o catálogo de serviços.' },
-  { title: 'Navegar ao commit', text: 'Clique no botão com o hash do commit (SHA) para abrir a página de detalhes do commit original.' },
-]
+import TutorialModal from '../components/TutorialModal.vue'
 
 const items = ref<HistoricoItem[]>([])
 const loading = ref(true)
 const toastStore = useToastStore()
 const filaStore = useFilaStore()
+
+const termoBusca = ref('')
+const filtroStatus = ref<'todos' | 'concluidas' | 'sem_data'>('todos')
+
+const totalConcluidas = computed(() => {
+  return items.value.filter(i => i.tem_data_fim !== false && !i.status?.includes('Sem Data Fim') && !i.status?.includes('Incompleta')).length
+})
+
+const totalSemDataFim = computed(() => {
+  return items.value.filter(i => i.tem_data_fim === false || i.status?.includes('Sem Data Fim') || i.status?.includes('Incompleta')).length
+})
+
+const itemsFiltrados = computed(() => {
+  let list = items.value
+
+  if (filtroStatus.value === 'concluidas') {
+    list = list.filter(i => i.tem_data_fim !== false && !i.status?.includes('Sem Data Fim') && !i.status?.includes('Incompleta'))
+  } else if (filtroStatus.value === 'sem_data') {
+    list = list.filter(i => i.tem_data_fim === false || i.status?.includes('Sem Data Fim') || i.status?.includes('Incompleta'))
+  }
+
+  if (termoBusca.value.trim()) {
+    const termo = termoBusca.value.toLowerCase().trim()
+    list = list.filter(i => 
+      (i.titulo && i.titulo.toLowerCase().includes(termo)) ||
+      (i.codigo && i.codigo.toLowerCase().includes(termo)) ||
+      (i.commit_id && i.commit_id.toLowerCase().includes(termo)) ||
+      (i.commit_autor && i.commit_autor.toLowerCase().includes(termo)) ||
+      (i.commit_mensagem && i.commit_mensagem.toLowerCase().includes(termo))
+    )
+  }
+
+  return list
+})
+
+function limparFiltros() {
+  termoBusca.value = ''
+  filtroStatus.value = 'todos'
+}
 
 let timerHistorico: any = null
 
@@ -371,7 +471,7 @@ function formatDate(iso: string) {
 const historicoAgrupado = computed(() => {
   const grupos: Record<string, HistoricoItem[]> = {}
   
-  for (const item of items.value) {
+  for (const item of itemsFiltrados.value) {
     const dataAgrupamento = obterDataParaAgrupamento(item)
     const dataFormatada = formatarDataCabecalho(dataAgrupamento)
     if (!grupos[dataFormatada]) {

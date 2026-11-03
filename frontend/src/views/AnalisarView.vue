@@ -3,7 +3,7 @@
     <div class="page-header">
       <div class="title-row">
         <h1>Análise de Commits com IA</h1>
-        <HelpModal title="Como funciona a análise" :items="helpItems" />
+        <TutorialModal screenId="analisar" />
       </div>
       <router-link to="/fila" class="btn-ghost btn-sm">
         <i class="fa-solid fa-list-check" aria-hidden="true"></i>
@@ -186,7 +186,8 @@
               :disabled="totalPendentesExibidos === 0"
               title="Selecionar todos os commits pendentes exibidos"
             >
-              ⚡ Selecionar Pendentes ({{ totalPendentesExibidos }})
+              <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+              <span>Selecionar Pendentes ({{ totalPendentesExibidos }})</span>
             </button>
             <button 
               type="button" 
@@ -194,7 +195,8 @@
               @click="selecionarTodosExibidos"
               :disabled="commitsFiltrados.length === 0"
             >
-              ✓ Selecionar Todos Exibidos
+              <i class="fa-solid fa-check-double" aria-hidden="true"></i>
+              <span>Selecionar Todos Exibidos</span>
             </button>
             <button 
               v-if="selecionados.length > 0"
@@ -202,7 +204,8 @@
               class="btn-batch-action btn-clear" 
               @click="desmarcarTodos"
             >
-              ✕ Desmarcar Todos
+              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+              <span>Desmarcar Todos</span>
             </button>
           </div>
         </div>
@@ -456,15 +459,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCommitsStore } from '../stores/commits'
 import { useFilaStore } from '../stores/fila'
-import HelpModal from '../components/HelpModal.vue'
+import TutorialModal from '../components/TutorialModal.vue'
 import type { CommitSummary } from '../api'
-
-const helpItems = [
-  { title: 'Seleção por Repositório', text: 'Você pode marcar ou desmarcar todos os commits de um projeto específico com um único clique no checkbox do card do repositório.' },
-  { title: 'Filtro por Status', text: 'Use o botão "Apenas Pendentes" para isolar rapidamente as alterações que ainda não foram processadas pelo Gemini.' },
-  { title: 'Modelos de AI', text: 'O Gemini 3.8 Flash oferece máxima capacidade de análise, enquanto o Gemini 3.5 Flash Lite conta com o maior limite de cota diária (500 RPD).' },
-  { title: 'Fila de Execução', text: 'Ao confirmar, os commits são enviados para a fila do Celery e processados em paralelo conforme os limites de concorrência configurados.' },
-]
 
 const router = useRouter()
 const route = useRoute()
@@ -975,13 +971,15 @@ async function confirmarAnalise() {
 
 .search-input {
   width: 100%;
-  padding: 0.5rem 2.2rem 0.5rem 2.4rem;
+  height: 38px;
+  padding: 0 2.35rem;
   font-size: 0.85rem;
   background: var(--bg, #0d1117);
   color: var(--text, #f0f6fc);
   border: 1px solid var(--border, #30363d);
   border-radius: 8px;
   outline: none;
+  transition: all 0.2s ease;
 }
 
 .search-input:focus {

@@ -3,7 +3,7 @@
     <div class="page-header">
       <div class="title-row">
         <h1>Configuração</h1>
-        <HelpModal title="Configuração das Integrações" :items="helpItems" />
+        <TutorialModal screenId="config" />
       </div>
       <button class="btn-primary" :disabled="saving" @click="salvar">
         <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
@@ -29,7 +29,7 @@
         </div>
         <div v-if="cfg.concurrency" class="status-item status-info">
           <span class="status-dot-sm"></span>
-          <span>⚡ Concorrência: {{ cfg.concurrency.total_system_limit }} total ({{ cfg.concurrency.queues.analises }} análises / {{ cfg.concurrency.queues.envios }} envios)</span>
+          <span><i class="fa-solid fa-bolt" aria-hidden="true" style="margin-right: 4px;"></i>Concorrência: {{ cfg.concurrency.total_system_limit }} total ({{ cfg.concurrency.queues.analises }} análises / {{ cfg.concurrency.queues.envios }} envios)</span>
         </div>
       </div>
 
@@ -94,7 +94,8 @@
                         <span>{{ testandoGitId === conta.id ? 'Testando...' : 'Testar Conexão' }}</span>
                       </button>
                       <span v-if="testeResultados[conta.id]" class="test-feedback-pill" :class="testeResultados[conta.id].ok ? 'test-ok' : 'test-err'">
-                        {{ testeResultados[conta.id].ok ? `✔ ${testeResultados[conta.id].mensagem}` : `❌ ${testeResultados[conta.id].mensagem}` }}
+                        <i :class="testeResultados[conta.id].ok ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-xmark'" aria-hidden="true" style="margin-right: 4px;"></i>
+                        {{ testeResultados[conta.id].mensagem }}
                       </span>
                     </div>
                   </td>
@@ -141,6 +142,8 @@
             <option value="15">Backlog</option>
             <option value="16">Backlog Prioritário</option>
             <option value="17">Pendente</option>
+            <option value="18">Desenvolvimento</option>
+            <option value="19">Concluído para o Supervisor</option>
             <option value="20">Homologação</option>
             <option value="21">Concluído</option>
             <option value="18">Desenvolvimento</option>
@@ -164,7 +167,7 @@
             </div>
             <div class="info-row">
               <span class="info-label">Pool Dinâmico de Workers:</span>
-              <span class="info-value shared-badge">⚡ Ativo (Prioridade + Fallback)</span>
+              <span class="info-value shared-badge"><i class="fa-solid fa-bolt" aria-hidden="true" style="margin-right: 4px;"></i>Ativo (Prioridade + Fallback)</span>
             </div>
             <div class="info-row sub">
               <span class="info-label">• Fila de Análise de Commits:</span>
@@ -176,14 +179,14 @@
             </div>
           </div>
           <p class="concurrency-note">
-            ⚡ <strong>Rebalanceamento Automático:</strong> Os workers são alocados com prioridade para sua fila principal. Quando uma das filas fica ociosa e a outra acumula tarefas, todos os workers ociosos passam a auxiliar automaticamente a fila ativa.
+            <i class="fa-solid fa-bolt" aria-hidden="true" style="color: var(--accent); margin-right: 4px;"></i><strong>Rebalanceamento Automático:</strong> Os workers são alocados com prioridade para sua fila principal. Quando uma das filas fica ociosa e a outra acumula tarefas, todos os workers ociosos passam a auxiliar automaticamente a fila ativa.
           </p>
         </div>
 
         <div class="config-section">
           <h3>Segurança & Backup Automático</h3>
           <p class="concurrency-note">
-            💾 <strong>Auto-Save em JSON + SQL:</strong> O sistema realiza cópias de segurança automáticas de todas as tarefas, evidencias, commits e histórico no volume de dados persistente.
+            <i class="fa-solid fa-floppy-disk" aria-hidden="true" style="color: var(--accent); margin-right: 4px;"></i><strong>Auto-Save em JSON + SQL:</strong> O sistema realiza cópias de segurança automáticas de todas as tarefas, evidencias, commits e histórico no volume de dados persistente.
           </p>
           <div style="display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap;">
             <button class="btn-primary" :disabled="backupLoading" @click="executarBackupManual">
@@ -197,7 +200,10 @@
           </div>
 
           <div v-if="pingResult" class="ping-box" :class="pingResult.ok ? 'ping-ok' : 'ping-err'" style="margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.85rem;">
-            <strong>{{ pingResult.ok ? '✔ Conexão Ativa:' : '⚠️ Conexão Indisponível:' }}</strong> {{ pingResult.mensagem }}
+            <strong>
+              <i :class="pingResult.ok ? 'fa-solid fa-circle-check' : 'fa-solid fa-triangle-exclamation'" aria-hidden="true" style="margin-right: 4px;"></i>
+              {{ pingResult.ok ? 'Conexão Ativa:' : 'Conexão Indisponível:' }}
+            </strong> {{ pingResult.mensagem }}
           </div>
 
           <div v-if="backupsList.length > 0" class="backups-list" style="margin-top: 1.25rem;">
@@ -294,14 +300,7 @@
 import { ref, onMounted } from 'vue'
 import { api, type Config, type GitAccount } from '../api'
 import { useToastStore } from '../stores/toast'
-import HelpModal from '../components/HelpModal.vue'
-
-const helpItems = [
-  { title: 'Contas do GitLab', text: 'Você pode cadastrar múltiplas URLs e Tokens do GitLab (PAT). Ao importar commits, o sistema pode alternar entre essas contas ou usar detecção automática de domínio sem precisar alterar o .env.' },
-  { title: 'Cargo e Nível Padrão', text: 'Valores padrão sugeridos nos cadastros de atividades no Munka.' },
-  { title: 'Datas e Horas Padrão', text: 'Defina os valores padrão para preenchimento de início e fim da atividade. Caso informe apenas a hora (ex: 08:00), a data do commit será utilizada.' },
-  { title: 'Testar Conexão', text: 'O botão Testar Conexão faz uma requisição autenticada ao GitLab chamando /api/v4/user para checar se o token é válido.' },
-]
+import TutorialModal from '../components/TutorialModal.vue'
 
 const toastStore = useToastStore()
 const loading = ref(true)
@@ -484,7 +483,7 @@ async function executarBackupManual() {
   try {
     const res = await api.backup.criar()
     const arq = res.arquivo_sql || res.files?.sql || 'backup_nexus_latest.sql'
-    toastStore.addToast(`✔ Backup realizado! Arquivo: ${arq}`, 'success')
+    toastStore.addToast(`Backup realizado! Arquivo: ${arq}`, 'success')
     await carregarBackups()
   } catch (e: any) {
     toastStore.addToast(`Erro ao criar backup: ${e.response?.data?.detail ?? e.message ?? String(e)}`, 'error')
@@ -674,8 +673,14 @@ async function salvar() {
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-  padding: 0;
-  text-decoration: underline;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.btn-link:hover {
+  background: var(--accent-glow);
+  text-decoration: none;
 }
 
 .test-col {

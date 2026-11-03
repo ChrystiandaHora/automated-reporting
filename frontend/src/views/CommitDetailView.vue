@@ -4,7 +4,7 @@
       <button class="btn-ghost" @click="$router.back()">← Voltar</button>
       <div class="title-row">
         <h1>{{ commit?.mensagem || sha.slice(0, 8) }}</h1>
-        <HelpModal title="Detalhes do Commit" :items="helpItems" />
+        <TutorialModal screenId="commit-detail" />
       </div>
     </div>
 
@@ -14,27 +14,37 @@
       <!-- Storytelling Dashboard -->
       <div class="story-dashboard">
         <div class="story-step active">
-          <div class="step-icon">📥</div>
+          <div class="step-icon">
+            <i class="fa-solid fa-cloud-arrow-down" aria-hidden="true"></i>
+          </div>
           <div class="step-info">
             <span class="step-title">Importado</span>
             <span class="step-desc">Código e diff localizados</span>
           </div>
         </div>
-        <div class="story-arrow">➔</div>
+        <div class="story-arrow">
+          <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i>
+        </div>
         <div class="story-step" :class="{ 'active': commit.analisado }">
-          <div class="step-icon">🤖</div>
+          <div class="step-icon">
+            <i class="fa-solid fa-robot" aria-hidden="true"></i>
+          </div>
           <div class="step-info">
             <span class="step-title">Análise AI</span>
             <span class="step-desc" v-if="commit.analisado">{{ commit.atividades_total || 0 }} atividades identificadas</span>
             <span class="step-desc" v-else>Pendente de análise Gemini</span>
           </div>
         </div>
-        <div class="story-arrow">➔</div>
+        <div class="story-arrow">
+          <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i>
+        </div>
         <div class="story-step" :class="{ 
           'active': commit.analisado && (commit.atividades_enviadas || 0) > 0,
           'completed': commit.analisado && commit.atividades_enviadas === commit.atividades_total && (commit.atividades_total || 0) > 0
         }">
-          <div class="step-icon">🚀</div>
+          <div class="step-icon">
+            <i class="fa-solid fa-rocket" aria-hidden="true"></i>
+          </div>
           <div class="step-info">
             <span class="step-title">Faturamento</span>
             <span class="step-desc" v-if="commit.analisado && (commit.atividades_total || 0) > 0">
@@ -53,7 +63,9 @@
           <span><b>Data:</b> {{ commit.data }}</span>
           <span><b>Projeto:</b> {{ commit.projeto }}</span>
           <span><b>Autor:</b> {{ commit.autor }}</span>
-          <button class="btn-ghost btn-sm meta-edit-btn" @click="abrirEditarMeta" title="Editar metadados">✏</button>
+          <button class="btn-ghost btn-sm meta-edit-btn" @click="abrirEditarMeta" title="Editar metadados" aria-label="Editar metadados">
+            <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+          </button>
         </template>
         <template v-else>
           <div class="meta-edit-form">
@@ -67,8 +79,14 @@
             <input id="meta-message" v-model="metaEditavel.mensagem" placeholder="Mensagem do commit" style="flex: 2; min-width: 14rem" />
           </div>
           <div class="meta-edit-actions">
-            <button class="btn-primary btn-sm" @click="salvarMeta" :disabled="salvandoMeta">{{ salvandoMeta ? 'Salvando...' : '✓ Salvar' }}</button>
-            <button class="btn-ghost btn-sm" @click="cancelarEditarMeta">✗ Cancelar</button>
+            <button class="btn-primary btn-sm" @click="salvarMeta" :disabled="salvandoMeta">
+              <i class="fa-solid fa-check" aria-hidden="true"></i>
+              <span>{{ salvandoMeta ? 'Salvando...' : 'Salvar' }}</span>
+            </button>
+            <button class="btn-ghost btn-sm" @click="cancelarEditarMeta">
+              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+              <span>Cancelar</span>
+            </button>
           </div>
         </template>
       </div>
@@ -121,8 +139,12 @@
               <span class="badge badge-blue">{{ atv.etapa }}</span>
               <span class="atividade-codigo">{{ atv.codigo_id }} · {{ atv.hpa }}h</span>
               <span class="atividade-titulo-header" :title="atv.titulo || 'Atividade sem Título'">{{ atv.titulo || 'Atividade sem Título' }}</span>
-              <span v-if="atv.enviado && !atv.data_fim_missing" class="badge badge-green" style="margin-left: auto; margin-right: 1.25rem;">✔ Enviada</span>
-              <span v-else-if="atv.enviado && atv.data_fim_missing" class="badge badge-orange" style="margin-left: auto; margin-right: 1.25rem;">⚠️ Sem Data Fim</span>
+              <span v-if="atv.enviado && !atv.data_fim_missing" class="badge badge-green" style="margin-left: auto; margin-right: 1.25rem;">
+                <i class="fa-solid fa-check" aria-hidden="true" style="margin-right: 4px;"></i>Enviada
+              </span>
+              <span v-else-if="atv.enviado && atv.data_fim_missing" class="badge badge-orange" style="margin-left: auto; margin-right: 1.25rem;">
+                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true" style="margin-right: 4px;"></i>Sem Data Fim
+              </span>
               <span v-else class="badge badge-orange" style="margin-left: auto; margin-right: 1.25rem;">Pendente</span>
               <button
                 class="btn-sm"
@@ -144,7 +166,8 @@
                 :class="{ 'active': activeTabs[idx] !== 'preview' }" 
                 @click="activeTabs[idx] = 'form'"
               >
-                📝 Formulário
+                <i class="fa-solid fa-file-lines" aria-hidden="true" style="margin-right: 5px;"></i>
+                <span>Formulário</span>
               </button>
               <button 
                 type="button" 
@@ -155,7 +178,8 @@
                 :class="{ 'active': activeTabs[idx] === 'preview' }" 
                 @click="carregarPreview(idx)"
               >
-                🔍 Visualizar Evidência
+                <i class="fa-solid fa-eye" aria-hidden="true" style="margin-right: 5px;"></i>
+                <span>Visualizar Evidência</span>
               </button>
             </div>
 
@@ -182,7 +206,10 @@
               <div :id="'atv-files-' + idx" class="files-list-interactive">
                 <div v-for="f in atv.arquivos" :key="f" class="file-chip-container">
                   <div class="file-chip-row">
-                    <span class="file-chip-name">📄 {{ f }}</span>
+                    <span class="file-chip-name">
+                      <i class="fa-solid fa-file-code" aria-hidden="true" style="margin-right: 4px;"></i>
+                      <span>{{ f }}</span>
+                    </span>
                     <button 
                       type="button" 
                       class="btn-ghost btn-xs file-diff-btn" 
@@ -218,9 +245,13 @@
                   </div>
                   <div style="display: flex; gap: 0.5rem;">
                     <button type="button" class="btn-ghost btn-sm" @click="copiarEvidencia(idx)" :disabled="!previews[idx]">
-                      {{ statusCopia[idx] ? '✅ Copiado!' : '📋 Copiar HTML' }}
+                      <i :class="statusCopia[idx] ? 'fa-solid fa-check' : 'fa-solid fa-clipboard'" aria-hidden="true" style="margin-right: 4px;"></i>
+                      <span>{{ statusCopia[idx] ? 'Copiado!' : 'Copiar HTML' }}</span>
                     </button>
-                    <button type="button" class="btn-ghost btn-sm" @click="carregarPreview(idx)">🔄 Atualizar</button>
+                    <button type="button" class="btn-ghost btn-sm" @click="carregarPreview(idx)">
+                      <i class="fa-solid fa-arrows-rotate" aria-hidden="true" style="margin-right: 4px;"></i>
+                      <span>Atualizar</span>
+                    </button>
                   </div>
                 </div>
                 <div class="preview-iframe-wrapper">
@@ -236,9 +267,12 @@
                 </div>
               </div>
               <div v-else class="preview-error">
-                <span class="preview-error-icon">⚠️</span>
+                <i class="fa-solid fa-triangle-exclamation preview-error-icon" aria-hidden="true"></i>
                 <span>Erro ao gerar pré-visualização da evidência.</span>
-                <button type="button" class="btn-primary btn-sm" @click="carregarPreview(idx)">🔄 Tentar Novamente</button>
+                <button type="button" class="btn-primary btn-sm" @click="carregarPreview(idx)">
+                  <i class="fa-solid fa-arrows-rotate" aria-hidden="true" style="margin-right: 4px;"></i>
+                  <span>Tentar Novamente</span>
+                </button>
               </div>
             </div>
           </div>
@@ -277,14 +311,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAnaliseStore } from '../stores/commits'
 import { useFilaStore } from '../stores/fila'
 import { api } from '../api'
-import HelpModal from '../components/HelpModal.vue'
-
-const helpItems = [
-  { title: 'Analisar com AI', text: 'Permite selecionar um modelo específico do Gemini para processar as alterações de código e identificar as atividades cobráveis conforme o Catálogo de Serviços.' },
-  { title: 'O que são Atividades', text: 'Cada atividade representa uma entrega técnica independente identificada no commit: uma inclusão, alteração ou deleção.' },
-  { title: 'HPA (Horas Previstas)', text: 'Horas Previstas para Execução da Atividade — valor definido pelo catálogo de serviços para cada tipo de entrega técnica.' },
-  { title: 'Fila de Envios', text: 'Ao clicar para enviar, as atividades entram em uma fila assíncrona. Você pode sair desta página e acompanhar o progresso em tempo real pela aba Fila.' }
-]
+import TutorialModal from '../components/TutorialModal.vue'
 
 const route = useRoute()
 const router = useRouter()

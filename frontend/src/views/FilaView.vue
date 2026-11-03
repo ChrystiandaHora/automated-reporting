@@ -3,8 +3,9 @@
     <div class="page-header">
       <div class="title-row">
         <h1>Fila de Execução</h1>
+        <TutorialModal screenId="fila" />
         <span v-if="concurrencyInfo" class="concurrency-badge" :title="`Fila de análises: ${concurrencyInfo.queues.analises} workers | Fila de envios: ${concurrencyInfo.queues.envios} workers | Pool compartilhado de até ${concurrencyInfo.total_system_limit} workers simultâneos`">
-          ⚡ Concorrência: {{ concurrencyInfo.queues.analises }} análises / {{ concurrencyInfo.queues.envios }} envios ({{ concurrencyInfo.total_system_limit }} total | {{ concurrencyInfo.cpu_cores }} Cores CPU)
+          <i class="fa-solid fa-bolt" aria-hidden="true" style="margin-right: 4px;"></i>Concorrência: {{ concurrencyInfo.queues.analises }} análises / {{ concurrencyInfo.queues.envios }} envios ({{ concurrencyInfo.total_system_limit }} total | {{ concurrencyInfo.cpu_cores }} Cores CPU)
         </span>
       </div>
       <div class="header-actions">
@@ -14,9 +15,21 @@
           @click="reenfileirarTodasComFalha"
           :title="`Reenfileira todas as ${failedJobsCount} tarefas com falha`"
         >
-          ⚡ Reenfileirar Todas com Falha ({{ failedJobsCount }})
+          <i class="fa-solid fa-arrows-rotate" aria-hidden="true" style="margin-right: 4px;"></i>
+          <span>Reenfileirar Todas com Falha ({{ failedJobsCount }})</span>
         </button>
-        <button class="btn-ghost btn-sm" @click="atualizarFila">↻ Atualizar</button>
+        <button 
+          class="btn-ghost btn-sm btn-limpar-antigos" 
+          @click="limparMesesAnteriores" 
+          title="Remover tarefas da fila concluídas ou com erro de meses passados"
+        >
+          <i class="fa-solid fa-broom" aria-hidden="true"></i>
+          <span>Limpar Meses Anteriores</span>
+        </button>
+        <button class="btn-ghost btn-sm" @click="atualizarFila">
+          <i class="fa-solid fa-arrows-rotate" aria-hidden="true" style="margin-right: 4px;"></i>
+          <span>Atualizar</span>
+        </button>
       </div>
     </div>
 
@@ -73,7 +86,8 @@
                   @click.stop="reenfileirarGrupo(grupo)"
                   :title="`Reenfileirar ${errosNoGrupoCount(grupo)} tarefa(s) com falha deste commit`"
                 >
-                  ⚡ Falhas ({{ errosNoGrupoCount(grupo) }})
+                  <i class="fa-solid fa-arrows-rotate" aria-hidden="true" style="margin-right: 4px;"></i>
+                  <span>Falhas ({{ errosNoGrupoCount(grupo) }})</span>
                 </button>
                 <span class="job-count-badge">{{ grupo.jobs.length }}</span>
               </div>
@@ -111,10 +125,18 @@
                       :disabled="isVerificando(job.id)"
                       :title="obterTituloVerificacao(job)"
                     >
-                      <template v-if="isVerificando(job.id)">⏳ Verificando...</template>
-                      <template v-else-if="obterStatusVerificacao(job) === 'ok'">✅ Lançamento OK</template>
-                      <template v-else-if="obterStatusVerificacao(job) === 'divergencia'">⚠️ Corrigir</template>
-                      <template v-else>🔍 Verificar</template>
+                      <template v-if="isVerificando(job.id)">
+                        <i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true" style="margin-right: 4px;"></i>Verificando...
+                      </template>
+                      <template v-else-if="obterStatusVerificacao(job) === 'ok'">
+                        <i class="fa-solid fa-circle-check" aria-hidden="true" style="margin-right: 4px;"></i>Lançamento OK
+                      </template>
+                      <template v-else-if="obterStatusVerificacao(job) === 'divergencia'">
+                        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true" style="margin-right: 4px;"></i>Corrigir
+                      </template>
+                      <template v-else>
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true" style="margin-right: 4px;"></i>Verificar
+                      </template>
                     </button>
 
                     <!-- Botão de Ver Tarefa -->
@@ -133,7 +155,8 @@
                       class="btn-ghost btn-xs" 
                       @click="abrirLogs(job)"
                     >
-                      {{ job.status === 'running' ? '📋 Logs (Ao Vivo)' : 'Ver Logs' }}
+                      <i :class="job.status === 'running' ? 'fa-solid fa-terminal' : 'fa-solid fa-file-waveform'" aria-hidden="true" style="margin-right: 4px;"></i>
+                      <span>{{ job.status === 'running' ? 'Logs (Ao Vivo)' : 'Ver Logs' }}</span>
                     </button>
                     
                     <!-- Botão Cancelar -->
@@ -143,7 +166,8 @@
                       @click="cancelarJob(job.id)"
                       :title="job.status === 'running' ? 'Interrompe a execução' : 'Remove da fila'"
                     >
-                      ❌ Cancelar
+                      <i class="fa-solid fa-ban" aria-hidden="true" style="margin-right: 4px;"></i>
+                      <span>Cancelar</span>
                     </button>
 
                     <!-- Botão Limpar -->
@@ -269,7 +293,8 @@
                   class="btn-ghost btn-xs" 
                   @click="abrirLogs(job)"
                 >
-                  {{ job.status === 'running' ? '📋 Logs (Ao Vivo)' : 'Ver Logs' }}
+                  <i :class="job.status === 'running' ? 'fa-solid fa-terminal' : 'fa-solid fa-file-waveform'" aria-hidden="true" style="margin-right: 4px;"></i>
+                  <span>{{ job.status === 'running' ? 'Logs (Ao Vivo)' : 'Ver Logs' }}</span>
                 </button>
 
                 <!-- Botão Cancelar -->
@@ -278,7 +303,8 @@
                   class="btn-danger-link" 
                   @click="cancelarJob(job.id)"
                 >
-                  ❌ Cancelar
+                  <i class="fa-solid fa-ban" aria-hidden="true" style="margin-right: 4px;"></i>
+                  <span>Cancelar</span>
                 </button>
 
                 <!-- Botão Limpar -->
@@ -331,11 +357,20 @@
               <!-- Resumo de Conclusão -->
               <div v-if="job.status === 'done' && job.resultado" class="done-summary-box">
                 <template v-if="job.tipo === 'ajuste'">
-                  <span class="summary-check">✔ Sucesso: {{ job.resultado.sucessos || 1 }} tarefa(s) ajustada(s) no portal.</span>
-                  <span v-if="job.resultado.puladas" class="summary-warn">⚠️ {{ job.resultado.puladas }} tarefa(s) já estavam concluídas pelo supervisor e foram preservadas.</span>
+                  <span class="summary-check">
+                    <i class="fa-solid fa-circle-check" aria-hidden="true" style="margin-right: 4px;"></i>
+                    <span>Sucesso: {{ job.resultado.sucessos || 1 }} tarefa(s) ajustada(s) no portal.</span>
+                  </span>
+                  <span v-if="job.resultado.puladas" class="summary-warn">
+                    <i class="fa-solid fa-triangle-exclamation" aria-hidden="true" style="margin-right: 4px;"></i>
+                    <span>{{ job.resultado.puladas }} tarefa(s) já estavam concluídas pelo supervisor e foram preservadas.</span>
+                  </span>
                 </template>
                 <template v-else>
-                  <span class="summary-check">✔ Sincronização concluída: {{ job.resultado.total_portal || 0 }} tarefas lidas no portal, {{ job.resultado.total_atualizadas || 0 }} atualizadas no banco.</span>
+                  <span class="summary-check">
+                    <i class="fa-solid fa-circle-check" aria-hidden="true" style="margin-right: 4px;"></i>
+                    <span>Sincronização concluída: {{ job.resultado.total_portal || 0 }} tarefas lidas no portal, {{ job.resultado.total_atualizadas || 0 }} atualizadas no banco.</span>
+                  </span>
                 </template>
               </div>
             </div>
@@ -363,10 +398,13 @@
           <div class="terminal-header">
             <span>Logs de Execução Playwright</span>
             <span class="status-badge" :class="logJobSelecionado.status === 'running' ? 'badge-blue' : `badge-${logJobSelecionado.status}`">
-              {{ logJobSelecionado.status === 'running' ? '⚡ TRANSMITINDO AO VIVO' : logJobSelecionado.status }}
+              <span v-if="logJobSelecionado.status === 'running'">
+                <i class="fa-solid fa-bolt" aria-hidden="true" style="margin-right: 4px;"></i>TRANSMITINDO AO VIVO
+              </span>
+              <span v-else>{{ logJobSelecionado.status }}</span>
             </span>
           </div>
-          <pre class="terminal-body"><div v-for="(log, idx) in (logJobSelecionado.resultado?.logs || [])" :key="idx" :class="{'error-line': log.startsWith('❌') || log.includes('ERRO')}">{{ log }}</div></pre>
+          <pre class="terminal-body"><div v-for="(log, idx) in (logJobSelecionado.resultado?.logs || [])" :key="idx" :class="{'error-line': log.includes('\u274c') || log.includes('ERRO')}">{{ log }}</div></pre>
         </div>
 
         <div class="modal-actions">
@@ -380,9 +418,12 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { useFilaStore } from '../stores/fila'
+import { useToastStore } from '../stores/toast'
+import TutorialModal from '../components/TutorialModal.vue'
 import { api, type Config } from '../api'
 
 const filaStore = useFilaStore()
+const toastStore = useToastStore()
 const logJobSelecionado = ref<any>(null)
 const concurrencyInfo = ref<Config['concurrency'] | null>(null)
 
@@ -402,6 +443,19 @@ const failedJobsCount = computed(() => {
 async function reenfileirarTodasComFalha() {
   if (confirm(`Deseja reenfileirar todas as ${failedJobsCount.value} tarefas com falha para processamento automático?`)) {
     await filaStore.reenfileirarComErros()
+  }
+}
+
+async function limparMesesAnteriores() {
+  if (!confirm('Deseja remover da fila todas as tarefas de meses anteriores já concluídas ou com erro? As tarefas do mês atual serão mantidas.')) {
+    return
+  }
+  try {
+    const res = await api.fila.limparMesesAnteriores()
+    toastStore.addToast(res.message, 'success')
+    await filaStore.fetchJobs()
+  } catch (e: any) {
+    toastStore.addToast(`Erro ao limpar tarefas de meses anteriores: ${e.response?.data?.detail || e.message || e}`, 'error')
   }
 }
 
@@ -569,14 +623,14 @@ function obterMensagemErro(job: any) {
   if (!job.resultado) return 'Erro desconhecido.'
   if (job.resultado.error) return job.resultado.error
   if (job.resultado.logs && job.resultado.logs.length) {
-    const erroLog = [...job.resultado.logs].reverse().find((l: string) => l.startsWith('❌') || l.includes('ERRO'))
+    const erroLog = [...job.resultado.logs].reverse().find((l: string) => l.includes('\u274c') || l.includes('ERRO'))
     if (erroLog) return erroLog
   }
   return 'Erro técnico na execução do job.'
 }
 
 async function cancelarJob(id: number) {
-  if (confirm('⚠️ Deseja realmente cancelar esta tarefa? Se estiver em execução, será interrompida imediatamente.')) {
+  if (confirm('Deseja realmente cancelar esta tarefa? Se estiver em execução, será interrompida imediatamente.')) {
     await filaStore.cancelarJob(id)
   }
 }
@@ -940,10 +994,15 @@ async function reenviarAtividade(job: any) {
   text-decoration: none;
   font-size: 0.82rem;
   margin-top: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  display: inline-block;
+  transition: background-color 0.15s ease;
 }
 
 .btn-link-tarefas-mes:hover {
-  text-decoration: underline;
+  text-decoration: none;
+  background: var(--accent-glow);
 }
 
 /* Grupos de Commits (Lançamentos) */

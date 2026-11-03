@@ -5,7 +5,7 @@
       <div class="header-main-col">
         <div class="title-row">
           <h1>Tarefas do Mês - Munka</h1>
-          <HelpModal title="Sobre as Tarefas do Mês" :items="helpItems" />
+          <TutorialModal screenId="tarefas-mes" />
           <span v-if="dados.total > 0" class="counter-badge">
             {{ dados.total }} lançada{{ dados.total > 1 ? 's' : '' }}
           </span>
@@ -183,8 +183,9 @@
           class="btn-clear-search" 
           @click="filtroTexto = ''" 
           title="Limpar busca"
+          aria-label="Limpar busca"
         >
-          ×
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
       </div>
 
@@ -559,7 +560,8 @@
                     <span class="field-name"><i class="fa-solid fa-tag"></i> Status</span>
                   </label>
                   <span class="field-active-indicator" :class="{ 'tag-active': habilitarCampo.status }">
-                    {{ habilitarCampo.status ? '✓ Sobrescrever' : 'Manter original' }}
+                    <i v-if="habilitarCampo.status" class="fa-solid fa-check" aria-hidden="true" style="margin-right: 3px;"></i>
+                    <span>{{ habilitarCampo.status ? 'Sobrescrever' : 'Manter original' }}</span>
                   </span>
                 </div>
                 <div class="field-input-wrap">
@@ -583,7 +585,8 @@
                     <span class="field-name"><i class="fa-solid fa-user-tie"></i> Perfil / Cargo</span>
                   </label>
                   <span class="field-active-indicator" :class="{ 'tag-active': habilitarCampo.cargo }">
-                    {{ habilitarCampo.cargo ? '✓ Sobrescrever' : 'Manter original' }}
+                    <i v-if="habilitarCampo.cargo" class="fa-solid fa-check" aria-hidden="true" style="margin-right: 3px;"></i>
+                    <span>{{ habilitarCampo.cargo ? 'Sobrescrever' : 'Manter original' }}</span>
                   </span>
                 </div>
                 <div class="field-input-wrap">
@@ -604,7 +607,8 @@
                     <span class="field-name"><i class="fa-solid fa-layer-group"></i> Nível</span>
                   </label>
                   <span class="field-active-indicator" :class="{ 'tag-active': habilitarCampo.nivel }">
-                    {{ habilitarCampo.nivel ? '✓ Sobrescrever' : 'Manter original' }}
+                    <i v-if="habilitarCampo.nivel" class="fa-solid fa-check" aria-hidden="true" style="margin-right: 3px;"></i>
+                    <span>{{ habilitarCampo.nivel ? 'Sobrescrever' : 'Manter original' }}</span>
                   </span>
                 </div>
                 <div class="field-input-wrap">
@@ -625,7 +629,8 @@
                     <span class="field-name"><i class="fa-solid fa-id-card-clip"></i> Responsável</span>
                   </label>
                   <span class="field-active-indicator" :class="{ 'tag-active': habilitarCampo.responsavel }">
-                    {{ habilitarCampo.responsavel ? '✓ Sobrescrever' : 'Manter original' }}
+                    <i v-if="habilitarCampo.responsavel" class="fa-solid fa-check" aria-hidden="true" style="margin-right: 3px;"></i>
+                    <span>{{ habilitarCampo.responsavel ? 'Sobrescrever' : 'Manter original' }}</span>
                   </span>
                 </div>
                 <div class="field-input-wrap">
@@ -646,7 +651,8 @@
                     <span class="field-name"><i class="fa-solid fa-shapes"></i> Tipo</span>
                   </label>
                   <span class="field-active-indicator" :class="{ 'tag-active': habilitarCampo.tipo }">
-                    {{ habilitarCampo.tipo ? '✓ Sobrescrever' : 'Manter original' }}
+                    <i v-if="habilitarCampo.tipo" class="fa-solid fa-check" aria-hidden="true" style="margin-right: 3px;"></i>
+                    <span>{{ habilitarCampo.tipo ? 'Sobrescrever' : 'Manter original' }}</span>
                   </span>
                 </div>
                 <div class="field-input-wrap">
@@ -667,7 +673,8 @@
                     <span class="field-name"><i class="fa-solid fa-box-archive"></i> Produto</span>
                   </label>
                   <span class="field-active-indicator" :class="{ 'tag-active': habilitarCampo.produto }">
-                    {{ habilitarCampo.produto ? '✓ Sobrescrever' : 'Manter original' }}
+                    <i v-if="habilitarCampo.produto" class="fa-solid fa-check" aria-hidden="true" style="margin-right: 3px;"></i>
+                    <span>{{ habilitarCampo.produto ? 'Sobrescrever' : 'Manter original' }}</span>
                   </span>
                 </div>
                 <div class="field-input-wrap">
@@ -688,7 +695,8 @@
                     <span class="field-name"><i class="fa-solid fa-diagram-project"></i> Projeto</span>
                   </label>
                   <span class="field-active-indicator" :class="{ 'tag-active': habilitarCampo.projeto }">
-                    {{ habilitarCampo.projeto ? '✓ Sobrescrever' : 'Manter original' }}
+                    <i v-if="habilitarCampo.projeto" class="fa-solid fa-check" aria-hidden="true" style="margin-right: 3px;"></i>
+                    <span>{{ habilitarCampo.projeto ? 'Sobrescrever' : 'Manter original' }}</span>
                   </span>
                 </div>
                 <div class="field-input-wrap">
@@ -739,26 +747,7 @@ import { ref, computed, onMounted, reactive } from 'vue'
 import { api, type TarefaMesItem, type TarefasMesResponse, type Config } from '../api'
 import { useToastStore } from '../stores/toast'
 import { useFilaStore } from '../stores/fila'
-import HelpModal from '../components/HelpModal.vue'
-
-const helpItems = [
-  { 
-    title: 'Tarefas do Mês', 
-    text: 'Lista todas as tarefas enviadas pelo sistema no mês selecionado, consolidando informações de status lidas diretamente da plataforma Munka.' 
-  },
-  { 
-    title: 'Condição no Munka e Ajustes', 
-    text: 'Todas as tarefas lançadas podem ser selecionadas e editadas quantas vezes você precisar, seja individualmente ou em lote, independente da fase ou status.' 
-  },
-  { 
-    title: 'Sincronizar no Munka', 
-    text: 'Executa uma checagem automatizada via Playwright para ler os status reais mais recentes no portal Munka e atualizar o banco de dados local.' 
-  },
-  { 
-    title: 'Ajuste em Lote', 
-    text: 'Selecione múltiplas tarefas abertas e ajuste campos como Cargo, Nível, Responsável, Produto, Tipo, Projeto e Status de uma única vez.' 
-  },
-]
+import TutorialModal from '../components/TutorialModal.vue'
 
 const meses = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -1409,12 +1398,17 @@ onMounted(async () => {
   border: none;
   color: var(--text-muted);
   font-size: 0.72rem;
-  text-decoration: underline;
+  text-decoration: none;
   cursor: pointer;
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .btn-limpar-selecao:hover {
   color: var(--text);
+  background: var(--accent-glow);
+  text-decoration: none;
 }
 
 /* Barra de Ações em Lote */
@@ -1483,30 +1477,44 @@ onMounted(async () => {
 
 .search-input {
   width: 100%;
+  height: 38px;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   color: var(--text);
-  padding: 0.55rem 2rem 0.55rem 2.25rem;
+  padding: 0 2.35rem;
   border-radius: 8px;
   font-size: 0.85rem;
   outline: none;
-  transition: border-color 0.15s;
+  transition: all 0.2s ease;
 }
 
 .search-input:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .btn-clear-search {
   position: absolute;
-  right: 8px;
+  right: 0.5rem;
   top: 50%;
   transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 1.1rem;
+  font-size: 0.78rem;
   cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.btn-clear-search:hover {
+  background: var(--card-border);
+  color: var(--text);
 }
 
 .status-filter-pills {
@@ -1515,22 +1523,24 @@ onMounted(async () => {
   gap: 0.4rem;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  padding: 3px;
+  padding: 2px 4px;
   border-radius: 8px;
+  height: 38px;
 }
 
 .pill-btn {
   background: transparent;
   border: none;
   color: var(--text-muted);
-  padding: 0.35rem 0.75rem;
+  height: 32px;
+  padding: 0 0.75rem;
   border-radius: 6px;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.45rem;
   transition: all 0.15s ease;
 }
 
@@ -1662,7 +1672,9 @@ onMounted(async () => {
 }
 
 .munka-id-link:hover {
-  text-decoration: underline;
+  text-decoration: none;
+  background: var(--accent);
+  color: #ffffff;
 }
 
 .external-icon {

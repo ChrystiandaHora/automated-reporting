@@ -9,7 +9,7 @@
         </button>
         <div class="title-row">
           <h1>Importar Commits do GitLab</h1>
-          <HelpModal title="Como funciona a importação" :items="helpItems" />
+          <TutorialModal screenId="importar" />
         </div>
         <p class="header-subtitle">
           Importe commits em lote a partir de uma ou mais instâncias do GitLab com credenciais configuradas.
@@ -232,9 +232,18 @@
         <!-- Relatório Detalhado de Resultados -->
         <div class="results-report" role="region" aria-label="Resultados da importação">
           <div class="results-summary">
-            <span class="res-stat stat-success">✔ {{ totalSucessos }} importado(s)</span>
-            <span class="res-stat stat-existing">ℹ {{ totalJaExistiam }} já existia(m)</span>
-            <span v-if="totalFalhas > 0" class="res-stat stat-error">❌ {{ totalFalhas }} falha(s)</span>
+            <span class="res-stat stat-success">
+              <i class="fa-solid fa-circle-check" aria-hidden="true" style="margin-right: 4px;"></i>
+              <span>{{ totalSucessos }} importado(s)</span>
+            </span>
+            <span class="res-stat stat-existing">
+              <i class="fa-solid fa-circle-info" aria-hidden="true" style="margin-right: 4px;"></i>
+              <span>{{ totalJaExistiam }} já existia(m)</span>
+            </span>
+            <span v-if="totalFalhas > 0" class="res-stat stat-error">
+              <i class="fa-solid fa-circle-xmark" aria-hidden="true" style="margin-right: 4px;"></i>
+              <span>{{ totalFalhas }} falha(s)</span>
+            </span>
           </div>
 
           <div class="results-list">
@@ -259,7 +268,9 @@
           <!-- Ações Pós-Importação -->
           <div v-if="!importando && relatorioExecucao.length > 0" class="post-import-actions">
             <button type="button" class="btn-primary" @click="$router.push('/analisar')">
-              ⚡ Prosseguir para Análise com IA →
+              <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+              <span>Prosseguir para Análise com IA</span>
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
             </button>
             <button type="button" class="btn-ghost" @click="$router.push('/commits')">
               Ver Todos os Commits
@@ -276,14 +287,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { api, type GitAccount } from '../api'
 import { useToastStore } from '../stores/toast'
-import HelpModal from '../components/HelpModal.vue'
-
-const helpItems = [
-  { title: 'Seleção da Conta GitLab', text: 'Você pode escolher qual das contas GitLab cadastradas em Configurações utilizar. A opção "Detecção Automática" identifica o domínio de cada link e associa a conta correta automaticamente.' },
-  { title: 'Importação em Lote', text: 'Cole múltiplos links de commits (um por linha). O sistema extrai automaticamente o projeto e o SHA do commit.' },
-  { title: 'Evita Duplicidade', text: 'Commits que já foram importados anteriormente são preservados sem duplicar no banco de dados.' },
-  { title: 'Nova Conta GitLab', text: 'Caso precise de uma instância nova que ainda não esteja na lista, clique em "Gerenciar Contas GitLab" no topo da página.' },
-]
+import TutorialModal from '../components/TutorialModal.vue'
 
 const toastStore = useToastStore()
 
