@@ -5,6 +5,7 @@ import { useFilaStore } from './stores/fila'
 import { api } from './api'
 import { useToastStore } from './stores/toast'
 import ToastManager from './components/ToastManager.vue'
+import { instalarDesbloqueioAudio } from './utils/somNotificacao'
 
 type ThemeMode = 'dark' | 'light' | 'auto'
 
@@ -207,6 +208,8 @@ function handleVisibilityChange() {
 }
 
 onMounted(() => {
+  instalarDesbloqueioAudio()
+
   const modoSalvo = localStorage.getItem('nexus-theme-mode') as ThemeMode | null
   if (modoSalvo && ['dark', 'light', 'auto'].includes(modoSalvo)) {
     setMode(modoSalvo)
