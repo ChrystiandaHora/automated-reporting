@@ -2087,6 +2087,63 @@ def enfileirar_envio_lote(req: FilaEnvioLoteRequest, db: Session = Depends(get_d
     }
 
 
+def _redespachar_job(job, cfg: dict, db: Session, resultado: Optional[dict] = None) -> bool:
+    """Dispara uma nova task no Celery para um job já existente e o volta para 'pending'.
+
+    Usado pelo reenfileiramento de falhas e pela retomada de jobs pausados.
+    Retorna False quando o job não tem como ser redespachado (credenciais ou dados faltando).
+    """
+    from celery_tasks import (
+        sincronizar_status_munka_task,
+        ajustar_tarefas_munka_task,
+        ajustar_tarefa_individual_task,
+    )
+
+    if job.tipo == "analise":
+        commit = db.query(models.Commit).filter_by(id=job.commit_id).first()
+        if not commit:
+            return False
+        modelo = job.modelo or cfg.get("modelo_gemini") or "Gemini 3.8 Flash"
+        task = analisar_commit_task.delay(commit.id, commit.diff_raw, True, modelo, job.id)
+        novo_resultado = resultado
+    elif job.tipo == "envio":
+        if not cfg.get("MUNKA_USER") or not cfg.get("MUNKA_PASS"):
+            return False
+        task = enviar_atividade_task.delay(job.commit_id, job.atividade_idx, cfg, job.id)
+        novo_resultado = resultado
+    elif job.tipo == "verificacao":
+        task = sincronizar_status_munka_task.delay(job.id)
+        novo_resultado = {**(resultado or {}), "logs": ["Reenfileirando sincronização com Munka..."]}
+    elif job.tipo == "ajuste":
+        res_ant = {}
+        if job.resultado:
+            try:
+                res_ant = json.loads(job.resultado)
+            except Exception:
+                pass
+        t_single_id = res_ant.get("tarefa_id")
+        t_ids = res_ant.get("tarefas_ids") or []
+        alt = res_ant.get("alteracoes") or {}
+        res_ant.pop("error", None)
+        if t_single_id and alt:
+            res_ant["logs"] = [f"Reenfileirando ajuste individual da tarefa #{t_single_id}..."]
+            task = ajustar_tarefa_individual_task.delay(t_single_id, alt, job.id)
+        elif t_ids and alt:
+            res_ant["logs"] = ["Reenfileirando ajuste de tarefas no Munka..."]
+            task = ajustar_tarefas_munka_task.delay(t_ids, alt, job.id)
+        else:
+            return False
+        novo_resultado = res_ant
+    else:
+        return False
+
+    job.status = "pending"
+    job.task_id = task.id
+    job.concluido_em = None
+    job.resultado = json.dumps(novo_resultado, ensure_ascii=False) if novo_resultado else None
+    return True
+
+
 @app.post("/fila/retry-failed")
 def reenfileirar_tarefas_com_falha(commit_id: Optional[str] = None, db: Session = Depends(get_db)):
     """Reenfileira tarefas da fila que estão com status 'error', opcionalmente filtrando por commit_id."""
@@ -2099,57 +2156,12 @@ def reenfileirar_tarefas_com_falha(commit_id: Optional[str] = None, db: Session 
 
     cfg = obter_config_valores()
     count = 0
-
     for job in jobs_com_erro:
-        if job.tipo == "analise":
-            task = analisar_commit_task.delay(job.commit_id, cfg.get("modelo_gemini"), job.id)
-            job.status = "pending"
-            job.task_id = task.id
-            job.resultado = None
+        if _redespachar_job(job, cfg, db):
             count += 1
-        elif job.tipo == "envio":
-            if not cfg.get("MUNKA_USER") or not cfg.get("MUNKA_PASS"):
-                continue
-            task = enviar_atividade_task.delay(job.commit_id, job.atividade_idx, cfg, job.id)
-            job.status = "pending"
-            job.task_id = task.id
-            job.resultado = None
-            count += 1
-        elif job.tipo == "verificacao":
-            task = sincronizar_status_munka_task.delay(job.id)
-            job.status = "pending"
-            job.task_id = task.id
-            job.resultado = json.dumps({"logs": ["Reenfileirando sincronização com Munka..."]}, ensure_ascii=False)
-            count += 1
-        elif job.tipo == "ajuste":
-            res_ant = {}
-            if job.resultado:
-                try:
-                    res_ant = json.loads(job.resultado)
-                except Exception:
-                    pass
-            t_single_id = res_ant.get("tarefa_id")
-            t_ids = res_ant.get("tarefas_ids") or []
-            alt = res_ant.get("alteracoes") or {}
-            if t_single_id and alt:
-                from celery_tasks import ajustar_tarefa_individual_task
-                res_ant["logs"] = [f"Reenfileirando ajuste individual da tarefa #{t_single_id}..."]
-                res_ant.pop("error", None)
-                task = ajustar_tarefa_individual_task.delay(t_single_id, alt, job.id)
-                job.status = "pending"
-                job.task_id = task.id
-                job.resultado = json.dumps(res_ant, ensure_ascii=False)
-                count += 1
-            elif t_ids and alt:
-                res_ant["logs"] = ["Reenfileirando ajuste de tarefas no Munka..."]
-                res_ant.pop("error", None)
-                task = ajustar_tarefas_munka_task.delay(t_ids, alt, job.id)
-                job.status = "pending"
-                job.task_id = task.id
-                job.resultado = json.dumps(res_ant, ensure_ascii=False)
-                count += 1
+            # Commit por job: a task já foi disparada, o banco não pode ficar para trás
+            db.commit()
 
-    db.commit()
     return {"ok": True, "re_enqueued": count, "message": f"{count} tarefa(s) reenfileirada(s) com sucesso!"}
 
 
