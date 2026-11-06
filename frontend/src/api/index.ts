@@ -153,7 +153,7 @@ export interface FilaItem {
   commit_id: string
   atividade_idx?: number
   modelo?: string
-  status: 'pending' | 'running' | 'done' | 'error'
+  status: 'pending' | 'running' | 'paused' | 'done' | 'error'
   task_id?: string
   resultado?: any
   criado_em: string
@@ -297,6 +297,10 @@ export const api = {
     cancelar: (id: number) => http.post<{ ok: boolean; message: string }>(`/fila/${id}/cancel`).then(r => r.data),
     verificar: (id: number) => http.post<any>(`/fila/${id}/verificar`).then(r => r.data),
     corrigir: (id: number) => http.post<any>(`/fila/${id}/corrigir`).then(r => r.data),
+    pausar: (payload: { job_ids?: number[]; commit_id?: string } = {}) =>
+      http.post<{ ok: boolean; pausados: number; message: string }>('/fila/pausar', payload).then(r => r.data),
+    retomar: (payload: { job_ids?: number[]; commit_id?: string } = {}) =>
+      http.post<{ ok: boolean; retomados: number; message: string }>('/fila/retomar', payload).then(r => r.data),
     retryFailed: (commitId?: string) =>
       http.post<{ ok: boolean; re_enqueued: number; message: string }>('/fila/retry-failed', null, { params: commitId ? { commit_id: commitId } : {} }).then(r => r.data),
   },

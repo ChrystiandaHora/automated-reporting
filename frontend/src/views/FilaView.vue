@@ -10,6 +10,24 @@
       </div>
       <div class="header-actions">
         <button 
+          v-if="pausedJobsCount > 0" 
+          class="btn-ghost btn-sm btn-retomar" 
+          @click="retomarTodas"
+          :title="`Volta para a fila as ${pausedJobsCount} tarefa(s) pausada(s)`"
+        >
+          <i class="fa-solid fa-play" aria-hidden="true"></i>
+          <span>Retomar Pausadas ({{ pausedJobsCount }})</span>
+        </button>
+        <button 
+          v-if="pausableJobsCount > 0" 
+          class="btn-ghost btn-sm btn-pausar" 
+          @click="pausarTodas"
+          :title="`Pausa as ${pausableJobsCount} análise(s)/envio(s) que ainda não começaram. O que está em execução termina normalmente.`"
+        >
+          <i class="fa-solid fa-pause" aria-hidden="true"></i>
+          <span>Pausar Pendentes ({{ pausableJobsCount }})</span>
+        </button>
+        <button 
           v-if="failedJobsCount > 0" 
           class="btn-retry-all" 
           @click="reenfileirarTodasComFalha"
@@ -80,6 +98,26 @@
                 </span>
               </div>
               <div class="commit-group-right">
+                <button 
+                  v-if="pausaveisNoGrupo(grupo) > 0" 
+                  type="button"
+                  class="btn-ghost btn-xs btn-pausar" 
+                  @click.stop="filaStore.pausarJobs({ job_ids: idsPausaveis(grupo.jobs) })"
+                  :title="`Pausar ${pausaveisNoGrupo(grupo)} tarefa(s) pendente(s) deste commit`"
+                >
+                  <i class="fa-solid fa-pause" aria-hidden="true"></i>
+                  <span>Pausar ({{ pausaveisNoGrupo(grupo) }})</span>
+                </button>
+                <button 
+                  v-if="pausadosNoGrupo(grupo) > 0" 
+                  type="button"
+                  class="btn-ghost btn-xs btn-retomar" 
+                  @click.stop="filaStore.retomarJobs({ job_ids: idsPausados(grupo.jobs) })"
+                  :title="`Retomar ${pausadosNoGrupo(grupo)} tarefa(s) pausada(s) deste commit`"
+                >
+                  <i class="fa-solid fa-play" aria-hidden="true"></i>
+                  <span>Retomar ({{ pausadosNoGrupo(grupo) }})</span>
+                </button>
                 <button 
                   v-if="temErrosNoGrupo(grupo)" 
                   class="btn-retry-commit" 
@@ -168,9 +206,29 @@
                       <span>{{ job.status === 'running' ? 'Logs (Ao Vivo)' : 'Ver Logs' }}</span>
                     </button>
                     
+                    <!-- Botão Pausar (só antes de começar: envio em execução está no meio do portal) -->
+                    <button 
+                      v-if="podePausar(job)" 
+                      class="btn-ghost btn-xs btn-pausar" 
+                      @click="filaStore.pausarJobs({ job_ids: [job.id] })"
+                      title="Pausa esta tarefa antes de ela começar"
+                    >
+                      <i class="fa-solid fa-pause" aria-hidden="true"></i><span>Pausar</span>
+                    </button>
+
+                    <!-- Botão Retomar -->
+                    <button 
+                      v-if="job.status === 'paused'" 
+                      class="btn-ghost btn-xs btn-retomar" 
+                      @click="filaStore.retomarJobs({ job_ids: [job.id] })"
+                      title="Devolve esta tarefa para a fila"
+                    >
+                      <i class="fa-solid fa-play" aria-hidden="true"></i><span>Retomar</span>
+                    </button>
+
                     <!-- Botão Cancelar -->
                     <button 
-                      v-if="job.status === 'pending' || job.status === 'running'" 
+                      v-if="job.status === 'pending' || job.status === 'running' || job.status === 'paused'" 
                       class="btn-danger-link" 
                       @click="cancelarJob(job.id)"
                       :title="job.status === 'running' ? 'Interrompe a execução' : 'Remove da fila'"
@@ -449,6 +507,40 @@ const failedJobsCount = computed(() => {
   return filaStore.jobs.filter(j => j.status === 'error').length
 })
 
+// ── Pausa: só análises/envios que ainda não começaram ──
+function podePausar(job: { tipo: string; status: string }) {
+  return job.status === 'pending' && (job.tipo === 'analise' || job.tipo === 'envio')
+}
+
+function idsPausaveis(jobs: any[]) {
+  return jobs.filter(podePausar).map(j => j.id)
+}
+
+function idsPausados(jobs: any[]) {
+  return jobs.filter(j => j.status === 'paused').map(j => j.id)
+}
+
+function pausaveisNoGrupo(grupo: { jobs: any[] }) {
+  return idsPausaveis(grupo.jobs).length
+}
+
+function pausadosNoGrupo(grupo: { jobs: any[] }) {
+  return idsPausados(grupo.jobs).length
+}
+
+const pausableJobsCount = computed(() => idsPausaveis(filaStore.jobs).length)
+const pausedJobsCount = computed(() => idsPausados(filaStore.jobs).length)
+
+async function pausarTodas() {
+  if (confirm(`Pausar ${pausableJobsCount.value} tarefa(s) que ainda não começaram? As que já estão em execução terminam normalmente.`)) {
+    await filaStore.pausarJobs({})
+  }
+}
+
+async function retomarTodas() {
+  await filaStore.retomarJobs({})
+}
+
 async function reenfileirarTodasComFalha() {
   if (confirm(`Deseja reenfileirar todas as ${failedJobsCount.value} tarefas com falha para processamento automático?`)) {
     await filaStore.reenfileirarComErros()
@@ -566,6 +658,7 @@ function formatarStatus(status: string) {
   const map: Record<string, string> = {
     pending: 'Aguardando na fila',
     running: 'Executando tarefa',
+    paused: 'Pausado',
     done: 'Concluído',
     error: 'Falhou'
   }
@@ -869,6 +962,16 @@ async function reenviarAtividade(job: any) {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.45);
 }
+
+/* Pausar / Retomar */
+.btn-pausar,
+.btn-retomar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.btn-pausar { color: #d97706; }
+.btn-retomar { color: #059669; }
 
 /* Layout Dividido Verticalmente */
 .fila-split-layout {
@@ -1208,6 +1311,7 @@ button.commit-group-header {
 }
 
 .status-dot.status-pending { background: #eab308; }
+.status-dot.status-paused { background: #94a3b8; }
 .status-dot.status-running { background: #3b82f6; box-shadow: 0 0 8px #3b82f6; animation: pulseDot 1.5s infinite; }
 .status-dot.status-done { background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.3); }
 .status-dot.status-error { background: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.3); }

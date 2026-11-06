@@ -84,6 +84,29 @@ export const useFilaStore = defineStore('fila', () => {
     }
   }
 
+  async function pausarJobs(alvo: { job_ids?: number[]; commit_id?: string } = {}) {
+    try {
+      const res = await api.fila.pausar(alvo)
+      toastStore.addToast(res.message, res.pausados > 0 ? 'info' : 'error')
+      await fetchJobs(true)
+      return res
+    } catch (e: any) {
+      toastStore.addToast(`Erro ao pausar: ${e.response?.data?.detail ?? String(e)}`, 'error')
+    }
+  }
+
+  async function retomarJobs(alvo: { job_ids?: number[]; commit_id?: string } = {}) {
+    try {
+      const res = await api.fila.retomar(alvo)
+      toastStore.addToast(res.message, res.retomados > 0 ? 'success' : 'error')
+      await fetchJobs(true)
+      startPolling()
+      return res
+    } catch (e: any) {
+      toastStore.addToast(`Erro ao retomar: ${e.response?.data?.detail ?? String(e)}`, 'error')
+    }
+  }
+
   async function enfileirarAnalise(commitIds: string[], modelo: string) {
     error.value = ''
     try {
@@ -189,5 +212,5 @@ export const useFilaStore = defineStore('fila', () => {
     }
   }
 
-  return { jobs, loading, error, polling, fetchJobs, enfileirarAnalise, enfileirarEnvio, enfileirarEnvioLote, reenfileirarComErros, removerJob, cancelarJob, startPolling, stopPolling }
+  return { jobs, loading, error, polling, fetchJobs, enfileirarAnalise, enfileirarEnvio, enfileirarEnvioLote, reenfileirarComErros, removerJob, cancelarJob, pausarJobs, retomarJobs, startPolling, stopPolling }
 })

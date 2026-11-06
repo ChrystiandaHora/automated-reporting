@@ -18,6 +18,32 @@ redis_client = redis.Redis.from_url(
 from celery.exceptions import Retry
 
 
+def execucao_descartada(fila_job, task_id: str) -> bool:
+    """Diz se esta entrega da task deve ser ignorada em vez de executada.
+
+    O revoke do Celery vive só na memória dos workers: após um restart/rebuild a
+    mensagem revogada volta a ser entregue. Por isso o banco é a fonte da verdade:
+    job pausado, cancelado ou cuja entrega foi revogada ao pausar não executa.
+    """
+    if fila_job is None:
+        return False
+    if fila_job.status == "paused":
+        return True
+    # Outra entrega (id diferente) já está executando ou concluiu este job: esta é velha.
+    # Retries do próprio Celery reaproveitam o mesmo id e não caem aqui.
+    if fila_job.task_id and fila_job.task_id != task_id and fila_job.status in ("running", "done"):
+        return True
+    try:
+        res = json.loads(fila_job.resultado) if fila_job.resultado else {}
+    except Exception:
+        res = {}
+    if not isinstance(res, dict):
+        return False
+    if task_id in (res.get("task_ids_revogados") or []):
+        return True
+    return fila_job.status == "error" and res.get("resultado") == "CANCELADO"
+
+
 @celery_app.task(bind=True, name="tasks.analisar_commit")
 def analisar_commit_task(
     self,
@@ -34,6 +60,8 @@ def analisar_commit_task(
     if fila_id:
         with SessionLocal() as db:
             fila_job = db.query(models.Fila).filter_by(id=fila_id).first()
+            if execucao_descartada(fila_job, self.request.id):
+                return {"ignorado": True, "fila_id": fila_id}
             if fila_job:
                 fila_job.status = "running"
                 fila_job.task_id = self.request.id
@@ -236,6 +264,8 @@ def enviar_atividade_task(
     if fila_id:
         with SessionLocal() as db:
             fila_job = db.query(models.Fila).filter_by(id=fila_id).first()
+            if execucao_descartada(fila_job, self.request.id):
+                return {"ignorado": True, "fila_id": fila_id}
             if fila_job:
                 fila_job.status = "running"
                 fila_job.task_id = self.request.id

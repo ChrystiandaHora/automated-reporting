@@ -2048,7 +2048,7 @@ def enfileirar_envio_lote(req: FilaEnvioLoteRequest, db: Session = Depends(get_d
             .filter(
                 models.Fila.commit_id == commit.id,
                 models.Fila.tipo == "envio",
-                models.Fila.status.in_(["pending", "running"]),
+                models.Fila.status.in_(["pending", "running", "paused"]),
             )
             .all()
         )
@@ -2163,6 +2163,101 @@ def reenfileirar_tarefas_com_falha(commit_id: Optional[str] = None, db: Session 
             db.commit()
 
     return {"ok": True, "re_enqueued": count, "message": f"{count} tarefa(s) reenfileirada(s) com sucesso!"}
+
+
+# Só análises e envios ainda não iniciados podem ser pausados: um envio em execução
+# está no meio de uma automação no portal e interrompê-lo deixaria a tarefa pela metade.
+TIPOS_PAUSAVEIS = ("analise", "envio")
+
+
+class FilaPausaRequest(BaseModel):
+    job_ids: Optional[List[int]] = None  # vazio/None = todos os elegíveis
+    commit_id: Optional[str] = None
+
+
+@app.post("/fila/pausar")
+def pausar_tarefas(req: FilaPausaRequest, db: Session = Depends(get_db)):
+    """Pausa jobs pendentes (análise/envio). Jobs em execução não são interrompidos."""
+    query = db.query(models.Fila).filter(
+        models.Fila.status == "pending", models.Fila.tipo.in_(TIPOS_PAUSAVEIS)
+    )
+    if req.job_ids:
+        query = query.filter(models.Fila.id.in_(req.job_ids))
+    if req.commit_id:
+        query = query.filter(models.Fila.commit_id.like(f"{req.commit_id}%"))
+
+    pausados = 0
+    for job in query.all():
+        res = {}
+        if job.resultado:
+            try:
+                res = json.loads(job.resultado) or {}
+            except Exception:
+                res = {}
+        if not isinstance(res, dict):
+            res = {}
+        revogados = list(res.get("task_ids_revogados") or [])
+        if job.task_id:
+            try:
+                # Sem terminate: o job está pendente, só impede que um worker o pegue
+                celery_app.control.revoke(job.task_id)
+            except Exception as e:
+                print(f"Erro ao revogar tarefa pausada no Celery: {e}")
+            revogados.append(job.task_id)
+        res["task_ids_revogados"] = revogados
+        res["resultado"] = "PAUSADO"
+        res["logs"] = (res.get("logs") or []) + ["⏸️ Tarefa pausada pelo usuário"]
+        # Update condicional: se um worker pegou o job neste meio-tempo, não sobrescreve o 'running'
+        alterados = (
+            db.query(models.Fila)
+            .filter(models.Fila.id == job.id, models.Fila.status == "pending")
+            .update({"status": "paused", "resultado": json.dumps(res, ensure_ascii=False)},
+                    synchronize_session=False)
+        )
+        pausados += alterados
+    db.commit()
+
+    nao_pausados = 0
+    if req.job_ids:
+        nao_pausados = len(req.job_ids) - pausados
+    msg = f"{pausados} tarefa(s) pausada(s)."
+    if nao_pausados:
+        msg += f" {nao_pausados} não puderam ser pausadas (já em execução ou concluídas)."
+    return {"ok": True, "pausados": pausados, "message": msg}
+
+
+@app.post("/fila/retomar")
+def retomar_tarefas(req: FilaPausaRequest, db: Session = Depends(get_db)):
+    """Retoma jobs pausados, despachando uma nova task no Celery para cada um."""
+    query = db.query(models.Fila).filter(models.Fila.status == "paused")
+    if req.job_ids:
+        query = query.filter(models.Fila.id.in_(req.job_ids))
+    if req.commit_id:
+        query = query.filter(models.Fila.commit_id.like(f"{req.commit_id}%"))
+
+    cfg = obter_config_valores()
+    retomados = 0
+    falhas = 0
+    for job in query.order_by(models.Fila.id.asc()).all():
+        res = {}
+        if job.resultado:
+            try:
+                res = json.loads(job.resultado) or {}
+            except Exception:
+                res = {}
+        # Mantém a lista de entregas revogadas: após um restart elas ainda podem chegar ao worker
+        manter = {"task_ids_revogados": res.get("task_ids_revogados") or [],
+                  "logs": ["▶️ Tarefa retomada, aguardando na fila"]}
+        if _redespachar_job(job, cfg, db, resultado=manter):
+            retomados += 1
+            db.commit()
+        else:
+            falhas += 1
+
+    msg = f"{retomados} tarefa(s) retomada(s)."
+    if falhas:
+        msg += f" {falhas} não puderam ser retomadas (verifique credenciais do Munka)."
+    return {"ok": True, "retomados": retomados, "message": msg}
 
 
 @app.post("/fila/{job_id}/cancel")
@@ -2360,7 +2455,7 @@ def remover_job_fila(job_id: int, db: Session = Depends(get_db)):
     if not job:
         raise HTTPException(status_code=404, detail="Job não encontrado")
 
-    if job.status not in ("pending", "done", "error"):
+    if job.status not in ("pending", "paused", "done", "error"):
         if job.task_id:
             try:
                 celery_app.control.revoke(job.task_id, terminate=True)
