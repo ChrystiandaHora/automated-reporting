@@ -68,12 +68,22 @@ function cancelarIdleTimeout() {
 }
 
 watch(activeJobsCount, async (newCount) => {
+  if (newCount > 0) {
+    // Existem processos na fila -> liga automaticamente (se ainda não estiver) e cancela a ociosidade
+    cancelarIdleTimeout()
+    if (!isWakeLockActive.value) {
+      await requestWakeLock()
+      if (isWakeLockActive.value) {
+        localStorage.setItem('nexus-anti-sleep', 'true')
+        toastStore.addToast('Anti-Sleep ativado automaticamente: há tarefas na fila.', 'info')
+      }
+    }
+    return
+  }
+
   if (!isWakeLockActive.value) return
 
-  if (newCount > 0) {
-    // Existem processos rodando na fila -> cancela timer de ociosidade e mantém ativo
-    cancelarIdleTimeout()
-  } else if (newCount === 0) {
+  if (newCount === 0) {
     // Não há tarefas na fila (ou todas terminaram) -> inicia tolerância de 2 minutos antes de desligar
     iniciarIdleTimeout()
   }
@@ -128,6 +138,10 @@ const isWakeLockActive = ref(false)
 let wakeLockSentinel: any = null
 
 async function requestWakeLock() {
+  if (wakeLockSentinel && !wakeLockSentinel.released) {
+    isWakeLockActive.value = true
+    return
+  }
   if ('wakeLock' in navigator) {
     try {
       wakeLockSentinel = await (navigator as any).wakeLock.request('screen')
@@ -180,7 +194,9 @@ async function toggleWakeLock() {
 }
 
 function handleVisibilityChange() {
-  if (document.visibilityState === 'visible' && localStorage.getItem('nexus-anti-sleep') === 'true') {
+  if (document.visibilityState !== 'visible') return
+  // O navegador solta o wake lock ao ocultar a aba; readquire se estava ligado ou se há fila
+  if (localStorage.getItem('nexus-anti-sleep') === 'true' || activeJobsCount.value > 0) {
     requestWakeLock()
     if (activeJobsCount.value === 0) {
       iniciarIdleTimeout()
