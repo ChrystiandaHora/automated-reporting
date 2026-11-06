@@ -139,9 +139,18 @@
                       </template>
                     </button>
 
-                    <!-- Botão de Ver Tarefa -->
-                    <a 
-                      v-if="job.status === 'done' && job.resultado && job.resultado.task_url" 
+                    <!-- Botão de Ver Commit (análise concluída abre o commit analisado) -->
+                    <router-link
+                      v-if="job.status === 'done' && job.tipo === 'analise' && job.commit_id"
+                      :to="`/commits/${job.commit_id}`"
+                      class="btn-ghost btn-xs"
+                    >
+                      <i class="fa-solid fa-code-commit" aria-hidden="true" style="margin-right: 4px;"></i>Ver Commit
+                    </router-link>
+
+                    <!-- Botão de Ver Tarefa (envio concluído abre a tarefa no portal) -->
+                    <a
+                      v-else-if="job.status === 'done' && job.resultado && job.resultado.task_url"
                       :href="job.resultado.task_url" 
                       target="_blank" 
                       class="btn-ghost btn-xs" 
