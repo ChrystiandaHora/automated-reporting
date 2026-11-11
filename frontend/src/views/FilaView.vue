@@ -54,8 +54,141 @@
     <!-- Feedback de carregamento inicial -->
     <div v-if="filaStore.loading && filaStore.jobs.length === 0" class="loading">Carregando fila...</div>
 
-    <!-- Layout Dividido Verticalmente: Lançamentos (Esquerda) e Ajustes (Direita) -->
-    <div v-else class="fila-split-layout">
+    <template v-else>
+      <!-- SEÇÃO DE TAREFAS EM EXECUÇÃO AGORA (FIXADA NO TOPO) -->
+      <section v-if="jobsEmExecucao.length > 0" class="fila-execucao-topo" aria-label="Tarefas em execução agora">
+        <div class="execucao-topo-header">
+          <div class="execucao-topo-title">
+            <span class="live-pulse-icon">
+              <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+            </span>
+            <div>
+              <h2>Em Execução Agora</h2>
+              <span class="execucao-topo-sub">
+                {{ jobsEmExecucao.length === 1 ? '1 tarefa sendo processada em tempo real' : `${jobsEmExecucao.length} tarefas sendo processadas simultaneamente` }}
+                <span v-if="pendingJobsCount > 0" class="execucao-topo-pending-pill">
+                  • {{ pendingJobsCount }} aguardando na fila
+                </span>
+              </span>
+            </div>
+          </div>
+          <div class="execucao-topo-badge">
+            <span class="live-dot-pulse"></span>
+            <span>AO VIVO</span>
+          </div>
+        </div>
+
+        <div class="running-cards-grid">
+          <div 
+            v-for="job in jobsEmExecucao" 
+            :key="job.id" 
+            class="running-task-card"
+            :class="`running-task-${job.tipo}`"
+          >
+            <div class="running-task-header">
+              <div class="running-task-badges">
+                <span 
+                  class="badge" 
+                  :class="{
+                    'badge-blue': job.tipo === 'analise',
+                    'badge-purple': job.tipo === 'envio' || job.tipo === 'ajuste',
+                    'badge-orange': job.tipo === 'verificacao'
+                  }"
+                >
+                  <i 
+                    :class="{
+                      'fa-solid fa-wand-magic-sparkles': job.tipo === 'analise',
+                      'fa-solid fa-cloud-arrow-up': job.tipo === 'envio',
+                      'fa-solid fa-sliders': job.tipo === 'ajuste',
+                      'fa-solid fa-arrows-rotate': job.tipo === 'verificacao'
+                    }"
+                    aria-hidden="true"
+                    style="margin-right: 4px;"
+                  ></i>
+                  {{ formatarTipoJob(job.tipo) }}
+                </span>
+                <span class="running-job-id">Job #{{ job.id }}</span>
+                <span class="running-job-time">{{ formatarData(job.criado_em) }}</span>
+              </div>
+
+              <div class="running-task-actions">
+                <router-link
+                  v-if="job.commit_id && job.commit_id !== 'sem-commit'"
+                  :to="`/commits/${job.commit_id}`"
+                  class="btn-ghost btn-xs"
+                  title="Ver página deste commit"
+                >
+                  <i class="fa-solid fa-code-commit" aria-hidden="true" style="margin-right: 4px;"></i>Ver Commit
+                </router-link>
+
+                <button 
+                  class="btn-live-logs btn-xs" 
+                  @click="abrirLogs(job)"
+                  title="Acompanhar logs ao vivo da execução"
+                >
+                  <i class="fa-solid fa-terminal" aria-hidden="true" style="margin-right: 4px;"></i>
+                  <span>Logs (Ao Vivo)</span>
+                </button>
+                
+                <button 
+                  class="btn-danger-link btn-xs" 
+                  @click="cancelarJob(job.id)"
+                  title="Interromper esta tarefa imediatamente"
+                >
+                  <i class="fa-solid fa-ban" aria-hidden="true" style="margin-right: 4px;"></i>
+                  <span>Cancelar</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="running-task-body">
+              <div v-if="job.commit_id && job.commit_id !== 'sem-commit'" class="running-task-commit-info">
+                <router-link :to="`/commits/${job.commit_id}`" class="commit-hash-link">
+                  {{ job.commit_id.slice(0, 8) }}
+                </router-link>
+                <span class="running-commit-msg" :title="job.commit_mensagem">
+                  {{ job.commit_mensagem }}
+                </span>
+              </div>
+
+              <div class="running-task-meta">
+                <template v-if="job.tipo === 'analise'">
+                  <span class="meta-label">Modelo AI:</span>
+                  <strong class="meta-value">{{ job.modelo || 'Gemini 3.8 Flash' }}</strong>
+                </template>
+                <template v-else-if="job.tipo === 'envio'">
+                  <span class="meta-label">Atividade:</span>
+                  <strong class="meta-value">"{{ job.titulo_atividade || 'Lançamento de atividade no portal Munka...' }}"</strong>
+                </template>
+                <template v-else-if="job.tipo === 'ajuste'">
+                  <span class="meta-label">Ajuste Munka:</span>
+                  <strong class="meta-value">{{ job.titulo_atividade || 'Ajuste de campos de tarefa no portal' }}</strong>
+                </template>
+                <template v-else-if="job.tipo === 'verificacao'">
+                  <span class="meta-label">Sincronização:</span>
+                  <strong class="meta-value">Varredura e auditoria dos status no portal Munka</strong>
+                </template>
+              </div>
+
+              <div class="running-log-box">
+                <span class="live-dot-pulse"></span>
+                <span class="live-log-text">{{ obterUltimoLog(job) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Aviso sutil quando não há tarefas rodando, mas há pendentes na fila -->
+      <div v-if="jobsEmExecucao.length === 0 && pendingJobsCount > 0" class="fila-pending-bar">
+        <div class="pending-bar-info">
+          <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+          <span><strong>{{ pendingJobsCount }} tarefa(s) aguardando na fila.</strong> Os workers iniciarão o processamento conforme a disponibilidade de concorrência.</span>
+        </div>
+      </div>
+
+      <!-- Layout Dividido Verticalmente: Lançamentos (Esquerda) e Ajustes (Direita) -->
+      <div class="fila-split-layout">
       
       <!-- COLUNA ESQUERDA: Lançamentos ao Munka & Análises -->
       <section class="fila-coluna coluna-lancamentos">
@@ -84,17 +217,21 @@
             <button 
               class="commit-group-header" 
               type="button"
-              :aria-expanded="!isGrupoColapsado(grupo.commit_id)"
+              :aria-expanded="!isGrupoColapsado(grupo.commit_id, grupo)"
               :aria-controls="'group-jobs-' + grupo.commit_id"
               @click="alternarGrupo(grupo.commit_id)" 
             >
               <div class="commit-group-info">
-                <span class="collapse-icon" aria-hidden="true">{{ isGrupoColapsado(grupo.commit_id) ? '▶' : '▼' }}</span>
+                <span class="collapse-icon" aria-hidden="true">{{ isGrupoColapsado(grupo.commit_id, grupo) ? '▶' : '▼' }}</span>
                 <router-link v-if="grupo.commit_id && grupo.commit_id !== 'sem-commit'" :to="`/commits/${grupo.commit_id}`" class="commit-hash-link" @click.stop>
                   {{ grupo.commit_id.slice(0, 8) }}
                 </router-link>
                 <span class="commit-msg-link" :title="grupo.commit_mensagem">
                   {{ grupo.commit_mensagem }}
+                </span>
+                <span v-if="temExecucaoNoGrupo(grupo)" class="badge-running-pill" title="Existe tarefa sendo executada neste commit">
+                  <span class="live-dot-pulse"></span>
+                  <span>Em Execução</span>
                 </span>
               </div>
               <div class="commit-group-right">
@@ -132,7 +269,7 @@
             </button>
 
             <!-- Lista de tarefas deste commit -->
-            <div v-show="!isGrupoColapsado(grupo.commit_id)" :id="'group-jobs-' + grupo.commit_id" class="commit-group-jobs">
+            <div v-show="!isGrupoColapsado(grupo.commit_id, grupo)" :id="'group-jobs-' + grupo.commit_id" class="commit-group-jobs">
               <div 
                 v-for="job in grupo.jobs" 
                 :key="job.id" 
@@ -454,6 +591,7 @@
       </section>
 
     </div>
+    </template>
 
     <!-- Modal de Logs -->
     <div v-if="logJobSelecionado" class="modal-overlay" @click.self="fecharLogs">
@@ -560,6 +698,29 @@ async function limparMesesAnteriores() {
   }
 }
 
+// ── Tarefas em Execução e Pendentes ──
+const jobsEmExecucao = computed(() => {
+  return filaStore.jobs.filter(j => j.status === 'running')
+})
+
+const pendingJobsCount = computed(() => {
+  return filaStore.jobs.filter(j => j.status === 'pending').length
+})
+
+function formatarTipoJob(tipo: string): string {
+  const map: Record<string, string> = {
+    analise: 'Análise AI',
+    envio: 'Envio Portal',
+    ajuste: 'Ajuste Munka',
+    verificacao: 'Sincronização'
+  }
+  return map[tipo] || tipo
+}
+
+function temExecucaoNoGrupo(grupo: { jobs: any[] }) {
+  return grupo.jobs.some(j => j.status === 'running')
+}
+
 // ── Divisão entre Lançamentos e Ajustes ──
 const jobsLancamentos = computed(() => {
   return filaStore.jobs.filter(j => j.tipo === 'analise' || j.tipo === 'envio')
@@ -568,7 +729,14 @@ const jobsLancamentos = computed(() => {
 const jobsAjustes = computed(() => {
   return filaStore.jobs
     .filter(j => j.tipo === 'ajuste' || j.tipo === 'verificacao')
-    .sort((a, b) => new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime())
+    .sort((a, b) => {
+      // Prioridade: Tarefas em execução primeiro, depois pendentes, depois por data mais recente
+      if (a.status === 'running' && b.status !== 'running') return -1
+      if (b.status === 'running' && a.status !== 'running') return 1
+      if (a.status === 'pending' && b.status !== 'pending') return -1
+      if (b.status === 'pending' && a.status !== 'pending') return 1
+      return new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime()
+    })
 })
 
 const jobsLancamentosAgrupados = computed(() => {
@@ -585,8 +753,31 @@ const jobsLancamentosAgrupados = computed(() => {
     }
     grupos[key].jobs.push(job)
   }
+
+  // Dentro de cada commit: running primeiro, depois pending, depois mais novas
+  for (const key in grupos) {
+    grupos[key].jobs.sort((a, b) => {
+      if (a.status === 'running' && b.status !== 'running') return -1
+      if (b.status === 'running' && a.status !== 'running') return 1
+      if (a.status === 'pending' && b.status !== 'pending') return -1
+      if (b.status === 'pending' && a.status !== 'pending') return 1
+      return new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime()
+    })
+  }
   
   return Object.values(grupos).sort((a, b) => {
+    // Commits com tarefas em execução vão diretamente para o topo
+    const hasRunningA = a.jobs.some(j => j.status === 'running')
+    const hasRunningB = b.jobs.some(j => j.status === 'running')
+    if (hasRunningA && !hasRunningB) return -1
+    if (!hasRunningA && hasRunningB) return 1
+
+    // Commits com tarefas pendentes em seguida
+    const hasPendingA = a.jobs.some(j => j.status === 'pending')
+    const hasPendingB = b.jobs.some(j => j.status === 'pending')
+    if (hasPendingA && !hasPendingB) return -1
+    if (!hasPendingA && hasPendingB) return 1
+
     const maxA = Math.max(...a.jobs.map(j => new Date(j.criado_em).getTime()))
     const maxB = Math.max(...b.jobs.map(j => new Date(j.criado_em).getTime()))
     return maxB - maxA
@@ -614,7 +805,11 @@ function alternarGrupo(commitId: string) {
   gruposColapsados.value[commitId] = !gruposColapsados.value[commitId]
 }
 
-function isGrupoColapsado(commitId: string) {
+function isGrupoColapsado(commitId: string, grupo?: { jobs: any[] }) {
+  // Se houver qualquer tarefa em execução no commit, mantém sempre expandido
+  if (grupo && grupo.jobs.some(j => j.status === 'running')) {
+    return false
+  }
   return !!gruposColapsados.value[commitId]
 }
 
@@ -972,6 +1167,266 @@ async function reenviarAtividade(job: any) {
 }
 .btn-pausar { color: #d97706; }
 .btn-retomar { color: #059669; }
+
+/* Seção de Tarefas em Execução no Topo */
+.fila-execucao-topo {
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  background: var(--card-bg);
+  border: 1px solid var(--accent);
+  border-radius: 14px;
+  padding: 1.25rem;
+  box-shadow: 0 0 24px rgba(59, 130, 246, 0.18), 0 4px 16px rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.fila-execucao-topo::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent-grad);
+}
+
+.execucao-topo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.execucao-topo-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.live-pulse-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--accent-glow);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  box-shadow: 0 0 12px var(--accent-glow);
+  animation: pulseIcon 2s infinite ease-in-out;
+}
+
+.execucao-topo-header h2 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.2;
+  margin: 0;
+}
+
+.execucao-topo-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.execucao-topo-pending-pill {
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.execucao-topo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 4px 12px;
+  border-radius: 99px;
+  text-transform: uppercase;
+}
+
+.running-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .running-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.running-task-card {
+  background: var(--header-group-bg, rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  border-left: 4px solid var(--accent);
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  min-width: 0;
+}
+
+.running-task-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.2);
+}
+
+.running-task-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.running-task-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.running-job-id {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.running-job-time {
+  font-size: 0.75rem;
+  color: var(--text-subtle);
+}
+
+.running-task-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-live-logs {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.2s ease;
+}
+
+.btn-live-logs:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.running-task-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.running-task-commit-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  min-width: 0;
+}
+
+.running-commit-msg {
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.running-task-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.meta-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.meta-value {
+  color: var(--text);
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.badge-running-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+.fila-pending-bar {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--card-bg);
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.pending-bar-info {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.pending-bar-info i {
+  color: var(--accent-cyan);
+}
+
+@keyframes pulseIcon {
+  0% { transform: scale(1); box-shadow: 0 0 6px var(--accent-glow); }
+  50% { transform: scale(1.08); box-shadow: 0 0 16px var(--accent-glow); }
+  100% { transform: scale(1); box-shadow: 0 0 6px var(--accent-glow); }
+}
 
 /* Layout Dividido Verticalmente */
 .fila-split-layout {
