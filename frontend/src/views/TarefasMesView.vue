@@ -217,6 +217,54 @@
           <span>Concluídas ({{ contagemConcluidas }})</span>
         </button>
       </div>
+
+      <div class="advanced-filters" role="group" aria-label="Filtros por coluna">
+        <label class="filter-field">
+          <span class="filter-label">Regra</span>
+          <select v-model="filtroRegra" class="filter-select" aria-label="Filtrar por regra">
+            <option value="">Todas</option>
+            <option v-for="r in opcoesRegra" :key="r" :value="r">{{ r }}</option>
+          </select>
+        </label>
+
+        <label class="filter-field filter-field-grow">
+          <span class="filter-label">Nome da atividade</span>
+          <input
+            v-model="filtroAtividade"
+            type="text"
+            class="filter-input"
+            placeholder="Contém..."
+            aria-label="Filtrar por nome da atividade"
+          />
+        </label>
+
+        <label class="filter-field">
+          <span class="filter-label">Status no portal</span>
+          <select v-model="filtroStatusPortal" class="filter-select" aria-label="Filtrar por status no portal">
+            <option value="">Todos</option>
+            <option v-for="s in opcoesStatusPortal" :key="s" :value="s">{{ s }}</option>
+          </select>
+        </label>
+
+        <label class="filter-field">
+          <span class="filter-label">Condição supervisor</span>
+          <select v-model="filtroStatus" class="filter-select" aria-label="Filtrar por condição do supervisor">
+            <option value="todos">Todas</option>
+            <option value="abertas">Em Aberto</option>
+            <option value="concluidas">Concluídas</option>
+          </select>
+        </label>
+
+        <button
+          v-if="filtrosAtivos"
+          type="button"
+          class="btn-ghost btn-limpar-filtros"
+          @click="resetarFiltros"
+        >
+          <i class="fa-solid fa-filter-circle-xmark" aria-hidden="true"></i>
+          <span>Limpar filtros</span>
+        </button>
+      </div>
     </div>
 
     <!-- Estado de Carregamento -->
@@ -231,14 +279,14 @@
         <i class="fa-solid fa-calendar-xmark" aria-hidden="true"></i>
       </div>
       <h3>Nenhuma tarefa encontrada</h3>
-      <p v-if="filtroTexto || filtroStatus !== 'todos'">
+      <p v-if="filtrosAtivos">
         Nenhuma tarefa corresponde aos filtros aplicados. Tente ajustar os termos de pesquisa.
       </p>
       <p v-else>
         Não foram encontrados lançamentos no mês de <strong>{{ meses[mesAtual - 1] }} de {{ anoAtual }}</strong>.
       </p>
       <div class="empty-actions">
-        <button v-if="filtroTexto || filtroStatus !== 'todos'" type="button" class="btn-ghost" @click="resetarFiltros">
+        <button v-if="filtrosAtivos" type="button" class="btn-ghost" @click="resetarFiltros">
           Limpar Filtros
         </button>
         <button type="button" class="btn-primary" @click="sincronizarComMunka">
@@ -782,6 +830,17 @@ const dados = ref<TarefasMesResponse>({
 // Filtros locais
 const filtroTexto = ref<string>('')
 const filtroStatus = ref<'todos' | 'abertas' | 'concluidas'>('todos')
+const filtroRegra = ref<string>('')
+const filtroAtividade = ref<string>('')
+const filtroStatusPortal = ref<string>('')
+
+const filtrosAtivos = computed(() =>
+  !!filtroTexto.value ||
+  filtroStatus.value !== 'todos' ||
+  !!filtroRegra.value ||
+  !!filtroAtividade.value.trim() ||
+  !!filtroStatusPortal.value
+)
 
 // Seleção de itens
 const selecionadosIds = ref<number[]>([])
@@ -838,11 +897,29 @@ function isTarefaConcluida(t: TarefaMesItem): boolean {
   )
 }
 
+function statusPortalDe(t: TarefaMesItem): string {
+  return t.status_munka || t.status || ''
+}
+
+const opcoesRegra = computed(() =>
+  [...new Set(dados.value.tarefas.map(t => t.codigo).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'))
+)
+
+const opcoesStatusPortal = computed(() =>
+  [...new Set(dados.value.tarefas.map(statusPortalDe).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'))
+)
+
 // Contagens e Filtros
+// Busca geral + filtros por coluna; a condição do supervisor é aplicada depois,
+// para que as contagens dos botões reflitam os demais filtros.
 const tarefasFiltradasPorTexto = computed(() => {
   const q = filtroTexto.value.trim().toLowerCase()
-  if (!q) return dados.value.tarefas
+  const atividade = filtroAtividade.value.trim().toLowerCase()
   return dados.value.tarefas.filter(t => {
+    if (filtroRegra.value && t.codigo !== filtroRegra.value) return false
+    if (filtroStatusPortal.value && statusPortalDe(t) !== filtroStatusPortal.value) return false
+    if (atividade && !(t.titulo || '').toLowerCase().includes(atividade)) return false
+    if (!q) return true
     return (
       (t.titulo && t.titulo.toLowerCase().includes(q)) ||
       (t.commit_id && t.commit_id.toLowerCase().includes(q)) ||
@@ -909,6 +986,9 @@ function limparSelecao() {
 function resetarFiltros() {
   filtroTexto.value = ''
   filtroStatus.value = 'todos'
+  filtroRegra.value = ''
+  filtroAtividade.value = ''
+  filtroStatusPortal.value = ''
 }
 
 function mudarMes(delta: number) {
@@ -1457,6 +1537,62 @@ onMounted(async () => {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 1rem;
+}
+
+.advanced-filters {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  width: 100%;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--card-border);
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 160px;
+}
+
+.filter-field-grow {
+  flex: 1;
+  min-width: 220px;
+}
+
+.filter-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.filter-select,
+.filter-input {
+  height: 36px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text);
+  padding: 0 0.75rem;
+  border-radius: 8px;
+  font-size: 0.83rem;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filter-select:focus,
+.filter-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.btn-limpar-filtros {
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 
 .search-wrap {
