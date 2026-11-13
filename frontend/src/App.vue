@@ -5,6 +5,7 @@ import { useFilaStore } from './stores/fila'
 import { api } from './api'
 import { useToastStore } from './stores/toast'
 import ToastManager from './components/ToastManager.vue'
+import NotificacoesSino from './components/NotificacoesSino.vue'
 import { instalarDesbloqueioAudio } from './utils/somNotificacao'
 
 type ThemeMode = 'dark' | 'light' | 'auto'
@@ -317,6 +318,8 @@ onUnmounted(() => {
       </nav>
 
       <div class="topbar-actions">
+        <NotificacoesSino />
+
         <button 
           class="anti-sleep-btn" 
           :class="{ active: isWakeLockActive, 'is-locked': isWakeLockActive && activeJobsCount > 0 }" 
