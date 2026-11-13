@@ -3,7 +3,7 @@ import json
 import re
 import subprocess
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
@@ -2612,6 +2612,65 @@ def startup_backup_e_ping():
         gerar_backup_json_e_sql()
     except Exception as e:
         print(f"[Startup Backup Error] {e}", flush=True)
+
+
+# Jobs de sincronização "presos" (container derrubado no meio) não bloqueiam o próximo startup.
+SYNC_STARTUP_JANELA_MIN = 30
+
+
+def enfileirar_sincronizacao_inicial(db: Session) -> Optional[int]:
+    """Enfileira UM job de sincronização de status do mês com o portal Munka.
+
+    Só atualiza o nosso lado (status_munka/status do Histórico); nada é alterado no portal.
+    Pula quando faltam credenciais ou já existe job de verificação recente pendente/rodando.
+    Retorna o id do job criado ou None.
+    """
+    cfg = obter_config_valores()
+    if not cfg.get("MUNKA_USER") or not cfg.get("MUNKA_PASS") or not cfg.get("MUNKA_URL"):
+        print("[Startup Sync] Credenciais do Munka ausentes; sincronização inicial ignorada.", flush=True)
+        return None
+
+    limite = (datetime.now() - timedelta(minutes=SYNC_STARTUP_JANELA_MIN)).isoformat()
+    em_andamento = (
+        db.query(models.Fila)
+        .filter(
+            models.Fila.tipo == "verificacao",
+            models.Fila.status.in_(("pending", "running")),
+            models.Fila.criado_em >= limite,
+        )
+        .first()
+    )
+    if em_andamento:
+        print(f"[Startup Sync] Job #{em_andamento.id} já em andamento; nada a fazer.", flush=True)
+        return None
+
+    from celery_tasks import sincronizar_status_munka_task
+
+    job = models.Fila(
+        tipo="verificacao",
+        commit_id="",
+        status="pending",
+        resultado=json.dumps(
+            {"resultado": "PENDING", "logs": ["Sincronização inicial do mês agendada no startup."]},
+            ensure_ascii=False,
+        ),
+        criado_em=datetime.now().isoformat(),
+    )
+    db.add(job)
+    db.flush()
+    job.task_id = sincronizar_status_munka_task.delay(job.id).id
+    db.commit()
+    print(f"[Startup Sync] Job #{job.id} enfileirado.", flush=True)
+    return job.id
+
+
+@app.on_event("startup")
+def startup_sincronizar_status_mes():
+    try:
+        with SessionLocal() as db:
+            enfileirar_sincronizacao_inicial(db)
+    except Exception as e:
+        print(f"[Startup Sync Error] {e}", flush=True)
 
 
 @app.post("/backup/criar")

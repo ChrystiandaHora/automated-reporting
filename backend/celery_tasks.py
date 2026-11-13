@@ -874,6 +874,7 @@ def sincronizar_status_munka_task(self, fila_id=None):
 
         agora = datetime.now().isoformat()
         total_atualizadas = 0
+        mudancas = []
 
         with SessionLocal() as db:
             historicos = db.query(models.Historico).all()
@@ -894,6 +895,16 @@ def sincronizar_status_munka_task(self, fila_id=None):
                     item = next((h for h in historicos if h.titulo and (h.titulo.strip().lower() == p_titulo.lower() or p_titulo.lower() in h.titulo.strip().lower() or h.titulo.strip().lower() in p_titulo.lower())), None)
 
                 if item:
+                    # Só conta como "movida" quando já havia status conhecido e ele mudou
+                    anterior = (item.status_munka or "").strip()
+                    if anterior and p_status and anterior.lower() != p_status.lower():
+                        mudancas.append({
+                            "historico_id": item.id,
+                            "task_id": p_task_id or item.task_id,
+                            "titulo": item.titulo or p_titulo,
+                            "de": anterior,
+                            "para": p_status,
+                        })
                     item.status_munka = p_status
                     item.munka_atualizado_em = agora
                     if p_task_id and not item.task_id:
@@ -906,11 +917,12 @@ def sincronizar_status_munka_task(self, fila_id=None):
                     total_atualizadas += 1
             db.commit()
 
-        log(f"✅ Sincronização concluída com sucesso! {total_atualizadas} tarefa(s) do histórico local atualizadas.")
+        log(f"✅ Sincronização concluída com sucesso! {total_atualizadas} tarefa(s) do histórico local atualizadas, {len(mudancas)} mudaram de status.")
         res = {
             "resultado": "OK",
             "total_portal": len(tarefas_portal),
             "total_atualizadas": total_atualizadas,
+            "mudancas": mudancas,
             "tarefas": tarefas_portal,
             "logs": logs,
         }
