@@ -1,0 +1,296 @@
+/*
+ * Único arquivo de CSS do projeto. Tudo o mais é estilizado com utilidades Tailwind
+ * nos templates e nos componentes base (src/components/ui).
+ *
+ * Camadas: theme < base < utilities. Utilidade sempre vence base, então nenhuma
+ * classe precisa de `!important`.
+ *
+ * As cores semânticas (`bg-card`, `text-foreground`...) apontam para as variáveis de
+ * tema definidas em `[data-theme]` mais abaixo, então o tema claro/escuro troca em runtime.
+ */
+@layer theme, base, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "@fortawesome/fontawesome-free/css/all.min.css" layer(base);
+
+/* O tema é controlado por data-theme no <html>; dark é o padrão. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+@custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
+
+/* Tokens que seguem o tema (valores vêm das variáveis CSS). */
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--card-bg);
+  --color-border: var(--card-border);
+  --color-border-strong: var(--border);
+  --color-input: var(--input-border);
+  --color-muted: var(--header-group-bg);
+  --color-muted-foreground: var(--text-muted);
+  --color-subtle-foreground: var(--text-subtle);
+  --color-primary: var(--accent);
+  --color-primary-light: var(--accent-light);
+  --color-primary-glow: var(--accent-glow);
+  --color-accent: var(--accent-cyan);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--error);
+  --color-topbar: var(--topbar-bg);
+  --color-code: var(--sha-box-bg);
+  --color-code-foreground: var(--sha-box-color);
+
+  --color-badge-code: var(--badge-code-bg);
+  --color-badge-code-foreground: var(--badge-code-color);
+  --color-badge-code-border: var(--badge-code-border);
+  --color-badge-hpa: var(--badge-hpa-bg);
+  --color-badge-hpa-foreground: var(--badge-hpa-color);
+  --color-badge-hpa-border: var(--badge-hpa-border);
+  --color-badge-green: var(--badge-green-bg);
+  --color-badge-green-foreground: var(--badge-green-color);
+  --color-badge-green-border: var(--badge-green-border);
+  --color-badge-orange: var(--badge-orange-bg);
+  --color-badge-orange-foreground: var(--badge-orange-color);
+  --color-badge-orange-border: var(--badge-orange-border);
+  --color-badge-purple: var(--badge-purple-bg);
+  --color-badge-purple-foreground: var(--badge-purple-color);
+  --color-badge-purple-border: var(--badge-purple-border);
+}
+
+/* Cores fixas (não mudam com o tema) da paleta escura estilo terminal. */
+@theme {
+  --color-canvas: #0d1117;
+  --color-canvas-subtle: #161b22;
+  --color-canvas-border: #30363d;
+  --color-canvas-foreground: #f0f6fc;
+  --color-canvas-muted: #8b949e;
+  --color-canvas-link: #58a6ff;
+  --color-canvas-accent: #388bfd;
+  --color-canvas-success: #3fb950;
+  --color-canvas-danger: #f85149;
+  --color-tutorial-overlay: rgb(10 15 30);
+  --color-terminal: #090d16;
+  --color-terminal-foreground: #e6edf3;
+  --color-file-name: #c1c7d4;
+  --color-diff-surface: #03050a;
+  --color-error-soft: #ff7b72;
+  --color-progress-end: #2ea043;
+  --color-canvas-danger-hover: #ff6b6b;
+
+  /* Cores de avatar do autor (Analisar e Histórico). */
+  --color-avatar-blue: #007acc;
+  --color-avatar-amber: #d29922;
+  --color-avatar-purple: #bc8cff;
+  --color-avatar-indigo: #1f6feb;
+  --color-avatar-cyan: #30b6e6;
+  --color-avatar-default: #777777;
+
+  /* O CSS original usa line-height: normal; as utilidades text-* definiriam outro valor. */
+  --text-xs--line-height: normal;
+  --text-sm--line-height: normal;
+  --text-base--line-height: normal;
+  --text-lg--line-height: normal;
+  --text-xl--line-height: normal;
+  --text-2xl--line-height: normal;
+  --text-3xl--line-height: normal;
+  --text-4xl--line-height: normal;
+
+  --font-sans: 'Outfit', 'Inter', system-ui, sans-serif;
+  --font-courier: 'Courier New', monospace;
+  --font-terminal: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.04);
+  --shadow-field: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-modal: 0 20px 50px rgba(0, 0, 0, 0.2);
+  --shadow-topbar: 0 4px 20px rgba(0, 0, 0, 0.06);
+  --shadow-solid-primary: 4px 4px 0 var(--accent);
+  --shadow-solid-success: 4px 4px 0 var(--color-canvas-success);
+  --shadow-solid-danger: 4px 4px 0 var(--color-canvas-danger);
+  --shadow-tutorial-card: 0 20px 45px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --shadow-tutorial-card-anchored: 0 10px 40px rgba(0, 0, 0, 0.65), 0 0 25px rgba(59, 130, 246, 0.25);
+
+  --animate-fade-in: fade-in 0.25s ease-out;
+  --animate-scale-in: scale-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-pulse-dot: pulse-dot 2s ease-in-out infinite;
+  --animate-spotlight-glow: spotlight-glow 2s ease-in-out infinite alternate;
+  --animate-scale-up-modal: scale-up-modal 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-fade-in-step: fade-in-step 0.25s ease-out;
+  --animate-pulse-dot-active: pulse-dot 1.8s infinite;
+  --animate-pulse-badge: pulse-badge 2.5s infinite;
+  --animate-pulse-chip: pulse-dot-anim 1.5s infinite;
+  --animate-pulse-queue: pulse-dot-anim 1.2s ease-in-out infinite;
+  --animate-pulse-border: pulse-border 2s ease-in-out infinite;
+  --animate-queue-icon: queue-icon 2s ease-in-out infinite;
+  --animate-queue-dot: queue-dot 1.2s ease-in-out infinite;
+  --animate-queue-dot-slow: queue-dot 1.5s infinite;
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes scale-in {
+    from { transform: scale(0.97); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  @keyframes pulse-dot {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.4); opacity: 0.7; }
+  }
+  @keyframes spotlight-glow {
+    0% { box-shadow: 0 0 0 9999px rgba(8, 12, 24, 0.86), 0 0 0 2px rgba(59, 130, 246, 0.4), 0 0 20px rgba(59, 130, 246, 0.6), inset 0 0 10px rgba(59, 130, 246, 0.15); }
+    100% { box-shadow: 0 0 0 9999px rgba(8, 12, 24, 0.88), 0 0 0 4px rgba(59, 130, 246, 0.7), 0 0 35px rgba(59, 130, 246, 0.9), inset 0 0 18px rgba(59, 130, 246, 0.3); }
+  }
+  @keyframes scale-up-modal {
+    from { transform: scale(0.92) translateY(10px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  @keyframes queue-icon {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 6px var(--accent-glow); }
+    50% { transform: scale(1.08); box-shadow: 0 0 16px var(--accent-glow); }
+  }
+  @keyframes queue-dot {
+    0%, 100% { transform: scale(0.9); opacity: 0.6; }
+    50% { transform: scale(1.3); opacity: 1; }
+  }
+  @keyframes pulse-dot-anim {
+    0%, 100% { transform: scale(0.9); opacity: 0.7; }
+    50% { transform: scale(1.3); opacity: 1; }
+  }
+  @keyframes pulse-border {
+    0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+    70% { box-shadow: 0 0 0 5px rgba(245, 158, 11, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+  }
+  @keyframes pulse-badge {
+    0% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.5); }
+    70% { box-shadow: 0 0 0 8px rgba(168, 85, 247, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0); }
+  }
+  @keyframes fade-in-step {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/*
+ * Aplicada por JS (TutorialModal) ao elemento em destaque de qualquer tela,
+ * por isso é um utility declarado aqui e não uma classe de componente.
+ */
+@utility tutorial-target-highlighted {
+  position: relative;
+  z-index: 9998;
+  box-shadow: 0 0 0 3px var(--color-blue-500), 0 0 20px color-mix(in oklab, var(--color-blue-500) 60%, transparent);
+  border-radius: 8px;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+/* Variáveis dos temas escuro (padrão) e claro; os tokens @theme acima leem estas. */
+@layer base {
+  :root, [data-theme="dark"] {
+    --bg: #0F172A;
+    --card-bg: #1E293B;
+    --card-border: #334155;
+    --border: #475569;
+    --input-border: #64748B;
+    --text: #F8FAFC;
+    --text-muted: #CBD5E1;
+    --text-subtle: #94A3B8;
+    --accent: #3B82F6;
+    --accent-light: #60A5FA;
+    --accent-cyan: #06B6D4;
+    --accent-grad: linear-gradient(135deg, #06b6d4 0%, #3B82F6 50%, #a855f7 100%);
+    --accent-glow: rgba(59, 130, 246, 0.25);
+    --success: #10B981;
+    --warning: #F59E0B;
+    --error: #EF4444;
+    --topbar-bg: rgba(15, 23, 42, 0.85);
+
+    --badge-code-bg: rgba(96, 165, 250, 0.12);
+    --badge-code-color: #93C5FD;
+    --badge-code-border: rgba(96, 165, 250, 0.3);
+
+    --badge-hpa-bg: rgba(251, 191, 36, 0.12);
+    --badge-hpa-color: #FCD34D;
+    --badge-hpa-border: rgba(251, 191, 36, 0.3);
+
+    --badge-green-bg: rgba(16, 185, 129, 0.15);
+    --badge-green-color: #34D399;
+    --badge-green-border: rgba(16, 185, 129, 0.3);
+
+    --badge-orange-bg: rgba(245, 158, 11, 0.15);
+    --badge-orange-color: #FBBF24;
+    --badge-orange-border: rgba(245, 158, 11, 0.3);
+
+    --badge-purple-bg: rgba(168, 85, 247, 0.15);
+    --badge-purple-color: #C084FC;
+    --badge-purple-border: rgba(168, 85, 247, 0.3);
+
+    --header-group-bg: rgba(255, 255, 255, 0.03);
+    --sha-box-bg: rgba(255, 255, 255, 0.05);
+    --sha-box-color: #94A3B8;
+  }
+
+  [data-theme="light"] {
+    --bg: #F8FAFC;
+    --card-bg: #FFFFFF;
+    --card-border: #CBD5E1;
+    --border: #94A3B8;
+    --input-border: #718096;
+    --text: #0F172A;
+    --text-muted: #374151;
+    --text-subtle: #4B5563;
+    --accent: #1D4ED8;
+    --accent-light: #1E40AF;
+    --accent-cyan: #0369A1;
+    --accent-grad: linear-gradient(135deg, #1D4ED8 0%, #4F46E5 50%, #7C3AED 100%);
+    --accent-glow: rgba(29, 78, 216, 0.12);
+    --success: #047857;
+    --warning: #92400E;
+    --error: #B91C1C;
+    --topbar-bg: rgba(248, 250, 252, 0.95);
+
+    --badge-code-bg: #EFF6FF;
+    --badge-code-color: #1E40AF;
+    --badge-code-border: #BFDBFE;
+
+    --badge-hpa-bg: #FEF3C7;
+    --badge-hpa-color: #92400E;
+    --badge-hpa-border: #FDE68A;
+
+    --badge-green-bg: #D1FAE5;
+    --badge-green-color: #065F46;
+    --badge-green-border: #A7F3D0;
+
+    --badge-orange-bg: #FFEDD5;
+    --badge-orange-color: #9A3412;
+    --badge-orange-border: #FDBA74;
+
+    --badge-purple-bg: #F3E8FF;
+    --badge-purple-color: #6B21A8;
+    --badge-purple-border: #E9D5FF;
+
+    --header-group-bg: #F1F5F9;
+    --sha-box-bg: #F1F5F9;
+    --sha-box-color: #1E293B;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.02);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--card-border);
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-subtle);
+  }
+}
