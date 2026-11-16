@@ -1,28 +1,35 @@
 <template>
-  <span class="help-wrapper">
-    <button class="help-btn" @click="open = true" :title="title">?</button>
+  <span class="inline-flex items-center">
+    <button
+      class="size-5.5 shrink-0 cursor-pointer rounded-xs border-2 border-border-strong bg-transparent text-xs leading-none font-extrabold text-primary shadow-[2px_2px_0] shadow-primary transition duration-100 hover:-translate-x-px hover:-translate-y-px hover:bg-primary hover:text-background hover:shadow-[3px_3px_0] hover:shadow-primary"
+      @click="open = true"
+      :title="title"
+    >?</button>
 
-    <div v-if="open" class="modal-overlay" @click.self="open = false">
-      <div ref="modalRef" class="modal help-modal" role="dialog" aria-modal="true" :aria-labelledby="titleId">
-        <div class="help-modal-header">
-          <h2 :id="titleId">{{ title }}</h2>
-          <button class="close-btn" @click="open = false" aria-label="Fechar ajuda">
+    <BaseModal v-if="open" ref="modalRef" size="auto" :labelledby="titleId" class="max-h-[80vh] w-[95vw] max-w-135" @close="open = false">
+        <div class="mb-4 flex items-center justify-between border-b-2 border-primary pb-3">
+          <h2 :id="titleId" class="text-base font-extrabold tracking-wide uppercase">{{ title }}</h2>
+          <button
+            data-close class="cursor-pointer rounded-none border-2 border-border-strong bg-transparent px-1.5 py-0.5 text-sm text-muted-foreground transition-colors duration-100 hover:border-canvas-danger hover:bg-canvas-danger hover:text-white"
+            @click="open = false"
+            aria-label="Fechar ajuda"
+          >
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>
           </button>
         </div>
-        <div class="help-modal-body">
-          <div v-for="item in items" :key="item.title" class="help-item">
-            <h3>{{ item.title }}</h3>
-            <p>{{ item.text }}</p>
+        <div class="flex flex-col gap-4 overflow-y-auto">
+          <div v-for="item in items" :key="item.title">
+            <h3 class="mb-1 text-xs font-extrabold tracking-widest text-primary uppercase">{{ item.title }}</h3>
+            <p class="text-sm leading-relaxed text-muted-foreground">{{ item.text }}</p>
           </div>
         </div>
-      </div>
-    </div>
+    </BaseModal>
   </span>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
+import BaseModal from './ui/BaseModal.vue'
 
 defineProps<{
   title: string
@@ -30,7 +37,7 @@ defineProps<{
 }>()
 
 const open = ref(false)
-const modalRef = ref<HTMLElement | null>(null)
+const modalRef = ref<{ panel: HTMLElement | null } | null>(null)
 const titleId = 'help-title-' + Math.random().toString(36).substring(2, 9)
 
 let previousActiveElement: HTMLElement | null = null
@@ -39,8 +46,9 @@ function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
     open.value = false
   }
-  if (e.key === 'Tab' && modalRef.value) {
-    const focusable = modalRef.value.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+  const painel = modalRef.value?.panel
+  if (e.key === 'Tab' && painel) {
+    const focusable = painel.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
     if (focusable.length === 0) return
     const first = focusable[0] as HTMLElement
     const last = focusable[focusable.length - 1] as HTMLElement
@@ -63,7 +71,7 @@ watch(open, (newVal) => {
     previousActiveElement = document.activeElement as HTMLElement | null
     document.addEventListener('keydown', handleKeydown)
     nextTick(() => {
-      const closeBtn = modalRef.value?.querySelector('.close-btn') as HTMLElement | null
+      const closeBtn = modalRef.value?.panel?.querySelector('[data-close]') as HTMLElement | null
       closeBtn?.focus()
     })
   } else {
@@ -75,80 +83,3 @@ watch(open, (newVal) => {
   }
 })
 </script>
-
-<style scoped>
-.help-wrapper { display: inline-flex; align-items: center; }
-
-.help-btn {
-  width: 22px;
-  height: 22px;
-  border-radius: 2px;
-  border: 2px solid var(--border);
-  background: transparent;
-  color: var(--accent);
-  font-size: 0.72rem;
-  font-weight: 800;
-  cursor: pointer;
-  line-height: 1;
-  box-shadow: 2px 2px 0 var(--accent);
-  transition: transform 0.1s, box-shadow 0.1s, background 0.1s;
-  flex-shrink: 0;
-}
-.help-btn:hover {
-  background: var(--accent);
-  color: var(--bg);
-  transform: translateY(-1px) translateX(-1px);
-  box-shadow: 3px 3px 0 var(--accent);
-}
-
-.help-modal {
-  max-width: 540px;
-  width: 95vw;
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.help-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-  border-bottom: 2px solid var(--accent);
-  padding-bottom: 0.75rem;
-}
-.help-modal-header h2 { font-size: 1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
-
-.close-btn {
-  background: transparent;
-  border: 2px solid var(--border);
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  cursor: pointer;
-  padding: 0.15rem 0.4rem;
-  border-radius: 0;
-  transition: background 0.1s, color 0.1s;
-}
-.close-btn:hover { background: #f85149; color: #fff; border-color: #f85149; }
-
-.help-modal-body {
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.help-item h3 {
-  font-size: 0.72rem;
-  font-weight: 800;
-  color: var(--accent);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 0.3rem;
-}
-.help-item p {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  line-height: 1.55;
-}
-</style>

@@ -1,65 +1,65 @@
 <template>
-  <div class="page">
+  <div>
     <!-- Cabeçalho da Página -->
-    <div class="page-header">
-      <div class="header-left">
-        <button type="button" class="btn-ghost btn-back" @click="$router.push('/commits')">
+    <PageHeader>
+      <div class="flex flex-col gap-1.5">
+        <BaseButton class="w-fit" @click="$router.push('/commits')">
           <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
           <span>Voltar aos Commits</span>
-        </button>
-        <div class="title-row">
-          <h1>Importar Commits do GitLab</h1>
+        </BaseButton>
+        <div class="flex items-center gap-3">
+          <PageTitle>Importar Commits do GitLab</PageTitle>
           <TutorialModal screenId="importar" />
         </div>
-        <p class="header-subtitle">
+        <p class="text-sm text-muted-foreground">
           Importe commits em lote a partir de uma ou mais instâncias do GitLab com credenciais configuradas.
         </p>
       </div>
 
-      <div class="header-right">
-        <router-link to="/config" class="btn-ghost btn-sm">
+      <div>
+        <router-link to="/config" :class="classesLinkGhost">
           <i class="fa-solid fa-gear" aria-hidden="true"></i>
           <span>Gerenciar Contas GitLab</span>
         </router-link>
       </div>
-    </div>
+    </PageHeader>
 
     <!-- Mensagens Globais de Sucesso ou Erro -->
-    <div v-if="erroGlobal" class="error-banner" role="alert">
+    <div v-if="erroGlobal" class="mb-6 rounded-md border-l-4 border-danger bg-red-500/15 px-5 py-3 text-sm font-semibold text-danger" role="alert">
       {{ erroGlobal }}
     </div>
 
     <!-- SEÇÃO 1: SELEÇÃO DA CONTA GITLAB -->
-    <section class="section" aria-labelledby="heading-git-selection">
-      <div class="section-title">
-        <span class="step-badge" aria-hidden="true">1</span>
-        <div class="step-title-block">
-          <h2 id="heading-git-selection">Selecione a Instância / Conta do GitLab</h2>
-          <span class="step-sub">Escolha qual token e URL base serão utilizados para ler os commits e diffs da API</span>
+    <section class="mb-9" aria-labelledby="heading-git-selection">
+      <div :class="classesTituloSecao">
+        <span :class="classesBadgePasso" aria-hidden="true">1</span>
+        <div class="flex flex-col gap-1">
+          <h2 id="heading-git-selection" :class="classesH2Secao">Selecione a Instância / Conta do GitLab</h2>
+          <span class="text-sm text-muted-foreground">Escolha qual token e URL base serão utilizados para ler os commits e diffs da API</span>
         </div>
       </div>
 
       <!-- Estado de Carregamento das Contas -->
-      <div v-if="loadingContas" class="loading-contas" role="status" aria-live="polite">
+      <div v-if="loadingContas" role="status" aria-live="polite">
         Carregando instâncias GitLab configuradas...
       </div>
 
       <!-- Alerta quando não há contas cadastradas -->
-      <div v-else-if="contas.length === 0" class="empty-contas-box">
+      <div v-else-if="contas.length === 0">
         <p>Nenhuma conta do GitLab cadastrada no momento.</p>
-        <router-link to="/config" class="btn-primary" style="margin-top: 0.5rem;">
+        <router-link to="/config" :class="classesLinkPrimary" class="mt-2">
           <i class="fa-solid fa-plus" aria-hidden="true"></i>
           <span>Cadastrar Conta GitLab nas Configurações</span>
         </router-link>
       </div>
 
       <!-- Grid de Contas GitLab -->
-      <div v-else class="git-accounts-grid" role="radiogroup" aria-label="Instâncias do GitLab disponíveis">
+      <div v-else data-tour="importar-contas" class="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-4" role="radiogroup" aria-label="Instâncias do GitLab disponíveis">
         
         <!-- Opção: Detecção Automática por Domínio -->
         <div 
-          class="git-account-card auto-detect-card"
-          :class="{ 'selected': selectedAccountId === 0 }"
+          data-tour="importar-conta"
+          :class="classesCartaoConta(selectedAccountId === 0)"
           tabindex="0"
           role="radio"
           :aria-checked="selectedAccountId === 0"
@@ -67,20 +67,20 @@
           @keydown.enter.prevent="selectedAccountId = 0"
           @keydown.space.prevent="selectedAccountId = 0"
         >
-          <div class="account-card-header">
-            <div class="account-icon-wrap auto-icon">
-              <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true" style="font-size: 1.15rem;"></i>
+          <div class="flex min-w-0 items-center gap-3.5">
+            <div class="flex size-9.5 shrink-0 items-center justify-center rounded-lg border border-purple-500/30 bg-purple-500/15 text-purple-400">
+              <i class="fa-solid fa-wand-magic-sparkles text-lg" aria-hidden="true"></i>
             </div>
-            <div class="account-header-info">
-              <div class="account-title-row">
-                <h3 class="account-name">Detecção Automática</h3>
-                <span class="badge badge-smart">SMART MATCH</span>
+            <div class="flex min-w-0 flex-col gap-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <h3 :class="classesNomeConta">Detecção Automática</h3>
+                <span class="inline-block rounded-sm border border-purple-500/35 bg-purple-500/20 px-1.25 py-px text-[0.65rem] font-extrabold leading-none tracking-[0.03em] uppercase text-purple-300">SMART MATCH</span>
               </div>
-              <span class="account-url">Mapeia cada URL para sua respectiva conta GitLab cadastrada</span>
+              <span :class="classesUrlConta">Mapeia cada URL para sua respectiva conta GitLab cadastrada</span>
             </div>
           </div>
-          <div class="radio-indicator-pill" aria-hidden="true">
-            <div class="radio-dot" v-if="selectedAccountId === 0"></div>
+          <div :class="classesRadioPilula(selectedAccountId === 0)" aria-hidden="true">
+            <div class="size-2 rounded-full bg-primary" v-if="selectedAccountId === 0"></div>
           </div>
         </div>
 
@@ -88,8 +88,8 @@
         <div 
           v-for="conta in contas" 
           :key="conta.id" 
-          class="git-account-card"
-          :class="{ 'selected': selectedAccountId === conta.id }"
+          data-tour="importar-conta"
+          :class="classesCartaoConta(selectedAccountId === conta.id)"
           tabindex="0"
           role="radio"
           :aria-checked="selectedAccountId === conta.id"
@@ -97,21 +97,21 @@
           @keydown.enter.prevent="selectedAccountId = conta.id"
           @keydown.space.prevent="selectedAccountId = conta.id"
         >
-          <div class="account-card-header">
-            <div class="account-icon-wrap gitlab-icon">
-              <i class="fa-brands fa-gitlab" aria-hidden="true" style="font-size: 1.25rem;"></i>
+          <div class="flex min-w-0 items-center gap-3.5">
+            <div class="flex size-9.5 shrink-0 items-center justify-center rounded-lg border border-orange-500/30 bg-orange-500/15 text-orange-400">
+              <i class="fa-brands fa-gitlab text-xl" aria-hidden="true"></i>
             </div>
-            <div class="account-header-info">
-              <div class="account-title-row">
-                <h3 class="account-name">{{ conta.nome }}</h3>
-                <span v-if="conta.padrao" class="badge badge-padrao">PADRÃO</span>
+            <div class="flex min-w-0 flex-col gap-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <h3 :class="classesNomeConta">{{ conta.nome }}</h3>
+                <span v-if="conta.padrao" class="inline-block rounded-sm border border-green-500/35 bg-green-500/18 px-1.25 py-px text-[0.65rem] font-extrabold leading-none tracking-[0.03em] uppercase text-green-400">PADRÃO</span>
               </div>
-              <span class="account-url">{{ conta.url }}</span>
-              <span class="account-token-tag">Token: {{ conta.token_mascarado }}</span>
+              <span :class="classesUrlConta">{{ conta.url }}</span>
+              <span class="font-mono text-xs text-muted-foreground">Token: {{ conta.token_mascarado }}</span>
             </div>
           </div>
-          <div class="radio-indicator-pill" aria-hidden="true">
-            <div class="radio-dot" v-if="selectedAccountId === conta.id"></div>
+          <div :class="classesRadioPilula(selectedAccountId === conta.id)" aria-hidden="true">
+            <div class="size-2 rounded-full bg-primary" v-if="selectedAccountId === conta.id"></div>
           </div>
         </div>
 
@@ -119,70 +119,69 @@
     </section>
 
     <!-- SEÇÃO 2: INFORMAR COMMITS -->
-    <section class="section" aria-labelledby="heading-commits-input">
-      <div class="section-title">
-        <span class="step-badge" aria-hidden="true">2</span>
-        <div class="step-title-block">
-          <h2 id="heading-commits-input">Informe os Commits</h2>
-          <span class="step-sub">Cole as URLs completas dos commits do GitLab (uma por linha)</span>
+    <section class="mb-9" aria-labelledby="heading-commits-input">
+      <div :class="classesTituloSecao">
+        <span :class="classesBadgePasso" aria-hidden="true">2</span>
+        <div class="flex flex-col gap-1">
+          <h2 id="heading-commits-input" :class="classesH2Secao">Informe os Commits</h2>
+          <span class="text-sm text-muted-foreground">Cole as URLs completas dos commits do GitLab (uma por linha)</span>
         </div>
       </div>
 
-      <div class="input-container-grid">
-        <div class="textarea-col">
-          <label for="input-commits-area" class="input-label">
+      <div class="grid grid-cols-[1.4fr_1fr] gap-6 max-[860px]:grid-cols-1">
+        <div data-tour="importar-coluna-urls" class="flex flex-col gap-2">
+          <label for="input-commits-area" class="mb-1.5 block text-sm font-bold tracking-[0.05em] text-foreground uppercase">
             URLs dos commits:
           </label>
-          <textarea 
+          <BaseTextarea
             id="input-commits-area"
             v-model="urlsTexto"
-            class="commits-textarea"
+            data-tour="importar-textarea"
+            class="leading-normal"
             rows="8"
             placeholder="Exemplo:&#10;https://gitlab.empresa.com/grupo/projeto/-/commit/a1b2c3d4e5f6...&#10;https://gitlab.empresa.com/outro/projeto/-/commit/f6e5d4c3b2a1..."
             :disabled="importando"
-          ></textarea>
+          />
 
-          <div class="textarea-actions">
-            <button 
-              type="button" 
-              class="btn-ghost btn-sm" 
+          <div class="flex items-center justify-between pt-1">
+            <BaseButton
               @click="limparTexto"
               :disabled="importando || !urlsTexto"
             >
               <i class="fa-solid fa-eraser" aria-hidden="true"></i>
               <span>Limpar Texto</span>
-            </button>
-            <span class="parsed-counter">
+            </BaseButton>
+            <span class="text-sm text-muted-foreground [&_strong]:text-primary">
               <strong>{{ parsedItems.length }}</strong> commit{{ parsedItems.length !== 1 ? 's' : '' }} identificado{{ parsedItems.length !== 1 ? 's' : '' }}
             </span>
           </div>
         </div>
 
         <!-- Painel Lateral de Pré-Visualização / Inspetor -->
-        <div class="inspector-col">
-          <h3 class="inspector-title">
+        <div data-tour="importar-inspetor" class="flex flex-col gap-3 rounded-[10px] border border-border-strong bg-card px-5 py-4">
+          <h3 class="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-muted-foreground">
             <i class="fa-solid fa-magnifying-glass-chart" aria-hidden="true"></i>
             Pré-Visualização Inteligente
           </h3>
 
-          <div v-if="parsedItems.length === 0" class="inspector-empty">
+          <div v-if="parsedItems.length === 0" class="py-6 text-center text-sm italic text-muted-foreground">
             Cole as URLs dos commits no campo ao lado para visualizar a validação em tempo real.
           </div>
 
-          <div v-else class="inspector-items-list">
+          <div v-else class="flex max-h-55 flex-col gap-2 overflow-y-auto">
             <div 
               v-for="(item, idx) in parsedItems" 
               :key="idx" 
-              class="inspector-item"
-              :class="{ 'is-invalid': !item.valido }"
+              class="flex flex-col gap-1 rounded-md border bg-background px-3 py-2"
+              :class="item.valido ? 'border-border-strong' : 'border-canvas-danger/40'"
             >
-              <div class="item-top">
-                <span v-if="item.valido" class="item-sha">{{ item.sha.slice(0, 8) }}</span>
-                <span v-else class="item-invalid-badge">Formato Inválido</span>
-                <span class="item-project" :title="item.projeto">{{ item.projeto || 'Projeto desconhecido' }}</span>
+              <div class="flex items-center gap-2">
+                <span v-if="item.valido" class="rounded-sm bg-sky-400/10 px-1 py-px font-mono text-xs font-bold text-primary">{{ item.sha.slice(0, 8) }}</span>
+                <span v-else class="text-xs font-extrabold text-canvas-danger">Formato Inválido</span>
+                <span class="truncate text-sm font-semibold text-foreground" :title="item.projeto">{{ item.projeto || 'Projeto desconhecido' }}</span>
               </div>
-              <div class="item-bottom">
-                <span class="item-domain" :title="item.dominio">{{ item.dominio || 'Domínio não detectado' }}</span>
+              <div>
+                <span class="text-xs text-muted-foreground" :title="item.dominio">{{ item.dominio || 'Domínio não detectado' }}</span>
               </div>
             </div>
           </div>
@@ -191,32 +190,31 @@
     </section>
 
     <!-- SEÇÃO 3: EXECUÇÃO E FEEDBACK DA IMPORTAÇÃO -->
-    <section class="section action-section">
-      <div class="action-bar-card">
-        <div class="action-info">
-          <span class="action-count-text">
+    <section data-tour="importar-acao-secao" class="mb-9">
+      <div data-tour="importar-acao" class="flex flex-wrap items-center justify-between gap-5 rounded-xl border border-border-strong bg-card px-7 py-5 shadow-lg shadow-black/20">
+        <div class="flex flex-col gap-1">
+          <span class="text-base text-foreground [&_strong]:text-primary">
             Pronto para importar <strong>{{ parsedItemsValidos.length }}</strong> commit{{ parsedItemsValidos.length !== 1 ? 's' : '' }}
           </span>
-          <span class="action-target-text">
+          <span class="text-sm text-muted-foreground [&_strong]:text-foreground">
             Instância Git: <strong>{{ nomeContaSelecionada }}</strong>
           </span>
         </div>
 
-        <button 
-          type="button" 
-          class="btn-primary btn-lg" 
-          :disabled="importando || parsedItemsValidos.length === 0" 
+        <BaseButton
+          variant="primary"
+          :disabled="importando || parsedItemsValidos.length === 0"
           @click="executarImportacao"
         >
-          <span v-if="importando" class="spinner-dot-sm"></span>
+          <span v-if="importando" class="inline-block size-3.5 animate-spin rounded-full border-2 border-transparent border-t-current border-r-current"></span>
           <span>{{ importando ? `Importando (${progressoAtual}/${parsedItemsValidos.length})...` : `Importar ${parsedItemsValidos.length} Commit(s)` }}</span>
-        </button>
+        </BaseButton>
       </div>
 
       <!-- Barra de Progresso durante a Importação -->
-      <div v-if="importando || relatorioExecucao.length > 0" class="progress-container">
+      <div v-if="importando || relatorioExecucao.length > 0" class="mt-6 flex flex-col gap-4 rounded-xl border border-border-strong bg-card p-5">
         <div 
-          class="progress-track" 
+          class="h-2 w-full overflow-hidden rounded-sm bg-white/8" 
           role="progressbar" 
           :aria-valuenow="progressoAtual" 
           aria-valuemin="0" 
@@ -224,57 +222,56 @@
           aria-label="Progresso da importação dos commits"
         >
           <div 
-            class="progress-fill" 
+            class="h-full bg-linear-to-r from-canvas-accent to-progress-end transition-[width] duration-300 ease-out"
             :style="{ width: percentualProgresso + '%' }"
           ></div>
         </div>
 
         <!-- Relatório Detalhado de Resultados -->
-        <div class="results-report" role="region" aria-label="Resultados da importação">
-          <div class="results-summary">
-            <span class="res-stat stat-success">
-              <i class="fa-solid fa-circle-check" aria-hidden="true" style="margin-right: 4px;"></i>
+        <div class="flex flex-col gap-4" role="region" aria-label="Resultados da importação">
+          <div class="flex flex-wrap items-center gap-5 border-b border-border-strong pb-2 text-sm font-bold">
+            <span class="text-canvas-success">
+              <i class="fa-solid fa-circle-check mr-1" aria-hidden="true"></i>
               <span>{{ totalSucessos }} importado(s)</span>
             </span>
-            <span class="res-stat stat-existing">
-              <i class="fa-solid fa-circle-info" aria-hidden="true" style="margin-right: 4px;"></i>
+            <span class="text-canvas-link">
+              <i class="fa-solid fa-circle-info mr-1" aria-hidden="true"></i>
               <span>{{ totalJaExistiam }} já existia(m)</span>
             </span>
-            <span v-if="totalFalhas > 0" class="res-stat stat-error">
-              <i class="fa-solid fa-circle-xmark" aria-hidden="true" style="margin-right: 4px;"></i>
+            <span v-if="totalFalhas > 0" class="text-canvas-danger">
+              <i class="fa-solid fa-circle-xmark mr-1" aria-hidden="true"></i>
               <span>{{ totalFalhas }} falha(s)</span>
             </span>
           </div>
 
-          <div class="results-list">
+          <div class="flex max-h-62.5 flex-col gap-1.5 overflow-y-auto">
             <div 
               v-for="(res, idx) in relatorioExecucao" 
               :key="idx" 
-              class="result-row"
-              :class="`status-${res.status}`"
+              class="flex items-center gap-3 rounded-md border border-border-strong bg-background px-3 py-2 text-sm"
             >
-              <div class="res-status-col">
-                <span v-if="res.status === 'sucesso'" class="res-badge badge-green">NOVO</span>
-                <span v-else-if="res.status === 'existente'" class="res-badge badge-blue">EXISTENTE</span>
-                <span v-else class="res-badge badge-red">ERRO</span>
+              <div class="shrink-0">
+                <span v-if="res.status === 'sucesso'" :class="classesBadgeResultado.sucesso">NOVO</span>
+                <span v-else-if="res.status === 'existente'" :class="classesBadgeResultado.existente">EXISTENTE</span>
+                <span v-else :class="classesBadgeResultado.erro">ERRO</span>
               </div>
-              <div class="res-info-col">
-                <span class="res-sha">{{ res.sha ? res.sha.slice(0, 8) : 'Commit' }}</span>
-                <span class="res-msg">{{ res.mensagem }}</span>
+              <div class="flex min-w-0 flex-1 items-center gap-2.5">
+                <span class="font-mono font-bold text-muted-foreground">{{ res.sha ? res.sha.slice(0, 8) : 'Commit' }}</span>
+                <span class="truncate text-foreground">{{ res.mensagem }}</span>
               </div>
             </div>
           </div>
 
           <!-- Ações Pós-Importação -->
-          <div v-if="!importando && relatorioExecucao.length > 0" class="post-import-actions">
-            <button type="button" class="btn-primary" @click="$router.push('/analisar')">
+          <div v-if="!importando && relatorioExecucao.length > 0" class="flex flex-wrap items-center gap-4 border-t border-border-strong pt-3">
+            <BaseButton variant="primary" @click="$router.push('/analisar')">
               <i class="fa-solid fa-bolt" aria-hidden="true"></i>
               <span>Prosseguir para Análise com IA</span>
               <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-            </button>
-            <button type="button" class="btn-ghost" @click="$router.push('/commits')">
+            </BaseButton>
+            <BaseButton @click="$router.push('/commits')">
               Ver Todos os Commits
-            </button>
+            </BaseButton>
           </div>
         </div>
       </div>
@@ -288,6 +285,10 @@ import { ref, computed, onMounted } from 'vue'
 import { api, type GitAccount } from '../api'
 import { useToastStore } from '../stores/toast'
 import TutorialModal from '../components/TutorialModal.vue'
+import BaseButton from '../components/ui/BaseButton.vue'
+import BaseTextarea from '../components/ui/BaseTextarea.vue'
+import PageHeader from '../components/ui/PageHeader.vue'
+import PageTitle from '../components/ui/PageTitle.vue'
 
 const toastStore = useToastStore()
 
@@ -308,6 +309,30 @@ interface ResultadoItem {
 }
 
 const relatorioExecucao = ref<ResultadoItem[]>([])
+
+const classesLinkGhost = 'inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-border-strong bg-card px-5 py-2.5 text-[0.88rem] leading-none font-semibold tracking-[0.01em] text-foreground transition-all duration-200 hover:-translate-y-px hover:border-primary hover:text-primary'
+const classesLinkPrimary = 'inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-[0.88rem] leading-none font-semibold tracking-[0.01em] text-white shadow-[0_4px_12px] shadow-primary-glow transition-all duration-200 hover:-translate-y-px hover:brightness-110 active:translate-y-0'
+const classesTituloSecao = 'mb-5 flex items-start gap-3.5'
+const classesBadgePasso = 'mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-black text-white shadow-[0_2px_8px] shadow-canvas-accent/30'
+const classesH2Secao = 'text-lg font-extrabold text-foreground'
+const classesNomeConta = 'truncate text-base font-extrabold text-foreground'
+const classesUrlConta = 'max-w-65 truncate text-xs text-muted-foreground'
+
+const classesCartaoConta = (selecionado: boolean) =>
+  selecionado
+    ? 'flex cursor-pointer items-center justify-between gap-3 rounded-[10px] border-2 border-primary bg-primary-glow p-4.5 -translate-y-0.5 shadow-lg shadow-canvas-accent/25 outline-none transition-all duration-150 ease-in-out hover:border-primary focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-primary focus-visible:outline-offset-2'
+    : 'flex cursor-pointer items-center justify-between gap-3 rounded-[10px] border-2 border-border-strong bg-card p-4.5 shadow-md shadow-black/15 outline-none transition-all duration-150 ease-in-out hover:-translate-y-0.5 hover:border-primary focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-primary focus-visible:outline-offset-2'
+
+const classesRadioPilula = (selecionado: boolean) =>
+  selecionado
+    ? 'flex size-4.5 shrink-0 items-center justify-center rounded-full border-2 border-primary'
+    : 'flex size-4.5 shrink-0 items-center justify-center rounded-full border-2 border-border-strong'
+
+const classesBadgeResultado: Record<ResultadoItem['status'], string> = {
+  sucesso: 'rounded-sm border border-badge-green-border bg-badge-green px-1.5 py-0.5 text-[0.68rem] font-extrabold text-badge-green-foreground',
+  existente: 'rounded-sm border border-badge-code-border bg-badge-code px-1.5 py-0.5 text-[0.68rem] font-extrabold text-badge-code-foreground',
+  erro: 'rounded-sm border border-canvas-danger/40 bg-canvas-danger/20 px-1.5 py-0.5 text-[0.68rem] font-extrabold text-error-soft',
+}
 
 onMounted(async () => {
   await carregarContas()
@@ -466,554 +491,3 @@ async function executarImportacao() {
   }
 }
 </script>
-
-<style scoped>
-.header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.btn-back {
-  width: fit-content;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.82rem;
-  color: var(--text-muted);
-}
-
-.header-subtitle {
-  color: var(--text-muted);
-  font-size: 0.88rem;
-  margin: 0;
-}
-
-.title-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.error-banner {
-  background: rgba(239, 68, 68, 0.15);
-  border-left: 4px solid var(--error);
-  color: var(--error);
-  padding: 0.75rem 1.25rem;
-  border-radius: 6px;
-  margin-bottom: 1.5rem;
-  font-size: 0.88rem;
-  font-weight: 600;
-}
-
-.section {
-  margin-bottom: 2.25rem;
-}
-
-.section-title {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.85rem;
-  margin-bottom: 1.2rem;
-}
-
-.step-badge {
-  background: var(--accent, #388bfd);
-  color: #ffffff;
-  border-radius: 50%;
-  font-weight: 900;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.85rem;
-  box-shadow: 0 2px 8px rgba(56, 139, 253, 0.3);
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.step-title-block {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.step-title-block h2 {
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: var(--text, #f0f6fc);
-  margin: 0;
-}
-
-.step-sub {
-  font-size: 0.82rem;
-  color: var(--text-muted, #8b949e);
-}
-
-/* ── GRID DE CONTAS GITLAB ── */
-.git-accounts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1rem;
-}
-
-.git-account-card {
-  background: var(--card-bg, #161b22);
-  border: 2px solid var(--border, #30363d);
-  border-radius: 10px;
-  padding: 1.1rem;
-  cursor: pointer;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
-  transition: all 0.15s ease;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  outline: none;
-}
-
-.git-account-card:hover {
-  border-color: var(--accent, #58a6ff);
-  transform: translateY(-2px);
-}
-
-.git-account-card:focus-visible {
-  outline: 2px solid var(--accent, #58a6ff);
-  outline-offset: 2px;
-}
-
-.git-account-card.selected {
-  border-color: var(--accent, #388bfd);
-  background: var(--accent-glow, rgba(56, 189, 248, 0.08));
-  box-shadow: 0 4px 16px rgba(56, 139, 253, 0.25);
-  transform: translateY(-2px);
-}
-
-.account-card-header {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  min-width: 0;
-}
-
-.account-icon-wrap {
-  width: 38px;
-  height: 38px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.account-icon-wrap.auto-icon {
-  background: rgba(168, 85, 247, 0.15);
-  color: #c084fc;
-  border: 1px solid rgba(168, 85, 247, 0.3);
-}
-
-.account-icon-wrap.gitlab-icon {
-  background: rgba(249, 115, 22, 0.15);
-  color: #fb923c;
-  border: 1px solid rgba(249, 115, 22, 0.3);
-}
-
-.account-header-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  min-width: 0;
-}
-
-.account-title-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.account-name {
-  margin: 0;
-  font-size: 0.98rem;
-  font-weight: 800;
-  color: var(--text, #f0f6fc);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.badge-smart {
-  font-size: 0.65rem;
-  font-weight: 800;
-  padding: 1px 5px;
-  border-radius: 4px;
-  background: rgba(168, 85, 247, 0.2);
-  color: #d8b4fe;
-  border: 1px solid rgba(168, 85, 247, 0.35);
-}
-
-.badge-padrao {
-  font-size: 0.65rem;
-  font-weight: 800;
-  padding: 1px 5px;
-  border-radius: 4px;
-  background: rgba(34, 197, 94, 0.18);
-  color: #4ade80;
-  border: 1px solid rgba(34, 197, 94, 0.35);
-}
-
-.account-url {
-  font-size: 0.78rem;
-  color: var(--text-muted, #8b949e);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 260px;
-}
-
-.account-token-tag {
-  font-size: 0.7rem;
-  color: var(--text-muted, #8b949e);
-  font-family: monospace;
-}
-
-.radio-indicator-pill {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 2px solid var(--border, #30363d);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.git-account-card.selected .radio-indicator-pill {
-  border-color: var(--accent, #388bfd);
-}
-
-.radio-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent, #388bfd);
-}
-
-/* ── ÁREA DE TEXTO E INSPETOR ── */
-.input-container-grid {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 1.5rem;
-}
-
-@media (max-width: 860px) {
-  .input-container-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.textarea-col {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.input-label {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--text, #f0f6fc);
-}
-
-.commits-textarea {
-  width: 100%;
-  box-sizing: border-box;
-  font-family: 'Courier New', monospace;
-  font-size: 0.85rem;
-  line-height: 1.5;
-  padding: 0.85rem 1rem;
-  background: var(--bg, #0d1117);
-  color: var(--text, #f0f6fc);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 8px;
-  resize: vertical;
-  outline: none;
-  transition: border-color 0.15s;
-}
-
-.commits-textarea:focus {
-  border-color: var(--accent, #58a6ff);
-}
-
-.textarea-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 0.3rem;
-}
-
-.parsed-counter {
-  font-size: 0.82rem;
-  color: var(--text-muted, #8b949e);
-}
-
-.parsed-counter strong {
-  color: var(--accent, #58a6ff);
-}
-
-/* Painel Lateral do Inspetor */
-.inspector-col {
-  background: var(--card-bg, #161b22);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 10px;
-  padding: 1rem 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.inspector-title {
-  margin: 0;
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: var(--text-muted, #8b949e);
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.inspector-empty {
-  font-size: 0.82rem;
-  color: var(--text-muted, #8b949e);
-  font-style: italic;
-  padding: 1.5rem 0;
-  text-align: center;
-}
-
-.inspector-items-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  max-height: 220px;
-  overflow-y: auto;
-}
-
-.inspector-item {
-  background: var(--bg, #0d1117);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 6px;
-  padding: 0.45rem 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.inspector-item.is-invalid {
-  border-color: rgba(248, 81, 73, 0.4);
-}
-
-.item-top {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.item-sha {
-  font-family: monospace;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--accent, #58a6ff);
-  background: rgba(56, 189, 248, 0.1);
-  padding: 1px 4px;
-  border-radius: 4px;
-}
-
-.item-invalid-badge {
-  font-size: 0.7rem;
-  font-weight: 800;
-  color: #f85149;
-}
-
-.item-project {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text, #f0f6fc);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.item-domain {
-  font-size: 0.72rem;
-  color: var(--text-muted, #8b949e);
-}
-
-/* ── BARRA DE AÇÃO E RESULTADOS ── */
-.action-bar-card {
-  background: var(--card-bg, #161b22);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 12px;
-  padding: 1.25rem 1.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.25rem;
-  flex-wrap: wrap;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-}
-
-.action-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.action-count-text {
-  font-size: 1.05rem;
-  color: var(--text, #f0f6fc);
-}
-
-.action-count-text strong {
-  color: var(--accent, #58a6ff);
-}
-
-.action-target-text {
-  font-size: 0.85rem;
-  color: var(--text-muted, #8b949e);
-}
-
-.action-target-text strong {
-  color: var(--text, #f0f6fc);
-}
-
-.btn-lg {
-  padding: 0.75rem 1.6rem;
-  font-size: 0.95rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.spinner-dot-sm {
-  width: 14px;
-  height: 14px;
-  border: 2px solid transparent;
-  border-top-color: currentColor;
-  border-right-color: currentColor;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  display: inline-block;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* ── BARRA DE PROGRESSO E RELATÓRIO ── */
-.progress-container {
-  margin-top: 1.5rem;
-  background: var(--card-bg, #161b22);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 12px;
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.progress-track {
-  width: 100%;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #388bfd, #2ea043);
-  transition: width 0.3s ease;
-}
-
-.results-summary {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  font-size: 0.9rem;
-  font-weight: 700;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border, #30363d);
-  flex-wrap: wrap;
-}
-
-.stat-success { color: #3fb950; }
-.stat-existing { color: #58a6ff; }
-.stat-error { color: #f85149; }
-
-.results-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  max-height: 250px;
-  overflow-y: auto;
-}
-
-.result-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  background: var(--bg, #0d1117);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 6px;
-  font-size: 0.85rem;
-}
-
-.res-status-col {
-  flex-shrink: 0;
-}
-
-.res-badge {
-  font-size: 0.68rem;
-  font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.badge-red {
-  background: rgba(248, 81, 73, 0.2);
-  color: #ff7b72;
-  border: 1px solid rgba(248, 81, 73, 0.4);
-}
-
-.res-info-col {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  flex: 1;
-  min-width: 0;
-}
-
-.res-sha {
-  font-family: monospace;
-  font-weight: 700;
-  color: var(--text-muted, #8b949e);
-}
-
-.res-msg {
-  color: var(--text, #f0f6fc);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.post-import-actions {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border, #30363d);
-  flex-wrap: wrap;
-}
-</style>

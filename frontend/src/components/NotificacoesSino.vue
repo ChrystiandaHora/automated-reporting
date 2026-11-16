@@ -1,68 +1,68 @@
 <template>
-  <span class="sino-wrapper">
+  <span class="inline-flex items-center">
     <button
-      class="sino-btn"
-      :class="{ 'tem-novas': notificacoes.length > 0 }"
+      class="relative inline-flex size-[34px] cursor-pointer items-center justify-center rounded-full border bg-card transition-all duration-200"
+      :class="notificacoes.length ? 'border-warning text-warning' : 'border-border-strong text-muted-foreground hover:border-primary hover:text-foreground'"
       @click="abrir"
       :aria-label="notificacoes.length ? `Notificações: ${notificacoes.length} nova(s)` : 'Notificações'"
       title="Notificações"
     >
       <i class="fa-solid fa-bell" aria-hidden="true"></i>
-      <span v-if="notificacoes.length" class="sino-badge">{{ notificacoes.length }}</span>
+      <span v-if="notificacoes.length" class="absolute -top-[5px] -right-[5px] inline-flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-warning px-1 text-[0.65rem] font-extrabold text-black">{{ notificacoes.length }}</span>
     </button>
 
-    <div v-if="aberto" class="modal-overlay" @click.self="fechar">
-      <div class="modal sino-modal" role="dialog" aria-modal="true" aria-labelledby="sino-titulo">
-        <div class="sino-header">
-          <h2 id="sino-titulo">
-            <button v-if="selecionada" class="sino-voltar" @click="selecionada = null" aria-label="Voltar">
+    <BaseModal v-if="aberto" size="auto" labelledby="sino-titulo" class="max-h-[80vh] w-[95vw] max-w-140" @close="fechar">
+        <div class="mb-4 flex items-center justify-between border-b-2 border-primary pb-3">
+          <h2 id="sino-titulo" class="flex items-center gap-2 text-base font-extrabold text-foreground">
+            <button v-if="selecionada" class="cursor-pointer rounded-sm border border-border-strong bg-transparent px-2 py-0.5 text-muted-foreground hover:border-primary hover:text-foreground" @click="selecionada = null" aria-label="Voltar">
               <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
             </button>
             {{ selecionada ? 'Tarefas movidas' : 'Notificações' }}
           </h2>
-          <button class="sino-fechar" @click="fechar" aria-label="Fechar notificações">
+          <button class="cursor-pointer rounded-sm border border-border-strong bg-transparent px-2 py-0.5 text-muted-foreground hover:border-canvas-danger hover:bg-canvas-danger hover:text-white" @click="fechar" aria-label="Fechar notificações">
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>
           </button>
         </div>
 
-        <div v-if="!selecionada" class="sino-corpo">
-          <p v-if="!notificacoes.length" class="sino-vazio">Nenhuma notificação.</p>
-          <button v-for="n in notificacoes" :key="n.id" class="sino-item" @click="selecionada = n">
-            <i class="fa-solid fa-arrows-rotate sino-item-icone" aria-hidden="true"></i>
-            <span class="sino-item-texto">
+        <div v-if="!selecionada" class="flex flex-col gap-2 overflow-y-auto">
+          <p v-if="!notificacoes.length" class="py-6 text-center text-subtle-foreground">Nenhuma notificação.</p>
+          <button v-for="n in notificacoes" :key="n.id" class="flex w-full cursor-pointer items-center gap-3 rounded-md border border-border-strong bg-card px-4 py-3 text-left text-foreground hover:border-primary" @click="selecionada = n">
+            <i class="fa-solid fa-arrows-rotate text-primary" aria-hidden="true"></i>
+            <span class="flex flex-1 flex-col gap-0.5">
               <strong>{{ n.mudancas.length }} {{ n.mudancas.length === 1 ? 'tarefa foi movida' : 'tarefas foram movidas' }} de status</strong>
-              <small>Sincronização com o Munka · {{ formatarHora(n.quando) }}</small>
+              <small class="text-subtle-foreground">Sincronização com o Munka · {{ formatarHora(n.quando) }}</small>
             </span>
             <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
           </button>
         </div>
 
-        <div v-else class="sino-corpo">
-          <ul class="sino-lista">
-            <li v-for="(m, i) in selecionada.mudancas" :key="i" class="sino-mudanca">
-              <span class="sino-mudanca-titulo">
-                <span v-if="m.task_id" class="sino-id">#{{ m.task_id }}</span> {{ m.titulo }}
+        <div v-else class="flex flex-col gap-2 overflow-y-auto">
+          <ul class="flex list-none flex-col gap-2">
+            <li v-for="(m, i) in selecionada.mudancas" :key="i" class="flex flex-col gap-1.5 rounded-md border border-border-strong px-3 py-2.5">
+              <span class="font-semibold break-words">
+                <span v-if="m.task_id" class="font-bold text-subtle-foreground">#{{ m.task_id }}</span> {{ m.titulo }}
               </span>
-              <span class="sino-mudanca-status">
-                <span class="badge badge-gray">{{ m.de }}</span>
+              <span class="flex items-center gap-2 text-subtle-foreground">
+                <BaseBadge variant="gray">{{ m.de }}</BaseBadge>
                 <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-                <span class="badge badge-blue">{{ m.para }}</span>
+                <BaseBadge variant="blue">{{ m.para }}</BaseBadge>
               </span>
             </li>
           </ul>
         </div>
 
-        <div class="sino-rodape" v-if="notificacoes.length">
-          <button class="sino-limpar" @click="limparTodas">Limpar notificações</button>
+        <div class="mt-4 flex justify-end" v-if="notificacoes.length">
+          <button class="cursor-pointer rounded-sm border border-border-strong bg-transparent px-3 py-1.5 text-[0.8rem] text-muted-foreground hover:border-primary hover:text-foreground" @click="limparTodas">Limpar notificações</button>
         </div>
-      </div>
-    </div>
+    </BaseModal>
   </span>
 </template>
 
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useFilaStore } from '../stores/fila'
+import BaseModal from './ui/BaseModal.vue'
+import BaseBadge from './ui/BaseBadge.vue'
 
 interface Mudanca { task_id?: string; titulo: string; de: string; para: string }
 interface Notificacao { id: number; quando: string; mudancas: Mudanca[] }
@@ -113,76 +113,3 @@ watch(aberto, v => {
 })
 onUnmounted(() => document.removeEventListener('keydown', onKeydown))
 </script>
-
-<style scoped>
-.sino-wrapper { display: inline-flex; align-items: center; }
-.sino-btn {
-  position: relative;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  width: 34px;
-  height: 34px;
-  border-radius: 99px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-.sino-btn:hover { border-color: var(--accent); color: var(--text); }
-.sino-btn.tem-novas { color: var(--warning); border-color: var(--warning); }
-.sino-badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  background: var(--warning);
-  color: #000;
-  border-radius: 99px;
-  font-size: 0.65rem;
-  font-weight: 800;
-  min-width: 17px;
-  height: 17px;
-  padding: 0 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.sino-modal { max-width: 560px; width: 95vw; max-height: 80vh; display: flex; flex-direction: column; }
-.sino-header {
-  display: flex; align-items: center; justify-content: space-between;
-  border-bottom: 2px solid var(--accent); padding-bottom: 0.75rem; margin-bottom: 1rem;
-}
-.sino-header h2 { font-size: 1rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; }
-.sino-fechar, .sino-voltar {
-  background: transparent; border: 1px solid var(--border); color: var(--text-muted);
-  cursor: pointer; padding: 0.2rem 0.5rem; border-radius: 4px;
-}
-.sino-fechar:hover { background: #f85149; color: #fff; border-color: #f85149; }
-.sino-voltar:hover { border-color: var(--accent); color: var(--text); }
-.sino-corpo { overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; }
-.sino-vazio { color: var(--text-subtle); text-align: center; padding: 1.5rem 0; }
-.sino-item {
-  display: flex; align-items: center; gap: 0.75rem; text-align: left; width: 100%;
-  background: var(--card-bg); border: 1px solid var(--border); color: var(--text);
-  padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer;
-}
-.sino-item:hover { border-color: var(--accent); }
-.sino-item-icone { color: var(--accent); }
-.sino-item-texto { flex: 1; display: flex; flex-direction: column; gap: 0.15rem; }
-.sino-item-texto small { color: var(--text-subtle); }
-.sino-lista { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
-.sino-mudanca {
-  display: flex; flex-direction: column; gap: 0.35rem;
-  border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.8rem;
-}
-.sino-mudanca-titulo { font-weight: 600; word-break: break-word; }
-.sino-id { color: var(--text-subtle); font-weight: 700; }
-.sino-mudanca-status { display: flex; align-items: center; gap: 0.5rem; color: var(--text-subtle); }
-.sino-rodape { margin-top: 1rem; display: flex; justify-content: flex-end; }
-.sino-limpar {
-  background: transparent; border: 1px solid var(--border); color: var(--text-muted);
-  padding: 0.3rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;
-}
-.sino-limpar:hover { border-color: var(--accent); color: var(--text); }
-</style>

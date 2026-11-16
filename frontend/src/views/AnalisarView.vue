@@ -1,29 +1,33 @@
 <template>
-  <div class="page">
-    <div class="page-header">
-      <div class="title-row">
-        <h1>Análise de Commits com IA</h1>
+  <div class="pb-26">
+    <PageHeader data-tour="analisar-cabecalho">
+      <div class="flex items-center gap-3">
+        <PageTitle>Análise de Commits com IA</PageTitle>
         <TutorialModal screenId="analisar" />
       </div>
-      <router-link to="/fila" class="btn-ghost btn-sm">
+      <router-link
+        to="/fila"
+        data-tour="analisar-fila-link"
+        class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border border-border-strong bg-card px-3.25 py-1.5 text-[0.82rem] leading-none font-semibold text-foreground transition-all duration-200 hover:-translate-y-px hover:border-primary hover:text-primary"
+      >
         <i class="fa-solid fa-list-check" aria-hidden="true"></i>
         <span>Ver Fila de Execução →</span>
       </router-link>
-    </div>
+    </PageHeader>
 
     <!-- Seção 1: Seleção de Modelo de IA -->
-    <section class="section" aria-labelledby="heading-passo-1">
-      <div class="section-title">
-        <span class="step-badge" aria-hidden="true">1</span>
-        <h2 id="heading-passo-1">Selecione o Modelo de IA</h2>
+    <section class="mb-10" aria-labelledby="heading-passo-1">
+      <div class="flex items-center gap-3 mb-5">
+        <span class="bg-primary text-white rounded-full font-black size-7.5 flex items-center justify-center text-sm shadow-[0_2px_8px] shadow-canvas-accent/30" aria-hidden="true">1</span>
+        <h2 id="heading-passo-1" class="text-xl font-extrabold text-foreground m-0">Selecione o Modelo de IA</h2>
       </div>
       
-      <div class="model-grid" role="radiogroup" aria-label="Selecione o Modelo de Inteligência Artificial">
+      <div data-tour="analisar-modelos" class="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-5" role="radiogroup" aria-label="Selecione o Modelo de Inteligência Artificial">
         <div 
           v-for="model in models" 
           :key="model.name" 
-          class="model-card"
-          :class="{ 'selected': selectedModel === model.name }"
+          data-tour="analisar-modelo-card"
+          :class="[classesCardModelo, selectedModel === model.name ? classesCardModeloSelecionado : classesCardModeloNormal]"
           tabindex="0"
           role="radio"
           :aria-checked="selectedModel === model.name"
@@ -31,87 +35,89 @@
           @keydown.enter.prevent="selectedModel = model.name"
           @keydown.space.prevent="selectedModel = model.name"
         >
-          <div class="model-header">
-            <span class="model-badge" :class="model.badgeClass">{{ model.badge }}</span>
-            <div class="model-radio-indicator" aria-hidden="true">
-              <div class="radio-dot" v-if="selectedModel === model.name"></div>
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold px-2 py-0.5 rounded-md border" :class="model.badgeClass">{{ model.badge }}</span>
+            <div
+              class="size-4.5 rounded-full border-2 flex items-center justify-center"
+              :class="selectedModel === model.name ? 'border-primary' : 'border-border-strong'"
+              aria-hidden="true"
+            >
+              <div class="size-2 rounded-full bg-primary" v-if="selectedModel === model.name"></div>
             </div>
           </div>
-          <h3 class="model-name">
-            <i class="fa-solid fa-microchip" aria-hidden="true" style="color: var(--accent); margin-right: 5px; font-size: 0.9rem;"></i>
+          <h3 class="text-base font-extrabold text-foreground m-0">
+            <i class="fa-solid fa-microchip text-primary mr-1.25 text-sm" aria-hidden="true"></i>
             <span>{{ model.name }}</span>
           </h3>
-          <p class="model-desc">{{ model.desc }}</p>
+          <p class="text-xs leading-normal text-muted-foreground m-0">{{ model.desc }}</p>
         </div>
       </div>
     </section>
 
     <!-- Seção 2: Seleção de Commits com Separação por Repositório -->
-    <section class="section" aria-labelledby="heading-passo-2">
-      <div class="section-title">
-        <span class="step-badge" aria-hidden="true">2</span>
-        <h2 id="heading-passo-2">Selecione os Commits para Análise</h2>
+    <section class="mb-10" aria-labelledby="heading-passo-2">
+      <div class="flex items-center gap-3 mb-5">
+        <span class="bg-primary text-white rounded-full font-black size-7.5 flex items-center justify-center text-sm shadow-[0_2px_8px] shadow-canvas-accent/30" aria-hidden="true">2</span>
+        <h2 id="heading-passo-2" class="text-xl font-extrabold text-foreground m-0">Selecione os Commits para Análise</h2>
       </div>
 
       <!-- Barra de Controle & Filtros de Repositórios -->
-      <div class="repo-control-bar" aria-label="Filtros e organização de commits para análise">
-        <div class="control-top-row">
+      <div class="bg-card border border-border-strong rounded-xl p-5 flex flex-col gap-4 mb-6 shadow-[0_4px_14px] shadow-black/15" aria-label="Filtros e organização de commits para análise">
+        <div class="flex items-center justify-between gap-4 flex-wrap">
           
           <!-- Alternador de Modos (Tabs Acessíveis) -->
-          <div class="view-mode-tabs" role="tablist" aria-label="Modo de exibição dos commits">
+          <div class="inline-flex bg-background border border-border-strong rounded-lg p-0.75 gap-0.75" role="tablist" aria-label="Modo de exibição dos commits">
             <button 
               id="tab-analise-repo"
               type="button"
               role="tab"
-              class="mode-tab-btn" 
-              :class="{ active: visaoModo === 'repositorio' }"
+              :class="classesAbaModo(visaoModo === 'repositorio')"
               :aria-selected="visaoModo === 'repositorio'"
               aria-controls="panel-analise-view"
               @click="visaoModo = 'repositorio'"
             >
-              <i class="fa-solid fa-folder-tree" aria-hidden="true" style="font-size: 0.95rem;"></i>
+              <i class="fa-solid fa-folder-tree text-base" aria-hidden="true"></i>
               <span>Por Repositório</span>
-              <span class="mode-count-badge">{{ repositoriosResumo.length }}</span>
+              <span class="text-xs font-bold px-1.5 py-px rounded-[10px] bg-primary-glow text-primary">{{ repositoriosResumo.length }}</span>
             </button>
 
             <button 
               id="tab-analise-lista"
               type="button"
               role="tab"
-              class="mode-tab-btn" 
-              :class="{ active: visaoModo === 'lista' }"
+              :class="classesAbaModo(visaoModo === 'lista')"
               :aria-selected="visaoModo === 'lista'"
               aria-controls="panel-analise-view"
               @click="visaoModo = 'lista'"
             >
-              <i class="fa-solid fa-list-ul" aria-hidden="true" style="font-size: 0.95rem;"></i>
+              <i class="fa-solid fa-list-ul text-base" aria-hidden="true"></i>
               <span>Todos em Lista</span>
-              <span class="mode-count-badge">{{ commitsFiltrados.length }}</span>
+              <span class="text-xs font-bold px-1.5 py-px rounded-[10px] bg-primary-glow text-primary">{{ commitsFiltrados.length }}</span>
             </button>
           </div>
 
           <!-- Filtro de Status (Pendentes / Analisados / Todos) -->
-          <div class="status-segmented" role="group" aria-label="Filtrar por status de análise">
+          <div data-tour="analisar-status" class="inline-flex flex-wrap items-center bg-background border border-border-strong rounded-lg p-0.75 gap-0.75" role="group" aria-label="Filtrar por status de análise">
             <button 
               type="button"
-              class="status-btn"
-              :class="{ active: statusFiltro === 'todos' }"
+              data-tour="analisar-status-btn"
+              :class="classesStatusBtn(statusFiltro === 'todos')"
               @click="statusFiltro = 'todos'"
             >
               Todos ({{ commitsStore.commits.length }})
             </button>
             <button 
               type="button"
-              class="status-btn highlight-pendente"
-              :class="{ active: statusFiltro === 'pendentes' }"
+              data-tour="analisar-status-btn"
+              :class="classesStatusBtn(statusFiltro === 'pendentes', true)"
               @click="statusFiltro = 'pendentes'"
             >
               Apenas Pendentes ({{ totalPendentesGeral }})
             </button>
             <button 
               type="button"
-              class="status-btn"
-              :class="{ active: statusFiltro === 'analisados' }"
+              data-tour="analisar-status-btn"
+              :class="classesStatusBtn(statusFiltro === 'analisados')"
               @click="statusFiltro = 'analisados'"
             >
               Analisados
@@ -119,69 +125,55 @@
           </div>
 
           <!-- Campo de Busca -->
-          <div class="search-box">
-            <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true" style="color: var(--text-muted); font-size: 0.85rem;"></i>
-            <input 
-              type="search"
+          <div class="flex min-w-60 max-w-95 flex-1">
+            <SearchBox
               v-model="termoBusca"
               placeholder="Buscar por mensagem, SHA ou repositório..."
-              class="search-input"
-              aria-label="Buscar commits por mensagem, hash ou repositório"
+              ariaLabel="Buscar commits por mensagem, hash ou repositório"
             />
-            <button 
-              v-if="termoBusca" 
-              type="button" 
-              class="clear-search-btn" 
-              @click="termoBusca = ''" 
-              aria-label="Limpar busca"
-            >
-              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-            </button>
           </div>
         </div>
 
         <!-- Chips de Seleção Rápida por Repositório -->
-        <div class="repo-chips-wrapper" role="region" aria-label="Filtrar por repositório específico">
-          <span class="chips-label">Repositórios:</span>
-          <div class="chips-list">
+        <div class="flex items-center gap-3 flex-wrap pt-1 border-t border-dashed border-border-strong" role="region" aria-label="Filtrar por repositório específico">
+          <span class="text-sm font-bold text-muted-foreground uppercase tracking-wider shrink-0">Repositórios:</span>
+          <div class="flex items-center gap-2 flex-wrap">
             <button 
               type="button" 
-              class="repo-chip" 
-              :class="{ active: repositorioFiltro === 'todos' }"
+              :class="[classesChip, repositorioFiltro === 'todos' ? classesChipAtivo : classesChipNeutro]"
               :aria-pressed="repositorioFiltro === 'todos'"
               @click="repositorioFiltro = 'todos'"
             >
               <span>Todos</span>
-              <span class="chip-count">{{ commitsStore.commits.length }}</span>
+              <span :class="[classesChipContador, repositorioFiltro === 'todos' ? classesChipContadorAtivo : classesChipContadorNormal]">{{ commitsStore.commits.length }}</span>
             </button>
 
             <button 
               v-for="repo in repositoriosResumo" 
               :key="repo.nome"
               type="button" 
-              class="repo-chip" 
-              :class="[repo.colorClass, { active: repositorioFiltro === repo.nome }]"
+              :class="[classesChip, repositorioFiltro === repo.nome ? classesChipAtivo : [repo.colorClass, classesChipHoverColorido]]"
               :aria-pressed="repositorioFiltro === repo.nome"
               @click="toggleFiltroRepo(repo.nome)"
               :title="`Filtrar commits de ${repo.nome}`"
             >
-              <span class="chip-dot" aria-hidden="true"></span>
-              <span class="chip-name">{{ repo.nome }}</span>
-              <span class="chip-count">{{ repo.commits.length }}</span>
+              <span class="size-2 rounded-full bg-current shrink-0" aria-hidden="true"></span>
+              <span class="max-w-50 truncate">{{ repo.nome }}</span>
+              <span :class="[classesChipContador, repositorioFiltro === repo.nome ? classesChipContadorAtivo : classesChipContadorNormal]">{{ repo.commits.length }}</span>
             </button>
           </div>
         </div>
 
         <!-- Ações Rápidas de Seleção em Lote -->
-        <div class="batch-selection-row">
-          <div class="selection-status-badge">
-            <strong>{{ selecionados.length }}</strong> de {{ commitsFiltrados.length }} selecionados
+        <div class="flex items-center justify-between gap-4 bg-sky-400/6 border border-sky-400/20 rounded-lg px-3.5 py-2.25 flex-wrap">
+          <div class="text-sm text-foreground">
+            <strong class="text-primary">{{ selecionados.length }}</strong> de {{ commitsFiltrados.length }} selecionados
           </div>
 
-          <div class="batch-buttons">
+          <div data-tour="analisar-lote" class="flex items-center gap-2.5 flex-wrap">
             <button 
               type="button" 
-              class="btn-batch-action" 
+              data-tour="analisar-lote-btn" :class="[classesBtnLoteBase, classesBtnLoteNeutro]"
               @click="selecionarTodosPendentes"
               :disabled="totalPendentesExibidos === 0"
               title="Selecionar todos os commits pendentes exibidos"
@@ -191,7 +183,7 @@
             </button>
             <button 
               type="button" 
-              class="btn-batch-action" 
+              data-tour="analisar-lote-btn" :class="[classesBtnLoteBase, classesBtnLoteNeutro]"
               @click="selecionarTodosExibidos"
               :disabled="commitsFiltrados.length === 0"
             >
@@ -201,7 +193,7 @@
             <button 
               v-if="selecionados.length > 0"
               type="button" 
-              class="btn-batch-action btn-clear" 
+              data-tour="analisar-lote-btn" class="text-canvas-danger border-canvas-danger/30" :class="classesBtnLoteBase"
               @click="desmarcarTodos"
             >
               <i class="fa-solid fa-xmark" aria-hidden="true"></i>
@@ -212,41 +204,41 @@
       </div>
 
       <!-- Estados de Carregamento e Vazio -->
-      <div v-if="commitsStore.loading" class="loading" role="status" aria-live="polite">
+      <StateMessage v-if="commitsStore.loading" type="loading" role="status" aria-live="polite">
         Carregando commits para análise...
-      </div>
+      </StateMessage>
 
-      <div v-else-if="commitsStore.commits.length === 0" class="empty">
+      <StateMessage v-else-if="commitsStore.commits.length === 0" type="empty">
         Nenhum commit importado encontrado.
-      </div>
+      </StateMessage>
 
-      <div v-else-if="commitsFiltrados.length === 0" class="empty">
+      <StateMessage v-else-if="commitsFiltrados.length === 0" type="empty">
         <p>Nenhum commit encontrado para os filtros selecionados.</p>
-        <button type="button" class="btn-ghost" @click="limparFiltros" style="margin-top: 0.75rem;">
+        <BaseButton class="mt-3" @click="limparFiltros">
           Limpar Filtros
-        </button>
-      </div>
+        </BaseButton>
+      </StateMessage>
 
       <!-- MODO 1: AGRUPADO POR REPOSITÓRIO -->
       <div 
         v-else-if="visaoModo === 'repositorio'" 
         id="panel-analise-view" 
-        class="repo-cards-grid" 
+        class="flex flex-col gap-6" 
         role="tabpanel" 
         aria-labelledby="tab-analise-repo"
       >
         <div 
           v-for="repo in commitsAgrupadosPorRepo" 
           :key="repo.nome" 
-          class="repo-analysis-card"
+          class="bg-card border border-border-strong rounded-xl overflow-hidden shadow-[0_4px_16px] shadow-black/15"
         >
           <!-- Cabeçalho do Card de Repositório -->
-          <div class="repo-card-header">
-            <div class="repo-card-header-left">
+          <div class="flex items-center justify-between px-5 py-4 bg-muted border-b border-border-strong gap-4 flex-wrap">
+            <div class="flex items-center gap-3.5 flex-1 min-w-0">
               <!-- Checkbox para selecionar/desmarcar todos do repositório -->
               <input 
                 type="checkbox"
-                class="repo-checkbox"
+                class="size-4.5 cursor-pointer accent-primary"
                 :checked="isRepoTotalmenteSelecionado(repo)"
                 :indeterminate="isRepoParcialmenteSelecionado(repo)"
                 @change="toggleSelecionarTodosRepo(repo)"
@@ -254,25 +246,25 @@
                 :title="`Selecionar todos os commits de ${repo.nome}`"
               />
 
-              <div class="repo-avatar-icon" :class="repo.colorClass">
-                <i class="fa-brands fa-git-alt" aria-hidden="true" style="font-size: 1.15rem;"></i>
+              <div class="size-9 rounded-lg flex items-center justify-center shrink-0" :class="repo.colorClass">
+                <i class="fa-brands fa-git-alt text-lg" aria-hidden="true"></i>
               </div>
 
-              <div class="repo-card-title-block">
-                <h3 class="repo-card-name">{{ repo.nome }}</h3>
-                <span class="repo-card-sub">
+              <div class="flex flex-col gap-0.5 min-w-0">
+                <h3 class="m-0 text-base font-extrabold text-foreground truncate">{{ repo.nome }}</h3>
+                <span class="text-xs text-muted-foreground">
                   {{ repo.commits.length }} commit{{ repo.commits.length > 1 ? 's' : '' }}
-                  <span v-if="repo.pendentes > 0" class="sub-pendente">({{ repo.pendentes }} pendente{{ repo.pendentes > 1 ? 's' : '' }})</span>
+                  <span v-if="repo.pendentes > 0" class="text-primary font-bold ml-1.25">({{ repo.pendentes }} pendente{{ repo.pendentes > 1 ? 's' : '' }})</span>
                 </span>
               </div>
             </div>
 
             <!-- Ações Rápidas do Repositório -->
-            <div class="repo-card-header-right">
+            <div class="flex items-center gap-3">
               <button 
                 v-if="repo.pendentes > 0"
                 type="button" 
-                class="btn-repo-quick"
+                class="bg-background border border-primary text-primary px-2.75 py-1.5 text-xs font-bold rounded-md cursor-pointer transition-all duration-150 hover:bg-primary hover:text-white"
                 @click="selecionarPendentesDoRepo(repo)"
                 title="Selecionar apenas os pendentes deste repositório"
               >
@@ -282,14 +274,14 @@
 
               <button 
                 type="button" 
-                class="repo-collapse-btn"
+                class="bg-background border border-border-strong text-muted-foreground size-8 rounded-md flex items-center justify-center cursor-pointer"
                 @click="toggleColapsoRepo(repo.nome)"
                 :aria-expanded="!isRepoColapsado(repo.nome)"
                 :aria-label="isRepoColapsado(repo.nome) ? `Expandir ${repo.nome}` : `Recolher ${repo.nome}`"
               >
                 <i 
-                  class="fa-solid fa-chevron-down chevron-icon" 
-                  :class="{ rotated: isRepoColapsado(repo.nome) }"
+                  class="fa-solid fa-chevron-down transition-transform duration-200" 
+                  :class="{ '-rotate-90': isRepoColapsado(repo.nome) }"
                   aria-hidden="true"
                 ></i>
               </button>
@@ -297,12 +289,11 @@
           </div>
 
           <!-- Lista de Commits do Repositório -->
-          <div v-show="!isRepoColapsado(repo.nome)" class="repo-commits-table">
+          <div v-show="!isRepoColapsado(repo.nome)" class="flex flex-col">
             <div 
               v-for="commit in repo.commits" 
               :key="commit.id"
-              class="commit-select-row"
-              :class="{ 'selected': selecionados.includes(commit.id) }"
+              :class="classesLinhaCommit(selecionados.includes(commit.id))"
               @click="toggleSelecionado(commit.id)"
               tabindex="0"
               role="checkbox"
@@ -310,9 +301,10 @@
               @keydown.enter.prevent="toggleSelecionado(commit.id)"
               @keydown.space.prevent="toggleSelecionado(commit.id)"
             >
-              <div class="row-checkbox-col" @click.stop>
+              <div @click.stop>
                 <input 
                   type="checkbox" 
+                  class="size-4.25 cursor-pointer accent-primary"
                   :value="commit.id" 
                   v-model="selecionados"
                   :aria-label="`Selecionar commit ${commit.id.slice(0, 8)}: ${commit.mensagem}`"
@@ -321,35 +313,35 @@
 
               <!-- Avatar do Autor -->
               <div 
-                class="commit-avatar" 
-                :style="{ backgroundColor: obterCorAvatar(commit.autor) }"
+                class="size-8 rounded-full text-white flex items-center justify-center text-xs font-extrabold shrink-0 border border-border-strong" 
+                :class="obterClasseAvatar(commit.autor)"
                 :title="commit.autor"
               >
                 {{ obterIniciais(commit.autor) }}
               </div>
 
               <!-- Mensagem e Informações -->
-              <div class="commit-select-info">
-                <div class="commit-select-top">
-                  <span class="commit-hash">{{ commit.id.slice(0, 8) }}</span>
-                  <span class="commit-msg-text" :title="commit.mensagem">
+              <div class="flex flex-col gap-0.75 flex-1 min-w-0">
+                <div class="flex items-center gap-2.5 flex-wrap">
+                  <span class="font-courier text-xs text-muted-foreground bg-white/5 border border-border-strong rounded px-1.25 py-px font-bold">{{ commit.id.slice(0, 8) }}</span>
+                  <span class="text-sm font-semibold text-foreground truncate max-w-137.5" :title="commit.mensagem">
                     {{ commit.mensagem || '(sem mensagem)' }}
                   </span>
                 </div>
-                <div class="commit-select-meta">
+                <div class="text-xs text-muted-foreground">
                   <span>{{ commit.autor }}</span>
                   <span>· {{ commit.data }}</span>
                 </div>
               </div>
 
               <!-- Status do Commit -->
-              <div class="row-status-col">
-                <span class="badge" :class="commit.analisado ? 'badge-green' : 'badge-gray'">
+              <div class="flex items-center gap-1.5 shrink-0">
+                <BaseBadge :variant="commit.analisado ? 'green' : 'gray'">
                   {{ commit.analisado ? 'Analisado' : 'Pendente' }}
-                </span>
-                <span v-if="commit.analisado && commit.atividades_total" class="badge badge-purple" title="Atividades identificadas">
+                </BaseBadge>
+                <BaseBadge v-if="commit.analisado && commit.atividades_total" variant="purple" title="Atividades identificadas">
                   {{ commit.atividades_total }} atv.
-                </span>
+                </BaseBadge>
               </div>
             </div>
           </div>
@@ -360,15 +352,14 @@
       <div 
         v-else 
         id="panel-analise-view" 
-        class="unified-commits-list" 
+        class="flex flex-col bg-card border border-border-strong rounded-xl overflow-hidden" 
         role="tabpanel" 
         aria-labelledby="tab-analise-lista"
       >
         <div 
           v-for="commit in commitsFiltrados" 
           :key="commit.id"
-          class="commit-select-row"
-          :class="{ 'selected': selecionados.includes(commit.id) }"
+          :class="classesLinhaCommit(selecionados.includes(commit.id))"
           @click="toggleSelecionado(commit.id)"
           tabindex="0"
           role="checkbox"
@@ -376,9 +367,10 @@
           @keydown.enter.prevent="toggleSelecionado(commit.id)"
           @keydown.space.prevent="toggleSelecionado(commit.id)"
         >
-          <div class="row-checkbox-col" @click.stop>
+          <div @click.stop>
             <input 
               type="checkbox" 
+              class="size-4.25 cursor-pointer accent-primary"
               :value="commit.id" 
               v-model="selecionados"
               :aria-label="`Selecionar commit ${commit.id.slice(0, 8)}`"
@@ -386,68 +378,63 @@
           </div>
 
           <div 
-            class="commit-avatar" 
-            :style="{ backgroundColor: obterCorAvatar(commit.autor) }"
+            class="size-8 rounded-full text-white flex items-center justify-center text-xs font-extrabold shrink-0 border border-border-strong" 
+            :class="obterClasseAvatar(commit.autor)"
             :title="commit.autor"
           >
             {{ obterIniciais(commit.autor) }}
           </div>
 
-          <div class="commit-select-info">
-            <div class="commit-select-top">
+          <div class="flex flex-col gap-0.75 flex-1 min-w-0">
+            <div class="flex items-center gap-2.5 flex-wrap">
               <!-- Tag do Repositório -->
-              <span class="badge-repo-tag" :class="obterClasseCorRepo(commit.projeto)">
-                <i class="fa-brands fa-gitlab" aria-hidden="true" style="font-size: 0.72rem; margin-right: 3px;"></i>
+              <span class="inline-flex items-center gap-1.5 text-xs font-bold px-1.5 py-0.5 rounded-[5px] whitespace-nowrap" :class="obterClasseCorRepo(commit.projeto)">
+                <i class="fa-brands fa-gitlab text-xs mr-0.75" aria-hidden="true"></i>
                 <span>{{ commit.projeto || 'Sem repositório' }}</span>
               </span>
 
-              <span class="commit-hash">{{ commit.id.slice(0, 8) }}</span>
-              <span class="commit-msg-text" :title="commit.mensagem">
+              <span class="font-courier text-xs text-muted-foreground bg-white/5 border border-border-strong rounded px-1.25 py-px font-bold">{{ commit.id.slice(0, 8) }}</span>
+              <span class="text-sm font-semibold text-foreground truncate max-w-137.5" :title="commit.mensagem">
                 {{ commit.mensagem || '(sem mensagem)' }}
               </span>
             </div>
-            <div class="commit-select-meta">
+            <div class="text-xs text-muted-foreground">
               <span>{{ commit.autor }}</span>
               <span>· {{ commit.data }}</span>
             </div>
           </div>
 
-          <div class="row-status-col">
-            <span class="badge" :class="commit.analisado ? 'badge-green' : 'badge-gray'">
+          <div class="flex items-center gap-1.5 shrink-0">
+            <BaseBadge :variant="commit.analisado ? 'green' : 'gray'">
               {{ commit.analisado ? 'Analisado' : 'Pendente' }}
-            </span>
+            </BaseBadge>
           </div>
         </div>
       </div>
     </section>
 
     <!-- Barra de Ação Flutuante (Sticky Footer) -->
-    <div class="action-footer" v-if="selecionados.length > 0" role="region" aria-label="Ações para commits selecionados">
-      <div class="footer-info">
-        <span class="footer-count"><strong>{{ selecionados.length }}</strong> commit(s) selecionado(s)</span>
-        <span class="footer-repo-count">({{ totalRepositoriosSelecionados }} repositório(s) envolvido(s))</span>
-        <span class="footer-divider">·</span>
-        <span class="footer-model">Modelo: <strong>{{ selectedModel }}</strong></span>
+    <div data-tour="analisar-barra-acao" class="fixed bottom-0 inset-x-0 bg-topbar backdrop-blur-md border-t border-border-strong px-8 py-4 flex items-center justify-between z-100 shadow-[0_-4px_20px] shadow-black/40 gap-4 flex-wrap" v-if="selecionados.length > 0" role="region" aria-label="Ações para commits selecionados">
+      <div class="flex items-center gap-2.5 text-sm text-foreground flex-wrap">
+        <span><strong class="text-primary text-base">{{ selecionados.length }}</strong> commit(s) selecionado(s)</span>
+        <span class="text-sm text-muted-foreground">({{ totalRepositoriosSelecionados }} repositório(s) envolvido(s))</span>
+        <span class="text-muted-foreground">·</span>
+        <span>Modelo: <strong class="text-emerald-400">{{ selectedModel }}</strong></span>
       </div>
 
-      <div class="footer-actions">
-        <button 
-          type="button" 
-          class="btn-ghost" 
-          @click="desmarcarTodos"
-        >
+      <div class="flex items-center gap-3">
+        <BaseButton @click="desmarcarTodos">
           <i class="fa-solid fa-xmark" aria-hidden="true"></i>
           <span>Limpar Seleção</span>
-        </button>
-        <button 
-          type="button"
-          class="btn-primary" 
-          :disabled="enfileirando" 
+        </BaseButton>
+        <BaseButton
+          variant="primary"
+          :disabled="enfileirando"
           @click="confirmarAnalise"
         >
           <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
           <span>{{ enfileirando ? 'Enfileirando...' : `Confirmar e Enfileirar (${selecionados.length})` }}</span>
-        </button>
+        </BaseButton>
       </div>
     </div>
 
@@ -460,6 +447,12 @@ import { useRouter, useRoute } from 'vue-router'
 import { useCommitsStore } from '../stores/commits'
 import { useFilaStore } from '../stores/fila'
 import TutorialModal from '../components/TutorialModal.vue'
+import BaseButton from '../components/ui/BaseButton.vue'
+import BaseBadge from '../components/ui/BaseBadge.vue'
+import PageHeader from '../components/ui/PageHeader.vue'
+import PageTitle from '../components/ui/PageTitle.vue'
+import SearchBox from '../components/ui/SearchBox.vue'
+import StateMessage from '../components/ui/StateMessage.vue'
 import type { CommitSummary } from '../api'
 
 const router = useRouter()
@@ -478,11 +471,62 @@ const repositorioFiltro = ref<string>('todos')
 const termoBusca = ref<string>('')
 const reposColapsados = ref<Record<string, boolean>>({})
 
+const classesBadgeModelo = {
+  purple: 'bg-badge-purple text-badge-purple-foreground border-badge-purple-border',
+  blue: 'bg-badge-code text-badge-code-foreground border-badge-code-border',
+  green: 'bg-badge-green text-badge-green-foreground border-badge-green-border',
+  orange: 'bg-badge-orange text-badge-orange-foreground border-badge-orange-border'
+}
+
+const classesCardModelo = 'bg-card border-2 rounded-xl p-5.5 cursor-pointer transition-all duration-150 outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 flex flex-col gap-2 hover:-translate-y-0.5 hover:border-primary'
+const classesCardModeloNormal = 'border-border-strong shadow-[0_4px_14px] shadow-black/15'
+const classesCardModeloSelecionado = 'border-primary bg-primary-glow shadow-[0_4px_16px] shadow-canvas-accent/25 -translate-y-0.5'
+
+const classesAbaModoBase = 'inline-flex items-center gap-2 px-3.5 py-1.75 text-sm font-semibold border-0 rounded-md cursor-pointer transition-all duration-150'
+function classesAbaModo(ativo: boolean) {
+  return [classesAbaModoBase, ativo
+    ? 'bg-card text-foreground shadow-[0_2px_8px] shadow-black/25'
+    : 'bg-transparent text-muted-foreground hover:text-foreground']
+}
+
+const classesStatusBtnBase = 'inline-flex h-8.5 cursor-pointer items-center gap-[0.45rem] rounded-md border-0 px-3 text-[0.82rem] select-none transition-all duration-200'
+function classesStatusBtn(ativo: boolean, destaque = false) {
+  if (!ativo) return [classesStatusBtnBase, 'bg-transparent text-muted-foreground font-semibold hover:text-foreground']
+  return [classesStatusBtnBase, destaque ? 'bg-card text-primary font-bold' : 'bg-card text-foreground font-semibold']
+}
+
+const classesChip = 'inline-flex items-center gap-1.75 px-3 py-1.5 text-sm font-semibold rounded-full border cursor-pointer transition-all duration-150 whitespace-nowrap hover:-translate-y-px'
+const classesChipNeutro = 'bg-background text-muted-foreground border-border-strong hover:border-primary hover:text-foreground'
+const classesChipHoverColorido = 'dark:hover:border-primary dark:hover:text-foreground'
+const classesChipAtivo = 'bg-primary text-white border-primary shadow-[0_2px_8px] shadow-canvas-accent/30'
+const classesChipContador = 'text-xs font-extrabold px-1.5 py-px rounded-[10px]'
+const classesChipContadorNormal = 'bg-white/8 text-muted-foreground'
+const classesChipContadorAtivo = 'bg-white/25 text-white'
+
+const classesBtnLoteBase = 'bg-background border text-xs font-semibold px-3 py-1.5 rounded-md cursor-pointer transition-all duration-150 enabled:hover:border-primary enabled:hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed'
+const classesBtnLoteNeutro = 'border-border-strong text-foreground'
+
+const classesLinhaCommitBase = 'flex items-center px-5 py-3 border-b border-border-strong cursor-pointer transition-colors duration-120 outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-primary -outline-offset-2 gap-3.5 last:border-b-0'
+function classesLinhaCommit(selecionado: boolean) {
+  return [classesLinhaCommitBase, selecionado ? 'bg-canvas-accent/12' : 'hover:bg-primary-glow']
+}
+
+// Cores por repositório (escuro por padrão, variante clara via light:)
+const classesCorRepoPadrao = 'border bg-slate-400/12 text-slate-300 border-slate-400/30 light:bg-slate-100 light:text-slate-700 light:border-slate-300'
+const classesCorRepo = [
+  'border bg-sky-400/12 text-sky-400 border-sky-400/35 light:bg-sky-100 light:text-sky-700 light:border-sky-300',
+  'border bg-purple-400/12 text-purple-400 border-purple-400/35 light:bg-purple-100 light:text-purple-700 light:border-purple-300',
+  'border bg-emerald-400/12 text-emerald-400 border-emerald-400/35 light:bg-emerald-100 light:text-emerald-700 light:border-emerald-300',
+  'border bg-amber-400/12 text-amber-400 border-amber-400/35 light:bg-amber-100 light:text-amber-700 light:border-amber-300',
+  'border bg-pink-400/12 text-pink-400 border-pink-400/35 light:bg-pink-100 light:text-pink-700 light:border-pink-300',
+  'border bg-indigo-400/12 text-indigo-400 border-indigo-400/35 light:bg-indigo-100 light:text-indigo-700 light:border-indigo-300'
+]
+
 const models = [
-  { name: 'Gemini 3.8 Flash', badge: 'Mais Recente', badgeClass: 'badge-purple', desc: 'Modelo topo de linha mais atual. Maior capacidade de raciocínio e precisão na classificação.' },
-  { name: 'Gemini 3.7 Flash', badge: 'Alta Performance', badgeClass: 'badge-blue', desc: 'Excelente capacidade analítica e raciocínio avançado para diffs de código complexos.' },
-  { name: 'Gemini 3.6 Flash', badge: 'Rápido & Estável', badgeClass: 'badge-green', desc: 'Equilíbrio sólido entre tempo de resposta e qualidade na análise de mudanças técnicas.' },
-  { name: 'Gemini 3.5 Flash Lite', badge: 'Recomendado (Maior Cota)', badgeClass: 'badge-orange', desc: 'Maior limite diário (500 RPD). Ideal para análises em lote contínuas.' }
+  { name: 'Gemini 3.8 Flash', badge: 'Mais Recente', badgeClass: classesBadgeModelo.purple, desc: 'Modelo topo de linha mais atual. Maior capacidade de raciocínio e precisão na classificação.' },
+  { name: 'Gemini 3.7 Flash', badge: 'Alta Performance', badgeClass: classesBadgeModelo.blue, desc: 'Excelente capacidade analítica e raciocínio avançado para diffs de código complexos.' },
+  { name: 'Gemini 3.6 Flash', badge: 'Rápido & Estável', badgeClass: classesBadgeModelo.green, desc: 'Equilíbrio sólido entre tempo de resposta e qualidade na análise de mudanças técnicas.' },
+  { name: 'Gemini 3.5 Flash Lite', badge: 'Recomendado (Maior Cota)', badgeClass: classesBadgeModelo.orange, desc: 'Maior limite diário (500 RPD). Ideal para análises em lote contínuas.' }
 ]
 
 onMounted(async () => {
@@ -530,27 +574,28 @@ function obterIniciais(nome: string): string {
   return parts[0].slice(0, 2).toUpperCase()
 }
 
-function obterCorAvatar(nome: string): string {
-  if (!nome) return '#777'
+function obterClasseAvatar(nome: string): string {
+  if (!nome) return 'bg-avatar-default'
   let hash = 0
   for (let i = 0; i < nome.length; i++) {
     hash = nome.charCodeAt(i) + ((hash << 5) - hash)
   }
   const colors = [
-    '#007acc', '#3fb950', '#f85149', '#d29922', '#bc8cff', '#1f6feb', '#30b6e6'
+    'bg-avatar-blue', 'bg-canvas-success', 'bg-canvas-danger', 'bg-avatar-amber',
+    'bg-avatar-purple', 'bg-avatar-indigo', 'bg-avatar-cyan'
   ]
   const index = Math.abs(hash) % colors.length
   return colors[index]
 }
 
 function obterClasseCorRepo(nome?: string): string {
-  if (!nome) return 'repo-color-default'
+  if (!nome) return classesCorRepoPadrao
   let hash = 0
   for (let i = 0; i < nome.length; i++) {
     hash = nome.charCodeAt(i) + ((hash << 5) - hash)
   }
   const idx = Math.abs(hash) % 6
-  return `repo-color-${idx}`
+  return classesCorRepo[idx]
 }
 
 function toggleSelecionado(id: string) {
@@ -728,793 +773,3 @@ async function confirmarAnalise() {
   }
 }
 </script>
-
-<style scoped>
-.title-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.section {
-  margin-bottom: 2.5rem;
-}
-
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
-}
-
-.step-badge {
-  background: var(--accent, #388bfd);
-  color: #ffffff;
-  border-radius: 50%;
-  font-weight: 900;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-  box-shadow: 0 2px 8px rgba(56, 139, 253, 0.3);
-}
-
-.section-title h2 {
-  font-size: 1.2rem;
-  font-weight: 800;
-  color: var(--text, #f0f6fc);
-  margin: 0;
-}
-
-/* ── GRID DE MODELOS DE IA ── */
-.model-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1.25rem;
-}
-
-.model-card {
-  background: var(--card-bg, #161b22);
-  border: 2px solid var(--border, #30363d);
-  border-radius: 12px;
-  padding: 1.35rem;
-  cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
-  transition: all 0.15s ease;
-  outline: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.model-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--accent, #58a6ff);
-}
-
-.model-card:focus-visible {
-  outline: 2px solid var(--accent, #58a6ff);
-  outline-offset: 2px;
-}
-
-.model-card.selected {
-  border-color: var(--accent, #388bfd);
-  background: var(--accent-glow, rgba(56, 189, 248, 0.08));
-  box-shadow: 0 4px 16px rgba(56, 139, 253, 0.25);
-  transform: translateY(-2px);
-}
-
-.model-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.model-badge {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 6px;
-}
-
-.model-radio-indicator {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 2px solid var(--border, #30363d);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.model-card.selected .model-radio-indicator {
-  border-color: var(--accent, #388bfd);
-}
-
-.radio-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent, #388bfd);
-}
-
-.model-name {
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: var(--text, #f0f6fc);
-  margin: 0;
-}
-
-.model-desc {
-  font-size: 0.8rem;
-  color: var(--text-muted, #8b949e);
-  line-height: 1.45;
-  margin: 0;
-}
-
-/* ── BARRA DE CONTROLE DE COMMITS ── */
-.repo-control-bar {
-  background: var(--card-bg, #161b22);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 12px;
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
-}
-
-.control-top-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.view-mode-tabs {
-  display: inline-flex;
-  background: var(--bg, #0d1117);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 8px;
-  padding: 3px;
-  gap: 3px;
-}
-
-.mode-tab-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.45rem 0.85rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-muted, #8b949e);
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.mode-tab-btn:hover {
-  color: var(--text, #f0f6fc);
-}
-
-.mode-tab-btn.active {
-  background: var(--card-bg, #161b22);
-  color: var(--text, #f0f6fc);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-}
-
-.mode-count-badge {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 10px;
-  background: var(--accent-glow, rgba(56, 189, 248, 0.15));
-  color: var(--accent, #58a6ff);
-}
-
-.status-segmented {
-  display: inline-flex;
-  background: var(--bg, #0d1117);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 8px;
-  padding: 3px;
-  gap: 3px;
-}
-
-.status-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-muted, #8b949e);
-  padding: 0.45rem 0.8rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.status-btn:hover {
-  color: var(--text, #f0f6fc);
-}
-
-.status-btn.active {
-  background: var(--card-bg, #161b22);
-  color: var(--text, #f0f6fc);
-}
-
-.status-btn.highlight-pendente.active {
-  color: var(--accent, #58a6ff);
-  font-weight: 700;
-}
-
-.search-box {
-  display: flex;
-  align-items: center;
-  position: relative;
-  flex: 1;
-  max-width: 380px;
-  min-width: 240px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 0.85rem;
-  color: var(--text-muted, #8b949e);
-  pointer-events: none;
-}
-
-.search-input {
-  width: 100%;
-  height: 38px;
-  padding: 0 2.35rem;
-  font-size: 0.85rem;
-  background: var(--bg, #0d1117);
-  color: var(--text, #f0f6fc);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 8px;
-  outline: none;
-  transition: all 0.2s ease;
-}
-
-.search-input:focus {
-  border-color: var(--accent, #58a6ff);
-}
-
-.clear-search-btn {
-  position: absolute;
-  right: 0.6rem;
-  background: transparent;
-  border: none;
-  color: var(--text-muted, #8b949e);
-  cursor: pointer;
-}
-
-.repo-chips-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  padding-top: 0.25rem;
-  border-top: 1px dashed var(--border, #30363d);
-}
-
-.chips-label {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--text-muted, #8b949e);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  flex-shrink: 0;
-}
-
-.chips-list {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.repo-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.35rem 0.75rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  border-radius: 20px;
-  background: var(--bg, #0d1117);
-  color: var(--text-muted, #8b949e);
-  border: 1px solid var(--border, #30363d);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-
-.repo-chip:hover {
-  border-color: var(--accent, #58a6ff);
-  color: var(--text, #f0f6fc);
-  transform: translateY(-1px);
-}
-
-.repo-chip.active {
-  background: var(--accent, #388bfd);
-  color: #ffffff;
-  border-color: var(--accent, #388bfd);
-  box-shadow: 0 2px 8px rgba(56, 139, 253, 0.3);
-}
-
-.repo-chip.active .chip-count {
-  background: rgba(255, 255, 255, 0.25);
-  color: #ffffff;
-}
-
-.chip-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: currentColor;
-  flex-shrink: 0;
-}
-
-.chip-name {
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.chip-count {
-  font-size: 0.72rem;
-  font-weight: 800;
-  padding: 1px 6px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-muted, #8b949e);
-}
-
-.batch-selection-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  background: rgba(56, 189, 248, 0.06);
-  border: 1px solid rgba(56, 189, 248, 0.2);
-  border-radius: 8px;
-  padding: 0.55rem 0.9rem;
-  flex-wrap: wrap;
-}
-
-.selection-status-badge {
-  font-size: 0.85rem;
-  color: var(--text, #f0f6fc);
-}
-
-.selection-status-badge strong {
-  color: var(--accent, #58a6ff);
-}
-
-.batch-buttons {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-
-.btn-batch-action {
-  background: var(--bg, #0d1117);
-  border: 1px solid var(--border, #30363d);
-  color: var(--text, #f0f6fc);
-  padding: 0.35rem 0.75rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.btn-batch-action:hover:not(:disabled) {
-  border-color: var(--accent, #58a6ff);
-  color: var(--accent, #58a6ff);
-}
-
-.btn-batch-action:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-batch-action.btn-clear {
-  color: #f85149;
-  border-color: rgba(248, 81, 73, 0.3);
-}
-
-/* ── CARDS DE REPOSITÓRIO (MODO POR REPOSITÓRIO) ── */
-.repo-cards-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.repo-analysis-card {
-  background: var(--card-bg, #161b22);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-}
-
-.repo-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.25rem;
-  background: var(--header-group-bg, rgba(255, 255, 255, 0.02));
-  border-bottom: 1px solid var(--border, #30363d);
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.repo-card-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  flex: 1;
-  min-width: 0;
-}
-
-.repo-checkbox {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: var(--accent, #388bfd);
-}
-
-.repo-avatar-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.repo-card-title-block {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 0;
-}
-
-.repo-card-name {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: var(--text, #f0f6fc);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.repo-card-sub {
-  font-size: 0.78rem;
-  color: var(--text-muted, #8b949e);
-}
-
-.sub-pendente {
-  color: var(--accent, #58a6ff);
-  font-weight: 700;
-  margin-left: 0.3rem;
-}
-
-.repo-card-header-right {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.btn-repo-quick {
-  background: var(--bg, #0d1117);
-  border: 1px solid var(--accent, #58a6ff);
-  color: var(--accent, #58a6ff);
-  padding: 0.35rem 0.7rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.btn-repo-quick:hover {
-  background: var(--accent, #388bfd);
-  color: #ffffff;
-}
-
-.repo-collapse-btn {
-  background: var(--bg, #0d1117);
-  border: 1px solid var(--border, #30363d);
-  color: var(--text-muted, #8b949e);
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.chevron-icon {
-  transition: transform 0.2s ease;
-}
-
-.chevron-icon.rotated {
-  transform: rotate(-90deg);
-}
-
-/* ── LINHAS DE SELEÇÃO DE COMMITS ── */
-.repo-commits-table, .unified-commits-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.unified-commits-list {
-  background: var(--card-bg, #161b22);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.commit-select-row {
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 1.25rem;
-  border-bottom: 1px solid var(--border, #30363d);
-  cursor: pointer;
-  transition: background 0.12s;
-  outline: none;
-  gap: 0.9rem;
-}
-
-.commit-select-row:last-child {
-  border-bottom: none;
-}
-
-.commit-select-row:hover {
-  background: var(--accent-glow, rgba(56, 189, 248, 0.08));
-}
-
-.commit-select-row.selected {
-  background: rgba(56, 139, 253, 0.12);
-}
-
-.commit-select-row:focus-visible {
-  outline: 2px solid var(--accent, #58a6ff);
-  outline-offset: -2px;
-}
-
-.row-checkbox-col input {
-  width: 17px;
-  height: 17px;
-  cursor: pointer;
-  accent-color: var(--accent, #388bfd);
-}
-
-.commit-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.76rem;
-  font-weight: 800;
-  flex-shrink: 0;
-  border: 1px solid var(--border, #30363d);
-}
-
-.commit-select-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  flex: 1;
-  min-width: 0;
-}
-
-.commit-select-top {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-
-.badge-repo-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 5px;
-  white-space: nowrap;
-}
-
-.commit-hash {
-  font-family: 'Courier New', monospace;
-  font-size: 0.78rem;
-  color: var(--text-muted, #8b949e);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 4px;
-  padding: 1px 5px;
-  font-weight: 700;
-}
-
-.commit-msg-text {
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: var(--text, #f0f6fc);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 550px;
-}
-
-.commit-select-meta {
-  font-size: 0.78rem;
-  color: var(--text-muted, #8b949e);
-}
-
-.row-status-col {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-shrink: 0;
-}
-
-/* ── STICKY ACTION FOOTER ── */
-.action-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--topbar-bg, rgba(15, 23, 42, 0.95));
-  backdrop-filter: blur(12px);
-  border-top: 1px solid var(--border, #30363d);
-  padding: 1rem 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  z-index: 100;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.footer-info {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 0.92rem;
-  color: var(--text, #f0f6fc);
-  flex-wrap: wrap;
-}
-
-.footer-count strong {
-  color: var(--accent, #58a6ff);
-  font-size: 1.05rem;
-}
-
-.footer-repo-count {
-  font-size: 0.85rem;
-  color: var(--text-muted, #8b949e);
-}
-
-.footer-divider {
-  color: var(--text-muted, #8b949e);
-}
-
-.footer-model strong {
-  color: #34d399;
-}
-
-.footer-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.page {
-  padding-bottom: 6.5rem;
-}
-
-/* Cores de repositórios conformes com WCAG AA */
-.repo-color-default {
-  background: rgba(148, 163, 184, 0.12);
-  color: #cbd5e1;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-}
-
-.repo-color-0 {
-  background: rgba(56, 189, 248, 0.12);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.35);
-}
-
-.repo-color-1 {
-  background: rgba(192, 132, 252, 0.12);
-  color: #c084fc;
-  border: 1px solid rgba(192, 132, 252, 0.35);
-}
-
-.repo-color-2 {
-  background: rgba(52, 211, 153, 0.12);
-  color: #34d399;
-  border: 1px solid rgba(52, 211, 153, 0.35);
-}
-
-.repo-color-3 {
-  background: rgba(251, 191, 36, 0.12);
-  color: #fbbf24;
-  border: 1px solid rgba(251, 191, 36, 0.35);
-}
-
-.repo-color-4 {
-  background: rgba(244, 114, 182, 0.12);
-  color: #f472b6;
-  border: 1px solid rgba(244, 114, 182, 0.35);
-}
-
-.repo-color-5 {
-  background: rgba(129, 140, 248, 0.12);
-  color: #818cf8;
-  border: 1px solid rgba(129, 140, 248, 0.35);
-}
-
-/* Modo Claro Adaptativo */
-:global([data-theme="light"]) .repo-color-default {
-  background: #f1f5f9;
-  color: #334155;
-  border: 1px solid #cbd5e1;
-}
-
-:global([data-theme="light"]) .repo-color-0 {
-  background: #e0f2fe;
-  color: #0369a1;
-  border: 1px solid #7dd3fc;
-}
-
-:global([data-theme="light"]) .repo-color-1 {
-  background: #f3e8ff;
-  color: #7e22ce;
-  border: 1px solid #d8b4fe;
-}
-
-:global([data-theme="light"]) .repo-color-2 {
-  background: #d1fae5;
-  color: #047857;
-  border: 1px solid #6ee7b7;
-}
-
-:global([data-theme="light"]) .repo-color-3 {
-  background: #fef3c7;
-  color: #b45309;
-  border: 1px solid #fcd34d;
-}
-
-:global([data-theme="light"]) .repo-color-4 {
-  background: #fce7f3;
-  color: #be185d;
-  border: 1px solid #f9a8d4;
-}
-
-:global([data-theme="light"]) .repo-color-5 {
-  background: #e0e7ff;
-  color: #4338ca;
-  border: 1px solid #a5b4fc;
-}
-</style>

@@ -1,26 +1,26 @@
 <template>
-  <div class="page dashboard-page">
+  <div class="flex flex-col gap-8" data-tour="dashboard-pagina">
     <!-- Cabeçalho do Dashboard -->
-    <header class="page-header dashboard-header">
-      <div class="header-main-col">
-        <div class="title-row">
-          <h1>Dashboard de Indicadores</h1>
+    <header data-tour="dashboard-cabecalho" class="mb-8 flex flex-wrap items-start justify-between gap-6 border-b border-border pb-6 light:border-slate-200">
+      <div class="flex min-w-65 flex-col gap-2">
+        <div class="flex items-center gap-3">
+          <h1 class="text-[1.75rem] font-extrabold tracking-tight text-foreground">Dashboard de Indicadores</h1>
           <TutorialModal screenId="dashboard" />
         </div>
-        <p class="dashboard-subtitle">
+        <p class="text-sm leading-normal text-muted-foreground">
           Métricas consolidadas de commits, análise preditiva com IA e faturamento HPA integrado ao Munka.
         </p>
       </div>
 
       <!-- Controles de Período e Ações Rápidas -->
-      <div class="header-controls-col">
-        <div v-if="store.stats" class="period-control-wrap">
-          <label for="mes-filtro-dashboard" class="filter-label">Período:</label>
-          <div class="select-wrapper">
+      <div class="flex flex-wrap items-center gap-3 max-md:w-full max-md:justify-between">
+        <div v-if="store.stats" class="flex items-center gap-2.5 rounded-lg border border-border-strong bg-card px-3 py-1.5 light:border-slate-300">
+          <label for="mes-filtro-dashboard" class="mb-1.4 block text-sm leading-[1.4] font-bold uppercase tracking-wider text-muted-foreground">Período:</label>
+          <div class="relative flex items-center">
             <select 
               id="mes-filtro-dashboard" 
               v-model="mesSelecionado" 
-              class="select-periodo" 
+              class="w-full cursor-pointer appearance-none rounded-lg border-0 bg-transparent py-2.4 pr-6 pl-3.4 text-sm font-semibold text-foreground shadow-field outline-none focus:ring-3 focus:ring-primary-glow" 
               aria-label="Filtrar indicadores por período ou mês"
             >
               <option value="todos">Consolidado (Todos os Meses)</option>
@@ -28,13 +28,13 @@
                 {{ formatarMesExtenso(m) }}
               </option>
             </select>
-            <i class="fa-solid fa-chevron-down select-chevron" aria-hidden="true"></i>
+            <i class="fa-solid fa-chevron-down pointer-events-none absolute right-0 text-xs text-muted-foreground" aria-hidden="true"></i>
           </div>
         </div>
 
         <button 
           type="button" 
-          class="btn-refresh" 
+          class="inline-flex size-9 cursor-pointer disabled:cursor-not-allowed items-center justify-center rounded-lg border border-border-strong bg-card text-muted-foreground transition duration-150 hover:border-primary hover:text-foreground light:border-slate-300 light:text-slate-600 light:hover:border-blue-600 light:hover:text-foreground" 
           :disabled="atualizando"
           @click="recarregarDados"
           title="Recarregar dados do dashboard"
@@ -43,46 +43,33 @@
           <i class="fa-solid fa-rotate" :class="{ 'fa-spin': atualizando }" aria-hidden="true"></i>
         </button>
 
-        <button 
-          type="button" 
-          class="btn-primary btn-import-shortcut" 
-          @click="$router.push('/importar')"
-        >
+        <BaseButton variant="primary" data-tour="dashboard-importar" @click="$router.push('/importar')">
           <i class="fa-solid fa-file-import" aria-hidden="true"></i>
           <span>+ Importar Commit</span>
-        </button>
+        </BaseButton>
       </div>
     </header>
 
     <!-- Barra de Conectividade e Saúde dos Serviços -->
-    <div class="system-status-bar" role="region" aria-label="Status das integrações do sistema">
-      <div class="status-items-left">
-        <span class="status-item" :class="{ 'is-active': servicosStatus.gitlab }">
-          <span class="status-indicator"></span>
-          <i class="fa-brands fa-gitlab" aria-hidden="true"></i>
-          <span>GitLab {{ servicosStatus.gitlab ? 'Conectado' : 'Aguardando' }}</span>
-        </span>
-        <span class="status-divider" aria-hidden="true">·</span>
-        <span class="status-item" :class="{ 'is-active': servicosStatus.gemini }">
-          <span class="status-indicator"></span>
-          <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
-          <span>Gemini IA {{ servicosStatus.gemini ? 'Ativo' : 'Pendente' }}</span>
-        </span>
-        <span class="status-divider" aria-hidden="true">·</span>
-        <span class="status-item" :class="{ 'is-active': servicosStatus.munka }">
-          <span class="status-indicator"></span>
-          <i class="fa-solid fa-briefcase" aria-hidden="true"></i>
-          <span>Munka {{ servicosStatus.munka ? 'Conectado' : 'Não configurado' }}</span>
-        </span>
+    <div class="mb-1 flex flex-wrap items-center justify-between gap-5 rounded-[10px] border border-border bg-muted px-5.5 py-3.5 text-sm light:border-slate-200 light:bg-slate-50" role="region" aria-label="Status das integrações do sistema">
+      <div class="flex flex-wrap items-center gap-4">
+        <template v-for="(item, idx) in integracoes" :key="item.chave">
+          <span v-if="idx > 0" class="text-border-strong" aria-hidden="true">·</span>
+          <span :class="['inline-flex items-center gap-2 font-medium', item.ativo ? 'text-foreground' : 'text-muted-foreground']">
+            <span :class="['inline-block size-1.75 rounded-full', item.ativo ? 'bg-success shadow-[0_0_6px] shadow-emerald-500/50' : 'bg-slate-500']"></span>
+            <i :class="item.icone" aria-hidden="true"></i>
+            <span>{{ item.texto }}</span>
+          </span>
+        </template>
       </div>
 
-      <div class="status-items-right">
-        <router-link to="/fila" class="queue-status-link" title="Ver fila de execução em tempo real">
-          <span v-if="totalTarefasAtivasNaFila > 0" class="queue-active-badge">
-            <span class="spinner-dot-xs"></span>
+      <div >
+        <router-link to="/fila" class="no-underline outline-none" title="Ver fila de execução em tempo real">
+          <span v-if="totalTarefasAtivasNaFila > 0" class="inline-flex items-center gap-2 rounded-md border border-amber-500/35 bg-amber-500/15 px-3 py-1 text-xs font-bold text-amber-400">
+            <span class="size-1.5 animate-spin rounded-full border-2 border-transparent border-t-current border-r-current [animation-duration:0.8s]"></span>
             <span>{{ totalTarefasAtivasNaFila }} tarefa{{ totalTarefasAtivasNaFila > 1 ? 's' : '' }} na fila</span>
           </span>
-          <span v-else class="queue-idle-badge">
+          <span v-else class="inline-flex items-center gap-2 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400">
             <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
             <span>Fila operacional</span>
           </span>
@@ -91,125 +78,125 @@
     </div>
 
     <!-- Estado de Carregamento -->
-    <div v-if="store.loading && store.commits.length === 0" class="loading" role="status" aria-live="polite">
+    <StateMessage v-if="store.loading && store.commits.length === 0" type="loading" role="status" aria-live="polite">
       Carregando indicadores do dashboard...
-    </div>
+    </StateMessage>
 
     <!-- Estado Vazio -->
-    <div v-else-if="store.commits.length === 0" class="empty-dashboard-card">
-      <div class="empty-icon-wrap">
+    <div v-else-if="store.commits.length === 0" class="flex flex-col items-center justify-center gap-4 rounded-[14px] border border-dashed border-border-strong bg-card px-6 py-14 text-center light:border-slate-300">
+      <div class="flex size-14 items-center justify-center rounded-2xl bg-blue-500/12 text-2xl text-primary">
         <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
       </div>
-      <h2>Nenhum dado cadastrado ainda</h2>
-      <p>Importe commits do GitLab para que a IA analise as alterações de código e gere os relatórios de faturamento HPA automaticamente.</p>
-      <button type="button" class="btn-primary" @click="$router.push('/importar')">
+      <h2 class="text-xl font-bold text-foreground">Nenhum dado cadastrado ainda</h2>
+      <p class="max-w-120 text-sm leading-normal text-muted-foreground">Importe commits do GitLab para que a IA analise as alterações de código e gere os relatórios de faturamento HPA automaticamente.</p>
+      <BaseButton variant="primary" @click="$router.push('/importar')">
         <i class="fa-solid fa-file-import" aria-hidden="true"></i>
         <span>Importar Primeiro Commit</span>
-      </button>
+      </BaseButton>
     </div>
 
     <!-- Conteúdo Principal do Dashboard -->
-    <main v-else class="dashboard-content">
+    <main v-else class="flex flex-col gap-9">
       
       <!-- 1. FAIXA EXECUTIVA DE KPIS (ESTILO SAAS CONSOLIDADO) -->
-      <section class="kpi-executive-strip" aria-label="Indicadores executivos">
+      <section data-tour="dashboard-kpis" class="grid grid-cols-5 overflow-hidden rounded-xl border border-border bg-card shadow-[0_1px_3px] shadow-black/5 light:border-slate-200 light:shadow-[0_1px_4px] light:shadow-black/4 max-[1100px]:grid-cols-3 max-md:grid-cols-1" aria-label="Indicadores executivos">
         <!-- KPI 1: Horas HPA -->
-        <div class="kpi-strip-cell">
-          <div class="kpi-cell-header">
-            <span class="kpi-cell-label">HPA Faturável</span>
-            <span class="badge-kpi-status" :class="taxaHpaEnviado === 100 ? 'status-green' : 'status-blue'">
+        <div :class="kpiCell">
+          <div :class="kpiHeader">
+            <span :class="kpiLabel">HPA Faturável</span>
+            <span :class="[kpiBadgeBase, taxaHpaEnviado === 100 ? kpiBadgeTons.green : kpiBadgeTons.blue]">
               {{ taxaHpaEnviado }}% enviado
             </span>
           </div>
-          <div class="kpi-cell-value-row">
-            <span class="kpi-cell-num">{{ statsExibidas.total_hpa }}</span>
-            <span class="kpi-cell-unit">h</span>
+          <div :class="kpiValueRow">
+            <span :class="kpiNum">{{ statsExibidas.total_hpa }}</span>
+            <span :class="kpiUnit">h</span>
           </div>
-          <div class="kpi-cell-progress" role="progressbar" :aria-valuenow="taxaHpaEnviado" aria-valuemin="0" aria-valuemax="100" :aria-label="`Percentual de HPA enviado: ${taxaHpaEnviado}%`">
-            <div class="kpi-progress-bar" :style="{ width: `${taxaHpaEnviado}%` }"></div>
+          <div :class="kpiProgress" role="progressbar" :aria-valuenow="taxaHpaEnviado" aria-valuemin="0" aria-valuemax="100" :aria-label="`Percentual de HPA enviado: ${taxaHpaEnviado}%`">
+            <div :class="[kpiBar, 'bg-primary']" :style="{ width: `${taxaHpaEnviado}%` }"></div>
           </div>
-          <span class="kpi-cell-sub">
+          <span :class="kpiSub">
             <strong>{{ hpaEnviadoPeriodo }}h</strong> enviados · {{ hpaPendentePeriodo }}h pendentes
           </span>
         </div>
 
         <!-- KPI 2: Atividades -->
-        <div class="kpi-strip-cell">
-          <div class="kpi-cell-header">
-            <span class="kpi-cell-label">Tarefas Identificadas</span>
-            <span class="badge-kpi-status status-neutral">
+        <div :class="kpiCell">
+          <div :class="kpiHeader">
+            <span :class="kpiLabel">Tarefas Identificadas</span>
+            <span :class="[kpiBadgeBase, kpiBadgeTons.neutral]">
               {{ Object.keys(statsExibidas.codes).length }} tipos
             </span>
           </div>
-          <div class="kpi-cell-value-row">
-            <span class="kpi-cell-num">{{ statsExibidas.total_tasks }}</span>
-            <span class="kpi-cell-unit">atividades</span>
+          <div :class="kpiValueRow">
+            <span :class="kpiNum">{{ statsExibidas.total_tasks }}</span>
+            <span :class="kpiUnit">atividades</span>
           </div>
-          <div class="kpi-cell-progress" role="progressbar" :aria-valuenow="taxaTarefasEnviadas" aria-valuemin="0" aria-valuemax="100" :aria-label="`Percentual de tarefas enviadas: ${taxaTarefasEnviadas}%`">
-            <div class="kpi-progress-bar kpi-bar-cyan" :style="{ width: `${taxaTarefasEnviadas}%` }"></div>
+          <div :class="kpiProgress" role="progressbar" :aria-valuenow="taxaTarefasEnviadas" aria-valuemin="0" aria-valuemax="100" :aria-label="`Percentual de tarefas enviadas: ${taxaTarefasEnviadas}%`">
+            <div :class="[kpiBar, 'bg-accent']" :style="{ width: `${taxaTarefasEnviadas}%` }"></div>
           </div>
-          <span class="kpi-cell-sub">
+          <span :class="kpiSub">
             <strong>{{ tarefasEnviadasPeriodo }}</strong> enviadas ao Munka ({{ taxaTarefasEnviadas }}%)
           </span>
         </div>
 
         <!-- KPI 3: Commits & Cobertura IA -->
-        <div class="kpi-strip-cell">
-          <div class="kpi-cell-header">
-            <span class="kpi-cell-label">Commits no Período</span>
-            <span class="badge-kpi-status" :class="taxaAnaliseIA >= 90 ? 'status-green' : 'status-amber'">
+        <div :class="kpiCell">
+          <div :class="kpiHeader">
+            <span :class="kpiLabel">Commits no Período</span>
+            <span :class="[kpiBadgeBase, taxaAnaliseIA >= 90 ? kpiBadgeTons.green : kpiBadgeTons.amber]">
               {{ taxaAnaliseIA }}% IA
             </span>
           </div>
-          <div class="kpi-cell-value-row">
-            <span class="kpi-cell-num">{{ totalCommitsPeriodo }}</span>
-            <span class="kpi-cell-unit">commits</span>
+          <div :class="kpiValueRow">
+            <span :class="kpiNum">{{ totalCommitsPeriodo }}</span>
+            <span :class="kpiUnit">commits</span>
           </div>
-          <div class="kpi-cell-progress" role="progressbar" :aria-valuenow="taxaAnaliseIA" aria-valuemin="0" aria-valuemax="100" :aria-label="`Cobertura de análise IA: ${taxaAnaliseIA}%`">
-            <div class="kpi-progress-bar kpi-bar-emerald" :style="{ width: `${taxaAnaliseIA}%` }"></div>
+          <div :class="kpiProgress" role="progressbar" :aria-valuenow="taxaAnaliseIA" aria-valuemin="0" aria-valuemax="100" :aria-label="`Cobertura de análise IA: ${taxaAnaliseIA}%`">
+            <div :class="[kpiBar, 'bg-success']" :style="{ width: `${taxaAnaliseIA}%` }"></div>
           </div>
-          <span class="kpi-cell-sub">
+          <span :class="kpiSub">
             <strong>{{ commitsAnalisadosPeriodo }}</strong> analisados · {{ commitsPendentesPeriodo }} pendentes
           </span>
         </div>
 
         <!-- KPI 4: Média HPA por Tarefa -->
-        <div class="kpi-strip-cell">
-          <div class="kpi-cell-header">
-            <span class="kpi-cell-label">Esforço Médio</span>
-            <span class="badge-kpi-status status-neutral">
+        <div :class="kpiCell">
+          <div :class="kpiHeader">
+            <span :class="kpiLabel">Esforço Médio</span>
+            <span :class="[kpiBadgeBase, kpiBadgeTons.neutral]">
               HPA / Tarefa
             </span>
           </div>
-          <div class="kpi-cell-value-row">
-            <span class="kpi-cell-num">{{ mediaHpaPorTarefa }}</span>
-            <span class="kpi-cell-unit">h/tarefa</span>
+          <div :class="kpiValueRow">
+            <span :class="kpiNum">{{ mediaHpaPorTarefa }}</span>
+            <span :class="kpiUnit">h/tarefa</span>
           </div>
-          <div class="kpi-cell-progress">
-            <div class="kpi-progress-bar kpi-bar-amber" :style="{ width: `${Math.min(100, Math.round((Number(mediaHpaPorTarefa) / 3.0) * 100))}%` }"></div>
+          <div :class="kpiProgress">
+            <div :class="[kpiBar, 'bg-warning']" :style="{ width: `${Math.min(100, Math.round((Number(mediaHpaPorTarefa) / 3.0) * 100))}%` }"></div>
           </div>
-          <span class="kpi-cell-sub">
+          <span :class="kpiSub">
             {{ distribuicaoRepositorios.length }} repositórios avaliados
           </span>
         </div>
 
         <!-- KPI 5: Fila de Execução -->
-        <div class="kpi-strip-cell kpi-cell-queue">
-          <div class="kpi-cell-header">
-            <span class="kpi-cell-label">Status da Fila</span>
-            <span class="badge-kpi-status" :class="totalTarefasAtivasNaFila > 0 ? 'status-amber' : 'status-green'">
+        <div :class="kpiCell">
+          <div :class="kpiHeader">
+            <span :class="kpiLabel">Status da Fila</span>
+            <span :class="[kpiBadgeBase, totalTarefasAtivasNaFila > 0 ? kpiBadgeTons.amber : kpiBadgeTons.green]">
               {{ totalTarefasAtivasNaFila > 0 ? 'Processando' : 'Sincronizado' }}
             </span>
           </div>
-          <div class="kpi-cell-value-row">
-            <span class="kpi-cell-num">{{ totalTarefasAtivasNaFila }}</span>
-            <span class="kpi-cell-unit">em fila</span>
+          <div :class="kpiValueRow">
+            <span :class="kpiNum">{{ totalTarefasAtivasNaFila }}</span>
+            <span :class="kpiUnit">em fila</span>
           </div>
-          <div class="kpi-cell-progress">
-            <div class="kpi-progress-bar kpi-bar-blue" :style="{ width: totalTarefasAtivasNaFila > 0 ? '70%' : '100%' }"></div>
+          <div :class="kpiProgress">
+            <div :class="[kpiBar, 'bg-primary']" :style="{ width: totalTarefasAtivasNaFila > 0 ? '70%' : '100%' }"></div>
           </div>
-          <span class="kpi-cell-sub">
-            <router-link to="/fila" class="kpi-queue-link">
+          <span :class="kpiSub">
+            <router-link to="/fila" class="inline-flex items-center gap-1.5 text-primary-light no-underline transition-[gap] duration-150 hover:gap-2 hover:text-foreground light:text-blue-700">
               <span>{{ totalTarefasAtivasNaFila > 0 ? `${tarefasRunning} rodando, ${tarefasPending} na espera` : 'Nenhum job pendente' }}</span>
               <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
             </router-link>
@@ -218,13 +205,13 @@
       </section>
 
       <!-- 2. ALERTA OPERACIONAL DE AÇÕES PENDENTES (SE HOUVER PENDÊNCIAS) -->
-      <section v-if="commitsPendentesPeriodo > 0 || tarefasPendentesPeriodo > 0" class="action-alert-banner" role="region" aria-label="Ações pendentes recomendadas">
-        <div class="alert-icon-col">
+      <section v-if="commitsPendentesPeriodo > 0 || tarefasPendentesPeriodo > 0" data-tour="dashboard-alerta" class="flex flex-wrap items-center justify-between gap-6 rounded-xl border border-amber-500/35 bg-amber-500/8 px-7 py-5 light:border-amber-200 light:bg-amber-50" role="region" aria-label="Ações pendentes recomendadas">
+        <div class="flex size-10.5 shrink-0 items-center justify-center rounded-[10px] bg-amber-500/20 text-lg text-amber-400">
           <i class="fa-solid fa-bolt" aria-hidden="true"></i>
         </div>
-        <div class="alert-text-col">
-          <h3 class="alert-title">Ações recomendadas para este período</h3>
-          <p class="alert-desc">
+        <div class="min-w-65 flex-1">
+          <h3 class="text-base font-bold text-foreground light:text-amber-900">Ações recomendadas para este período</h3>
+          <p class="mt-1.5 text-sm leading-normal text-muted-foreground light:text-amber-800 [&_strong]:text-yellow-200 light:[&_strong]:text-amber-900">
             <span v-if="commitsPendentesPeriodo > 0">
               Existem <strong>{{ commitsPendentesPeriodo }} commit{{ commitsPendentesPeriodo > 1 ? 's' : '' }}</strong> aguardando análise de IA.
             </span>
@@ -234,10 +221,10 @@
             </span>
           </p>
         </div>
-        <div class="alert-action-col">
+        <div >
           <button 
             type="button" 
-            class="btn-alert-action" 
+            class="inline-flex cursor-pointer items-center gap-2 rounded-lg border-0 bg-amber-600 px-5 py-2.5 text-sm font-bold text-white transition-colors duration-150 hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" 
             @click="$router.push('/commits')"
           >
             <span>Gerenciar na Tela de Commits</span>
@@ -247,86 +234,57 @@
       </section>
 
       <!-- 3. FUNIL DE AUTOMAÇÃO DO FLUXO DE VALOR (PIPELINE SAAS) -->
-      <section class="dashboard-panel funnel-panel" aria-label="Pipeline do fluxo de valor">
-        <div class="panel-header">
-          <div class="panel-title">
+      <section :class="painel" data-tour="dashboard-pipeline" aria-label="Pipeline do fluxo de valor">
+        <div :class="painelCabecalho">
+          <div :class="painelTitulo">
             <i class="fa-solid fa-timeline" aria-hidden="true"></i>
-            <h2>Pipeline de Automação</h2>
+            <h2 :class="painelTituloH2">Pipeline de Automação</h2>
           </div>
-          <span class="panel-badge-info">Ciclo Completo: Ingestão Git → IA Gemini → Timesheet Munka</span>
+          <span :class="painelInfo">Ciclo Completo: Ingestão Git → IA Gemini → Timesheet Munka</span>
         </div>
 
-        <div class="pipeline-track">
-          <!-- Passo 1: Ingestão -->
-          <div class="pipeline-stage stage-completed">
-            <div class="stage-num-badge">1</div>
-            <div class="stage-info">
-              <span class="stage-label">Ingestão Git</span>
-              <span class="stage-val">{{ totalCommitsPeriodo }} Commits</span>
-              <span class="stage-desc">{{ distribuicaoRepositorios.length }} Repositórios monitorados</span>
+        <div data-tour="dashboard-pipeline-etapas" class="grid grid-cols-4 gap-5 max-[1100px]:grid-cols-2 max-md:grid-cols-1">
+          <div
+            v-for="(etapa, idx) in etapasPipeline"
+            :key="etapa.numero"
+            class="relative flex items-center gap-4 rounded-[10px] border border-border bg-muted px-5.5 py-5 light:border-slate-200 light:bg-slate-50"
+          >
+            <div :class="['flex size-8 shrink-0 items-center justify-center rounded-full border text-sm font-extrabold', etapa.concluida ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-400' : 'border-blue-500/40 bg-blue-500/15 text-blue-400']">{{ etapa.numero }}</div>
+            <div class="flex flex-1 flex-col gap-1">
+              <span class="text-xs font-bold uppercase tracking-wider text-muted-foreground">{{ etapa.rotulo }}</span>
+              <span class="my-0.5 text-lg font-extrabold tracking-tight text-foreground">{{ etapa.valor }}</span>
+              <span class="text-xs leading-snug text-muted-foreground">{{ etapa.descricao }}</span>
             </div>
-            <i class="fa-solid fa-chevron-right stage-arrow" aria-hidden="true"></i>
-          </div>
-
-          <!-- Passo 2: IA Gemini -->
-          <div class="pipeline-stage" :class="taxaAnaliseIA >= 90 ? 'stage-completed' : 'stage-progress'">
-            <div class="stage-num-badge">2</div>
-            <div class="stage-info">
-              <span class="stage-label">Análise de IA</span>
-              <span class="stage-val">{{ commitsAnalisadosPeriodo }} Analisados</span>
-              <span class="stage-desc">{{ taxaAnaliseIA }}% dos commits processados</span>
-            </div>
-            <i class="fa-solid fa-chevron-right stage-arrow" aria-hidden="true"></i>
-          </div>
-
-          <!-- Passo 3: Atividades & HPA -->
-          <div class="pipeline-stage stage-completed">
-            <div class="stage-num-badge">3</div>
-            <div class="stage-info">
-              <span class="stage-label">Atividades HPA</span>
-              <span class="stage-val">{{ statsExibidas.total_tasks }} Tarefas</span>
-              <span class="stage-desc">{{ statsExibidas.total_hpa }}h faturáveis mapeadas</span>
-            </div>
-            <i class="fa-solid fa-chevron-right stage-arrow" aria-hidden="true"></i>
-          </div>
-
-          <!-- Passo 4: Envio Munka -->
-          <div class="pipeline-stage" :class="taxaTarefasEnviadas === 100 ? 'stage-completed' : 'stage-progress'">
-            <div class="stage-num-badge">4</div>
-            <div class="stage-info">
-              <span class="stage-label">Timesheet Munka</span>
-              <span class="stage-val">{{ tarefasEnviadasPeriodo }} Enviadas</span>
-              <span class="stage-desc">{{ hpaEnviadoPeriodo }}h faturadas com sucesso ({{ taxaTarefasEnviadas }}%)</span>
-            </div>
+            <i v-if="idx < etapasPipeline.length - 1" class="fa-solid fa-chevron-right text-sm text-border max-md:[--fa-display:none]" aria-hidden="true"></i>
           </div>
         </div>
       </section>
 
       <!-- 4. GRID CENTRAL: REPOSITÓRIOS E HISTÓRICO MENSAL -->
-      <div class="dashboard-two-col-grid">
+      <div data-tour="dashboard-grade-central" class="grid grid-cols-2 gap-8 max-[1100px]:grid-cols-1">
         
         <!-- Coluna Esquerda: Distribuição por Repositório -->
-        <section class="dashboard-panel repo-distribution-panel" aria-label="Distribuição por Repositório">
-          <div class="panel-header">
-            <div class="panel-title">
+        <section :class="painel" data-tour="dashboard-repositorios" aria-label="Distribuição por Repositório">
+          <div :class="painelCabecalho">
+            <div :class="painelTitulo">
               <i class="fa-brands fa-git-alt" aria-hidden="true"></i>
-              <h2>Repositórios & Faturamento</h2>
+              <h2 :class="painelTituloH2">Repositórios & Faturamento</h2>
             </div>
-            <router-link to="/commits" class="link-panel-action" title="Abrir lista completa de commits">
+            <router-link to="/commits" :class="linkPainel" title="Abrir lista completa de commits">
               <span>Ver Commits</span>
               <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
             </router-link>
           </div>
 
-          <div v-if="distribuicaoRepositorios.length === 0" class="panel-empty">
+          <div v-if="distribuicaoRepositorios.length === 0" :class="painelVazio">
             Nenhum repositório com dados no período selecionado.
           </div>
 
-          <div v-else class="repo-rows-list">
+          <div v-else class="flex max-h-100 flex-col gap-3.5 overflow-y-auto pr-1">
             <div 
               v-for="repo in distribuicaoRepositorios" 
               :key="repo.nome" 
-              class="repo-list-row"
+              class="group flex cursor-pointer items-center justify-between gap-5 rounded-[10px] border border-border bg-muted px-5.5 py-4.5 transition duration-150 hover:translate-x-0.5 hover:border-primary hover:bg-blue-500/8 light:border-slate-200 light:bg-slate-50 light:hover:border-blue-600 light:hover:bg-blue-50"
               tabindex="0"
               role="button"
               @click="navegarParaRepo(repo.nome)"
@@ -334,81 +292,80 @@
               @keydown.space.prevent="navegarParaRepo(repo.nome)"
               :title="`Filtrar commits de ${repo.nome}`"
             >
-              <div class="repo-row-left">
-                <span class="repo-badge-dot" :class="repo.colorClass"></span>
-                <div class="repo-row-titles">
-                  <span class="repo-row-name" :title="repo.nome">{{ repo.nome }}</span>
-                  <div class="repo-row-badges">
-                    <span class="repo-meta-pill">{{ repo.commitsCount }} commit{{ repo.commitsCount > 1 ? 's' : '' }}</span>
-                    <span class="repo-meta-pill">{{ repo.totalTarefas }} tarefa{{ repo.totalTarefas > 1 ? 's' : '' }}</span>
-                    <span v-if="repo.pendentes > 0" class="repo-meta-pill pill-amber" title="Commits pendentes de análise">
+              <div class="flex min-w-0 flex-1 items-center gap-3.5">
+                <span class="size-2.5 shrink-0 rounded-full" :class="repo.colorClass"></span>
+                <div class="flex min-w-0 flex-col gap-1.5">
+                  <span class="truncate text-base font-bold tracking-tight text-foreground" :title="repo.nome">{{ repo.nome }}</span>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span :class="[pilulaBase, pilulaNeutra]">{{ repo.commitsCount }} commit{{ repo.commitsCount > 1 ? 's' : '' }}</span>
+                    <span :class="[pilulaBase, pilulaNeutra]">{{ repo.totalTarefas }} tarefa{{ repo.totalTarefas > 1 ? 's' : '' }}</span>
+                    <span v-if="repo.pendentes > 0" :class="[pilulaBase, pilulaAmbar]" title="Commits pendentes de análise">
                       {{ repo.pendentes }} pendente{{ repo.pendentes > 1 ? 's' : '' }}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div class="repo-row-right">
-                <div class="repo-hpa-col">
-                  <div class="repo-hpa-val">
+              <div class="flex shrink-0 items-center gap-4">
+                <div class="flex flex-col items-end gap-0.5">
+                  <div class="text-base font-extrabold text-foreground">
                     <strong>{{ repo.totalHpa.toFixed(1) }}</strong>
-                    <span class="unit-sm">h</span>
+                    <span class="ml-px text-xs text-muted-foreground">h</span>
                   </div>
-                  <span class="repo-hpa-sub">
+                  <span class="text-xs text-muted-foreground">
                     {{ repo.hpaEnviado.toFixed(1) }}h env. ({{ repo.pctHpaEnviado }}%)
                   </span>
                 </div>
 
-                <div class="repo-progress-wrap" :title="`${repo.pctHpaEnviado}% do HPA enviado ao Munka`">
-                  <div class="repo-mini-bar">
-                    <div class="repo-mini-fill" :style="{ width: `${repo.pctHpaEnviado}%` }"></div>
+                <div class="w-16" :title="`${repo.pctHpaEnviado}% do HPA enviado ao Munka`">
+                  <div class="h-1.5 w-full overflow-hidden rounded-xs bg-white/8 light:bg-slate-200">
+                    <div class="h-full rounded-xs bg-success" :style="{ width: `${repo.pctHpaEnviado}%` }"></div>
                   </div>
                 </div>
 
-                <i class="fa-solid fa-chevron-right repo-nav-arrow" aria-hidden="true"></i>
+                <i class="fa-solid fa-chevron-right text-xs text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-primary-light" aria-hidden="true"></i>
               </div>
             </div>
           </div>
         </section>
 
         <!-- Coluna Direita: Gráfico de Evolução Mensal (SVG Dinâmico) -->
-        <section class="dashboard-panel monthly-history-panel" aria-label="Evolução Mensal de HPA">
-          <div class="panel-header">
-            <div class="panel-title">
+        <section :class="painel" data-tour="dashboard-evolucao" aria-label="Evolução Mensal de HPA">
+          <div :class="painelCabecalho">
+            <div :class="painelTitulo">
               <i class="fa-solid fa-chart-simple" aria-hidden="true"></i>
-              <h2>Evolução Mensal de HPA</h2>
+              <h2 :class="painelTituloH2">Evolução Mensal de HPA</h2>
             </div>
-            <span class="panel-badge-info">Clique em uma barra para filtrar o mês</span>
+            <span :class="painelInfo">Clique em uma barra para filtrar o mês</span>
           </div>
 
-          <div v-if="historicoMensal.length === 0" class="panel-empty">
+          <div v-if="historicoMensal.length === 0" :class="painelVazio">
             Nenhum histórico mensal disponível.
           </div>
 
-          <div v-else class="chart-container">
+          <div v-else class="flex flex-1 flex-col gap-5">
             <!-- Gráfico de Barras SVG Responsivo e Dinâmico -->
             <svg 
-              class="monthly-bars-svg" 
+              class="h-auto min-h-50 w-full overflow-visible" 
               viewBox="0 0 520 180" 
               role="img" 
               aria-label="Gráfico de barras de HPA por mês"
             >
               <!-- Linhas horizontais de referência (Grid) -->
-              <line x1="45" y1="20" x2="510" y2="20" class="svg-gridline" />
-              <text x="40" y="24" class="svg-axis-lbl" text-anchor="end">{{ maxHpaMensal }}h</text>
+              <line x1="45" y1="20" x2="510" y2="20" :class="svgGrade" />
+              <text x="40" y="24" :class="svgEixo" text-anchor="end">{{ maxHpaMensal }}h</text>
 
-              <line x1="45" y1="80" x2="510" y2="80" class="svg-gridline" />
-              <text x="40" y="84" class="svg-axis-lbl" text-anchor="end">{{ Math.round(maxHpaMensal / 2) }}h</text>
+              <line x1="45" y1="80" x2="510" y2="80" :class="svgGrade" />
+              <text x="40" y="84" :class="svgEixo" text-anchor="end">{{ Math.round(maxHpaMensal / 2) }}h</text>
 
-              <line x1="45" y1="140" x2="510" y2="140" class="svg-baseline" />
-              <text x="40" y="144" class="svg-axis-lbl" text-anchor="end">0h</text>
+              <line x1="45" y1="140" x2="510" y2="140" class="stroke-border stroke-[1.5]" />
+              <text x="40" y="144" :class="svgEixo" text-anchor="end">0h</text>
 
               <!-- Barras Mensais -->
               <g 
                 v-for="(item, idx) in historicoMensal" 
                 :key="item.mes" 
-                class="svg-bar-group"
-                :class="{ 'is-selected': mesSelecionado === item.mes }"
+                class="group cursor-pointer outline-none"
                 tabindex="0"
                 role="button"
                 :aria-label="`${item.labelLongo}: ${item.hpa} horas HPA, ${item.tarefas} tarefas`"
@@ -424,14 +381,14 @@
                   :height="calcularAlturaBarra(item.hpa)"
                   rx="4"
                   ry="4"
-                  class="svg-bar-rect"
+                  :class="['transition-[fill] duration-150', mesSelecionado === item.mes ? 'fill-primary' : 'fill-blue-500/55 group-hover:fill-primary-light light:fill-blue-300 light:group-hover:fill-blue-500']"
                 />
 
                 <!-- Rótulo de Valor no Topo da Barra -->
                 <text 
                   :x="calcularXBarra(idx, historicoMensal.length) + (calcularLarguraBarra(historicoMensal.length) / 2)"
                   :y="Math.max(14, calcularYBarra(item.hpa) - 5)"
-                  class="svg-bar-val"
+                  class="fill-foreground text-[10px] font-bold"
                   text-anchor="middle"
                 >
                   {{ item.hpa }}h
@@ -441,7 +398,7 @@
                 <text 
                   :x="calcularXBarra(idx, historicoMensal.length) + (calcularLarguraBarra(historicoMensal.length) / 2)"
                   y="160"
-                  class="svg-bar-lbl"
+                  :class="['text-[10px]', mesSelecionado === item.mes ? 'fill-primary-light font-extrabold' : 'fill-muted-foreground font-semibold light:fill-slate-600']"
                   text-anchor="middle"
                 >
                   {{ item.labelCurto }}
@@ -450,15 +407,15 @@
             </svg>
 
             <!-- Legenda e Destaque do Mês Ativo -->
-            <div class="chart-footer-bar">
-              <div class="chart-active-pill">
-                <span class="active-dot"></span>
+            <div class="mt-2 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4.5 text-sm light:border-slate-200">
+              <div class="inline-flex items-center gap-2 text-muted-foreground">
+                <span class="size-2 rounded-full bg-primary"></span>
                 <span>Visualizando: <strong>{{ mesSelecionado === 'todos' ? 'Todos os meses acumulados' : formatarMesExtenso(mesSelecionado) }}</strong></span>
               </div>
               <button 
                 v-if="mesSelecionado !== 'todos'" 
                 type="button" 
-                class="btn-reset-period" 
+                class="cursor-pointer rounded-md border border-border-strong bg-transparent px-3.5 py-1.5 text-xs font-semibold text-foreground transition duration-150 hover:border-primary hover:bg-white/8 light:border-slate-300 light:text-slate-700 light:hover:border-blue-600 light:hover:bg-slate-100 light:hover:text-blue-700" 
                 @click="mesSelecionado = 'todos'"
                 title="Voltar para visão consolidada"
               >
@@ -471,98 +428,79 @@
       </div>
 
       <!-- 5. TABELA DE QUANTIFICAÇÃO POR TIPO DE SERVIÇO (CÓDIGOS FATURÁVEIS) -->
-      <section class="dashboard-panel codes-table-panel" aria-label="Quantificação por Tipo de Serviço">
-        <div class="panel-header">
-          <div class="panel-title-group">
-            <div class="panel-title">
+      <section :class="[painel, 'gap-6']" aria-label="Quantificação por Tipo de Serviço">
+        <div :class="painelCabecalho">
+          <div class="flex flex-col gap-1.5">
+            <div :class="painelTitulo">
               <i class="fa-solid fa-tags" aria-hidden="true"></i>
-              <h2>Quantificação por Tipo de Serviço</h2>
+              <h2 :class="painelTituloH2">Quantificação por Tipo de Serviço</h2>
             </div>
-            <p class="panel-desc">Códigos de serviço faturáveis gerados e justificados pela IA com base nas mudanças de código.</p>
+            <p class="text-sm leading-normal text-muted-foreground">Códigos de serviço faturáveis gerados e justificados pela IA com base nas mudanças de código.</p>
           </div>
 
           <!-- Controles de Busca e Ordenação da Tabela -->
-          <div class="table-controls-row">
-            <div class="table-search-box">
-              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          <div class="mb-1 flex flex-wrap items-center gap-4">
+            <div class="relative flex min-w-50 items-center">
+              <i class="fa-solid fa-magnifying-glass absolute left-3.5 text-xs text-muted-foreground" aria-hidden="true"></i>
               <input 
                 type="search" 
                 v-model="termoBuscaCodigo" 
                 placeholder="Buscar código..." 
                 aria-label="Filtrar por código de serviço"
-                class="input-table-search"
+                class="w-full rounded-lg border border-border-strong bg-card py-2 pr-3.5 pl-9 text-sm text-foreground shadow-field outline-none focus:border-primary focus:ring-3 focus:ring-primary-glow light:border-slate-300 light:focus:border-blue-600"
               />
             </div>
 
-            <div class="table-sort-group" role="group" aria-label="Ordenar códigos por">
+            <div class="inline-flex gap-0.75 rounded-lg border border-border bg-muted p-0.75" role="group" aria-label="Ordenar códigos por">
               <button 
+                v-for="op in opcoesOrdenacao"
+                :key="op.valor"
                 type="button" 
-                class="sort-tab-btn" 
-                :class="{ active: ordenacaoCodigos === 'hpa' }"
-                @click="ordenacaoCodigos = 'hpa'"
+                :class="['cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition duration-150', ordenacaoCodigos === op.valor ? 'border border-border bg-card text-foreground' : 'border-0 bg-transparent text-muted-foreground hover:text-foreground light:text-slate-600']"
+                @click="ordenacaoCodigos = op.valor"
               >
-                Mais HPA
-              </button>
-              <button 
-                type="button" 
-                class="sort-tab-btn" 
-                :class="{ active: ordenacaoCodigos === 'count' }"
-                @click="ordenacaoCodigos = 'count'"
-              >
-                Mais Tarefas
-              </button>
-              <button 
-                type="button" 
-                class="sort-tab-btn" 
-                :class="{ active: ordenacaoCodigos === 'codigo' }"
-                @click="ordenacaoCodigos = 'codigo'"
-              >
-                Código
+                {{ op.rotulo }}
               </button>
             </div>
           </div>
         </div>
 
-        <div v-if="codigosProcessados.length === 0" class="panel-empty">
+        <div v-if="codigosProcessados.length === 0" :class="painelVazio">
           Nenhum código de serviço encontrado para os critérios selecionados.
         </div>
 
         <!-- Tabela SaaS de Alta Densidade e Alinhamento Preciso -->
-        <div v-else class="table-responsive-wrapper">
-          <table class="saas-data-table">
+        <div v-else class="overflow-x-auto">
+          <table class="w-full border-collapse text-left text-sm">
             <thead>
               <tr>
-                <th scope="col" class="th-code">Código do Serviço</th>
-                <th scope="col" class="th-count text-right">Tarefas</th>
-                <th scope="col" class="th-hpa text-right">HPA Total</th>
-                <th scope="col" class="th-avg text-right">Média / Tarefa</th>
-                <th scope="col" class="th-share">Participação</th>
+                <th v-for="col in colunasTabela" :key="col.rotulo" scope="col" :class="['border-b border-border bg-background px-5.5 py-4.5 text-xs font-bold uppercase tracking-wider text-muted-foreground light:border-slate-200 light:text-slate-600', col.direita ? 'text-right' : 'text-left']">{{ col.rotulo }}</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in codigosProcessados" :key="item.codigo" class="tr-code-row">
-                <td class="td-code">
-                  <div class="code-badge-wrap">
-                    <span class="badge badge-code"><code>{{ item.codigo }}</code></span>
+              <tr v-for="item in codigosProcessados" :key="item.codigo" class="transition-colors duration-150 hover:bg-white/2 light:hover:bg-slate-50 [&:last-child>td]:border-b-0">
+                <td :class="celula">
+                  <div>
+                    <BaseBadge variant="plain"><code>{{ item.codigo }}</code></BaseBadge>
                   </div>
                 </td>
-                <td class="td-count text-right">
+                <td :class="[celula, 'text-right']">
                   <strong>{{ item.count }}</strong>
-                  <span class="sub-unit">tarefa{{ item.count > 1 ? 's' : '' }}</span>
+                  <span :class="subUnidade">tarefa{{ item.count > 1 ? 's' : '' }}</span>
                 </td>
-                <td class="td-hpa text-right">
-                  <span class="hpa-highlight">{{ item.hpa.toFixed(1) }}</span>
-                  <span class="sub-unit">h</span>
+                <td :class="[celula, 'text-right']">
+                  <span class="text-base font-extrabold text-primary-light light:text-blue-700">{{ item.hpa.toFixed(1) }}</span>
+                  <span :class="subUnidade">h</span>
                 </td>
-                <td class="td-avg text-right">
+                <td :class="[celula, 'text-right']">
                   <span>{{ item.media }}h</span>
                 </td>
-                <td class="td-share">
-                  <div class="share-cell-layout">
-                    <div class="mini-progress-track">
-                      <div class="mini-progress-fill" :style="{ width: `${item.pctHpa}%` }"></div>
+                <td :class="celula">
+                  <div class="flex max-w-50 items-center gap-4">
+                    <div class="h-1.75 flex-1 overflow-hidden rounded-sm bg-white/8 light:bg-slate-200">
+                      <div class="h-full rounded-sm bg-primary" :style="{ width: `${item.pctHpa}%` }"></div>
                     </div>
-                    <span class="share-pct-label">{{ item.pctHpa }}%</span>
+                    <span class="min-w-8 text-xs font-bold text-muted-foreground">{{ item.pctHpa }}%</span>
                   </div>
                 </td>
               </tr>
@@ -582,7 +520,60 @@ import { useCommitsStore } from '../stores/commits'
 import { useFilaStore } from '../stores/fila'
 import { api } from '../api'
 import TutorialModal from '../components/TutorialModal.vue'
+import BaseButton from '../components/ui/BaseButton.vue'
+import BaseBadge from '../components/ui/BaseBadge.vue'
+import StateMessage from '../components/ui/StateMessage.vue'
 import type { CommitSummary } from '../api'
+
+// Classes Tailwind reutilizadas no template (strings completas para o Tailwind detectar)
+const kpiCell = 'flex flex-col gap-2.5 border-r border-border px-6.5 py-6 transition-colors duration-150 last:border-r-0 hover:bg-white/2 light:border-slate-200 light:hover:bg-slate-50 max-[1100px]:nth-3:border-r-0 max-md:border-r-0 max-md:border-b max-md:last:border-b-0'
+const kpiHeader = 'flex items-center justify-between gap-2'
+const kpiLabel = 'text-sm font-semibold tracking-tight text-muted-foreground'
+const kpiValueRow = 'mt-1.5 mb-0.5 flex items-baseline gap-1.5'
+const kpiNum = 'text-[2.1rem] leading-[1.1] font-extrabold tracking-tight text-foreground tabular-nums'
+const kpiUnit = 'text-sm font-semibold text-muted-foreground'
+const kpiProgress = 'mt-2 mb-1.5 h-1.25 w-full overflow-hidden rounded-xs bg-white/8 light:bg-slate-200'
+const kpiBar = 'h-full rounded-xs transition-[width] duration-300'
+const kpiSub = 'mt-1 text-sm leading-normal text-muted-foreground light:text-slate-600 [&_strong]:text-foreground'
+const kpiBadgeBase = 'rounded-sm border px-2 py-1 text-xs font-bold'
+const kpiBadgeTons = {
+  blue: 'border-blue-500/30 bg-blue-500/15 text-blue-400',
+  green: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-400',
+  amber: 'border-amber-500/30 bg-amber-500/15 text-amber-400',
+  neutral: 'border-slate-400/25 bg-slate-400/12 text-slate-300'
+}
+
+const painel = 'flex flex-col rounded-xl border border-border bg-card px-8 py-7 light:border-slate-200 light:shadow-[0_1px_4px] light:shadow-black/4'
+const painelCabecalho = 'mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-5 light:border-slate-200'
+const painelTitulo = 'flex items-center gap-2.5 text-primary-light'
+const painelTituloH2 = 'text-xl font-bold tracking-tight text-foreground'
+const painelInfo = 'text-xs font-medium text-muted-foreground'
+const painelVazio = 'py-10 text-center text-sm text-muted-foreground italic'
+const linkPainel = 'inline-flex items-center gap-1.5 text-sm font-semibold text-primary-light no-underline transition-[gap] duration-150 hover:gap-2 hover:text-foreground'
+
+const pilulaBase = 'rounded-sm px-1.75 py-0.5 text-xs font-semibold'
+const pilulaNeutra = 'bg-white/6 text-muted-foreground light:bg-slate-200 light:text-slate-700'
+const pilulaAmbar = 'bg-amber-500/15 text-amber-400 light:bg-amber-100 light:text-amber-800'
+
+const svgGrade = 'stroke-white/6 [stroke-dasharray:4_4] light:stroke-slate-200'
+const svgEixo = 'fill-muted-foreground text-[10px]'
+
+const celula = 'border-b border-border px-5.5 py-4.5 align-middle text-foreground light:border-slate-200'
+const subUnidade = 'ml-1 text-xs font-normal text-muted-foreground'
+
+const opcoesOrdenacao = [
+  { valor: 'hpa', rotulo: 'Mais HPA' },
+  { valor: 'count', rotulo: 'Mais Tarefas' },
+  { valor: 'codigo', rotulo: 'Código' }
+] as const
+
+const colunasTabela = [
+  { rotulo: 'Código do Serviço', direita: false },
+  { rotulo: 'Tarefas', direita: true },
+  { rotulo: 'HPA Total', direita: true },
+  { rotulo: 'Média / Tarefa', direita: true },
+  { rotulo: 'Participação', direita: false }
+]
 
 const router = useRouter()
 const store = useCommitsStore()
@@ -938,1375 +929,58 @@ const codigosProcessados = computed(() => {
 
   return filtered
 })
+
+// Integrações exibidas na barra de status
+const integracoes = computed(() => [
+  {
+    chave: 'gitlab',
+    icone: 'fa-brands fa-gitlab',
+    ativo: servicosStatus.value.gitlab,
+    texto: `GitLab ${servicosStatus.value.gitlab ? 'Conectado' : 'Aguardando'}`
+  },
+  {
+    chave: 'gemini',
+    icone: 'fa-solid fa-wand-magic-sparkles',
+    ativo: servicosStatus.value.gemini,
+    texto: `Gemini IA ${servicosStatus.value.gemini ? 'Ativo' : 'Pendente'}`
+  },
+  {
+    chave: 'munka',
+    icone: 'fa-solid fa-briefcase',
+    ativo: servicosStatus.value.munka,
+    texto: `Munka ${servicosStatus.value.munka ? 'Conectado' : 'Não configurado'}`
+  }
+])
+
+// Etapas do pipeline de automação
+const etapasPipeline = computed(() => [
+  {
+    numero: 1,
+    rotulo: 'Ingestão Git',
+    valor: `${totalCommitsPeriodo.value} Commits`,
+    descricao: `${distribuicaoRepositorios.value.length} Repositórios monitorados`,
+    concluida: true
+  },
+  {
+    numero: 2,
+    rotulo: 'Análise de IA',
+    valor: `${commitsAnalisadosPeriodo.value} Analisados`,
+    descricao: `${taxaAnaliseIA.value}% dos commits processados`,
+    concluida: taxaAnaliseIA.value >= 90
+  },
+  {
+    numero: 3,
+    rotulo: 'Atividades HPA',
+    valor: `${statsExibidas.value.total_tasks} Tarefas`,
+    descricao: `${statsExibidas.value.total_hpa}h faturáveis mapeadas`,
+    concluida: true
+  },
+  {
+    numero: 4,
+    rotulo: 'Timesheet Munka',
+    valor: `${tarefasEnviadasPeriodo.value} Enviadas`,
+    descricao: `${hpaEnviadoPeriodo.value}h faturadas com sucesso (${taxaTarefasEnviadas.value}%)`,
+    concluida: taxaTarefasEnviadas.value === 100
+  }
+])
 </script>
-
-<style scoped>
-.dashboard-page {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.dashboard-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2.25rem;
-}
-
-/* ── CABEÇALHO DO DASHBOARD ── */
-.dashboard-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid var(--card-border, #334155);
-}
-
-.header-main-col {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  min-width: 260px;
-}
-
-.title-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.title-row h1 {
-  font-size: 1.75rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  margin: 0;
-  color: var(--text, #f8fafc);
-}
-
-.dashboard-subtitle {
-  font-size: 0.9rem;
-  color: var(--text-muted, #94a3b8);
-  margin: 0;
-  line-height: 1.45;
-}
-
-.header-controls-col {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.period-control-wrap {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  background: var(--card-bg, #1e293b);
-  border: 1px solid var(--border, #334155);
-  border-radius: 8px;
-  padding: 0.35rem 0.75rem;
-}
-
-.filter-label {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--text-muted, #94a3b8);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.select-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.select-periodo {
-  appearance: none;
-  background: transparent;
-  color: var(--text, #f8fafc);
-  border: none;
-  padding-right: 1.5rem;
-  font-size: 0.88rem;
-  font-weight: 600;
-  cursor: pointer;
-  outline: none;
-}
-
-.select-chevron {
-  position: absolute;
-  right: 0;
-  pointer-events: none;
-  font-size: 0.75rem;
-  color: var(--text-muted, #94a3b8);
-}
-
-.btn-refresh {
-  background: var(--card-bg, #1e293b);
-  border: 1px solid var(--border, #334155);
-  border-radius: 8px;
-  color: var(--text-muted, #94a3b8);
-  width: 36px;
-  height: 36px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  outline: none;
-}
-
-.btn-refresh:hover {
-  color: var(--text, #f8fafc);
-  border-color: var(--accent, #3b82f6);
-}
-
-.btn-refresh:focus-visible {
-  outline: 2px solid var(--accent, #3b82f6);
-  outline-offset: 2px;
-}
-
-.btn-import-shortcut {
-  font-weight: 700;
-  padding: 0.55rem 1rem;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-size: 0.88rem;
-}
-
-/* ── BARRA DE CONECTIVIDADE / STATUS ── */
-.system-status-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.85rem 1.4rem;
-  background: var(--header-group-bg, rgba(255, 255, 255, 0.02));
-  border: 1px solid var(--card-border, #334155);
-  border-radius: 10px;
-  font-size: 0.84rem;
-  flex-wrap: wrap;
-  gap: 1.25rem;
-  margin-bottom: 0.25rem;
-}
-
-.status-items-left {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.status-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  color: var(--text-muted, #94a3b8);
-  font-weight: 500;
-}
-
-.status-item.is-active {
-  color: var(--text, #f8fafc);
-}
-
-.status-indicator {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #64748b;
-  display: inline-block;
-}
-
-.status-item.is-active .status-indicator {
-  background: var(--success, #10b981);
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
-}
-
-.status-divider {
-  color: var(--border, #334155);
-}
-
-.queue-status-link {
-  text-decoration: none;
-  outline: none;
-}
-
-.queue-active-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.3rem 0.75rem;
-  border-radius: 6px;
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  font-weight: 700;
-  font-size: 0.78rem;
-}
-
-.queue-idle-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.3rem 0.75rem;
-  border-radius: 6px;
-  background: rgba(16, 185, 129, 0.1);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  font-weight: 600;
-  font-size: 0.78rem;
-}
-
-.spinner-dot-xs {
-  width: 6px;
-  height: 6px;
-  border: 2px solid transparent;
-  border-top-color: currentColor;
-  border-right-color: currentColor;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* ── FAIXA EXECUTIVA DE KPIS (CONTAINER UNIFICADO) ── */
-.kpi-executive-strip {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  background: var(--card-bg, #1e293b);
-  border: 1px solid var(--card-border, #334155);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.kpi-strip-cell {
-  padding: 1.5rem 1.6rem;
-  border-right: 1px solid var(--card-border, #334155);
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  transition: background 0.15s ease;
-}
-
-.kpi-strip-cell:last-child {
-  border-right: none;
-}
-
-.kpi-strip-cell:hover {
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.kpi-cell-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.kpi-cell-label {
-  font-size: 0.84rem;
-  font-weight: 600;
-  color: var(--text-muted, #94a3b8);
-  letter-spacing: -0.01em;
-}
-
-.badge-kpi-status {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 0.2rem 0.5rem;
-  border-radius: 5px;
-}
-
-.status-blue {
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-}
-
-.status-green {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.status-amber {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.3);
-}
-
-.status-neutral {
-  background: rgba(148, 163, 184, 0.12);
-  color: #cbd5e1;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-}
-
-.kpi-cell-value-row {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  margin: 0.35rem 0 0.15rem 0;
-}
-
-.kpi-cell-num {
-  font-size: 2.1rem;
-  font-weight: 800;
-  color: var(--text, #f8fafc);
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-}
-
-.kpi-cell-unit {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-muted, #94a3b8);
-}
-
-.kpi-cell-progress {
-  width: 100%;
-  height: 5px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 3px;
-  overflow: hidden;
-  margin-top: 0.45rem;
-  margin-bottom: 0.35rem;
-}
-
-.kpi-progress-bar {
-  height: 100%;
-  background: var(--accent, #3b82f6);
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-.kpi-bar-cyan {
-  background: var(--accent-cyan, #06b6d4);
-}
-
-.kpi-bar-emerald {
-  background: var(--success, #10b981);
-}
-
-.kpi-bar-amber {
-  background: var(--warning, #f59e0b);
-}
-
-.kpi-bar-blue {
-  background: var(--accent, #3b82f6);
-}
-
-.kpi-cell-sub {
-  font-size: 0.82rem;
-  color: var(--text-muted, #94a3b8);
-  margin-top: 0.25rem;
-  line-height: 1.45;
-}
-
-.kpi-cell-sub strong {
-  color: var(--text, #f8fafc);
-}
-
-.kpi-queue-link {
-  color: var(--accent-light, #60a5fa);
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  transition: gap 0.15s ease;
-}
-
-.kpi-queue-link:hover {
-  text-decoration: none;
-  color: var(--text);
-  gap: 0.55rem;
-}
-
-/* ── BANNER DE AÇÃO RECOMENDADA ── */
-.action-alert-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
-  padding: 1.25rem 1.75rem;
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  border-radius: 12px;
-  flex-wrap: wrap;
-}
-
-.alert-icon-col {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  background: rgba(245, 158, 11, 0.2);
-  color: #fbbf24;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.15rem;
-  flex-shrink: 0;
-}
-
-.alert-text-col {
-  flex: 1;
-  min-width: 260px;
-}
-
-.alert-title {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text, #f8fafc);
-}
-
-.alert-desc {
-  margin: 0.35rem 0 0 0;
-  font-size: 0.86rem;
-  color: var(--text-muted, #cbd5e1);
-  line-height: 1.45;
-}
-
-.alert-desc strong {
-  color: #fef08a;
-}
-
-.btn-alert-action {
-  background: #d97706;
-  color: #ffffff;
-  border: none;
-  border-radius: 8px;
-  padding: 0.65rem 1.25rem;
-  font-size: 0.88rem;
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: background 0.15s ease;
-}
-
-.btn-alert-action:hover {
-  background: #b45309;
-}
-
-.btn-alert-action:focus-visible {
-  outline: 2px solid #ffffff;
-  outline-offset: 2px;
-}
-
-/* ── PAINEL DE PIPELINE DE VALOR (FUNIL SAAS) ── */
-.funnel-panel {
-  padding: 1.75rem 2rem;
-}
-
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--card-border, #334155);
-  padding-bottom: 1.25rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.panel-title {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  color: var(--accent-light, #60a5fa);
-}
-
-.panel-title h2 {
-  margin: 0;
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--text, #f8fafc);
-  letter-spacing: -0.01em;
-}
-
-.panel-badge-info {
-  font-size: 0.8rem;
-  color: var(--text-muted, #94a3b8);
-  font-weight: 500;
-}
-
-.pipeline-track {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1.25rem;
-}
-
-.pipeline-stage {
-  background: var(--header-group-bg, rgba(255, 255, 255, 0.02));
-  border: 1px solid var(--card-border, #334155);
-  border-radius: 10px;
-  padding: 1.25rem 1.35rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  position: relative;
-}
-
-.stage-num-badge {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--card-bg, #1e293b);
-  border: 1px solid var(--border, #475569);
-  color: var(--text-muted, #94a3b8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.85rem;
-  font-weight: 800;
-  flex-shrink: 0;
-}
-
-.stage-completed .stage-num-badge {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border-color: rgba(16, 185, 129, 0.4);
-}
-
-.stage-progress .stage-num-badge {
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
-  border-color: rgba(59, 130, 246, 0.4);
-}
-
-.stage-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  flex: 1;
-}
-
-.stage-label {
-  font-size: 0.74rem;
-  font-weight: 700;
-  color: var(--text-muted, #94a3b8);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.stage-val {
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: var(--text, #f8fafc);
-  letter-spacing: -0.01em;
-  margin: 0.1rem 0;
-}
-
-.stage-desc {
-  font-size: 0.78rem;
-  color: var(--text-muted, #94a3b8);
-  line-height: 1.4;
-}
-
-.stage-arrow {
-  color: var(--card-border, #475569);
-  font-size: 0.85rem;
-}
-
-/* ── GRID CENTRAL DE 2 COLUNAS (REPOSITÓRIOS & EVOLUÇÃO) ── */
-.dashboard-two-col-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-}
-
-.dashboard-panel {
-  background: var(--card-bg, #1e293b);
-  border: 1px solid var(--card-border, #334155);
-  border-radius: 12px;
-  padding: 1.75rem 2rem;
-  display: flex;
-  flex-direction: column;
-}
-
-.link-panel-action {
-  font-size: 0.84rem;
-  font-weight: 600;
-  color: var(--accent-light, #60a5fa);
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  transition: gap 0.15s ease;
-}
-
-.link-panel-action:hover {
-  text-decoration: none;
-  color: var(--text);
-  gap: 0.55rem;
-}
-
-.panel-empty {
-  font-size: 0.88rem;
-  color: var(--text-muted, #94a3b8);
-  font-style: italic;
-  padding: 2.5rem 0;
-  text-align: center;
-}
-
-/* Lista de Repositórios */
-.repo-rows-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-  max-height: 400px;
-  overflow-y: auto;
-  padding-right: 0.25rem;
-}
-
-.repo-list-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.1rem 1.35rem;
-  background: var(--header-group-bg, rgba(255, 255, 255, 0.02));
-  border: 1px solid var(--card-border, #334155);
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  outline: none;
-  gap: 1.25rem;
-}
-
-.repo-list-row:hover {
-  background: rgba(59, 130, 246, 0.08);
-  border-color: var(--accent, #3b82f6);
-  transform: translateX(2px);
-}
-
-.repo-list-row:focus-visible {
-  outline: 2px solid var(--accent, #3b82f6);
-  outline-offset: 2px;
-}
-
-.repo-row-left {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  min-width: 0;
-  flex: 1;
-}
-
-.repo-badge-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.repo-row-titles {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  min-width: 0;
-}
-
-.repo-row-name {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text, #f8fafc);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  letter-spacing: -0.01em;
-}
-
-.repo-row-badges {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  flex-wrap: wrap;
-}
-
-.repo-meta-pill {
-  font-size: 0.74rem;
-  font-weight: 600;
-  padding: 2px 7px;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text-muted, #94a3b8);
-  border-radius: 4px;
-}
-
-.repo-meta-pill.pill-amber {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-}
-
-.repo-row-right {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-shrink: 0;
-}
-
-.repo-hpa-col {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.1rem;
-}
-
-.repo-hpa-val {
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: var(--text, #f8fafc);
-}
-
-.unit-sm {
-  font-size: 0.75rem;
-  color: var(--text-muted, #94a3b8);
-  margin-left: 1px;
-}
-
-.repo-hpa-sub {
-  font-size: 0.72rem;
-  color: var(--text-muted, #94a3b8);
-}
-
-.repo-progress-wrap {
-  width: 64px;
-}
-
-.repo-mini-bar {
-  width: 100%;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.repo-mini-fill {
-  height: 100%;
-  background: var(--success, #10b981);
-  border-radius: 3px;
-}
-
-.repo-nav-arrow {
-  font-size: 0.75rem;
-  color: var(--text-muted, #64748b);
-  transition: transform 0.15s ease;
-}
-
-.repo-list-row:hover .repo-nav-arrow {
-  color: var(--accent-light, #60a5fa);
-  transform: translateX(2px);
-}
-
-/* Gráfico de Evolução SVG */
-.chart-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  flex: 1;
-}
-
-.monthly-bars-svg {
-  width: 100%;
-  height: auto;
-  min-height: 200px;
-  overflow: visible;
-}
-
-.svg-gridline {
-  stroke: rgba(255, 255, 255, 0.06);
-  stroke-dasharray: 4 4;
-}
-
-.svg-baseline {
-  stroke: var(--card-border, #334155);
-  stroke-width: 1.5;
-}
-
-.svg-axis-lbl {
-  font-size: 10px;
-  fill: var(--text-muted, #94a3b8);
-  font-family: inherit;
-}
-
-.svg-bar-group {
-  cursor: pointer;
-  outline: none;
-}
-
-.svg-bar-rect {
-  fill: rgba(59, 130, 246, 0.55);
-  transition: fill 0.15s ease;
-}
-
-.svg-bar-group:hover .svg-bar-rect {
-  fill: var(--accent-light, #60a5fa);
-}
-
-.svg-bar-group.is-selected .svg-bar-rect {
-  fill: var(--accent, #3b82f6);
-}
-
-.svg-bar-val {
-  font-size: 10px;
-  font-weight: 700;
-  fill: var(--text, #f8fafc);
-  font-family: inherit;
-}
-
-.svg-bar-lbl {
-  font-size: 10px;
-  font-weight: 600;
-  fill: var(--text-muted, #94a3b8);
-  font-family: inherit;
-}
-
-.svg-bar-group.is-selected .svg-bar-lbl {
-  fill: var(--accent-light, #60a5fa);
-  font-weight: 800;
-}
-
-.chart-footer-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-top: 1px solid var(--card-border, #334155);
-  padding-top: 1.1rem;
-  margin-top: 0.5rem;
-  font-size: 0.82rem;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.chart-active-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  color: var(--text-muted, #94a3b8);
-}
-
-.active-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent, #3b82f6);
-}
-
-.btn-reset-period {
-  background: transparent;
-  border: 1px solid var(--border, #475569);
-  color: var(--text, #f8fafc);
-  border-radius: 6px;
-  padding: 0.35rem 0.85rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.btn-reset-period:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: var(--accent, #3b82f6);
-}
-
-/* ── TABELA DE CÓDIGOS DE SERVIÇO (ALTA DENSIDADE) ── */
-.codes-table-panel {
-  gap: 1.5rem;
-}
-
-.panel-title-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.panel-desc {
-  font-size: 0.84rem;
-  color: var(--text-muted, #94a3b8);
-  margin: 0;
-  line-height: 1.45;
-}
-
-.table-controls-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.25rem;
-}
-
-.table-search-box {
-  display: flex;
-  align-items: center;
-  position: relative;
-  min-width: 200px;
-}
-
-.table-search-box i {
-  position: absolute;
-  left: 0.85rem;
-  font-size: 0.8rem;
-  color: var(--text-muted, #94a3b8);
-}
-
-.input-table-search {
-  width: 100%;
-  padding: 0.55rem 0.85rem 0.55rem 2.2rem;
-  font-size: 0.85rem;
-  background: var(--card-bg, #1e293b);
-  border: 1px solid var(--border, #475569);
-  border-radius: 8px;
-  color: var(--text, #f8fafc);
-  outline: none;
-}
-
-.input-table-search:focus {
-  border-color: var(--accent, #3b82f6);
-}
-
-.table-sort-group {
-  display: inline-flex;
-  background: var(--header-group-bg, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--card-border, #334155);
-  border-radius: 8px;
-  padding: 3px;
-  gap: 3px;
-}
-
-.sort-tab-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-muted, #94a3b8);
-  padding: 0.4rem 0.8rem;
-  font-size: 0.78rem;
-  font-weight: 600;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.sort-tab-btn:hover {
-  color: var(--text, #f8fafc);
-}
-
-.sort-tab-btn.active {
-  background: var(--card-bg, #1e293b);
-  color: var(--text, #f8fafc);
-  border: 1px solid var(--card-border, #475569);
-}
-
-.table-responsive-wrapper {
-  overflow-x: auto;
-}
-
-.saas-data-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-  font-size: 0.88rem;
-}
-
-.saas-data-table th {
-  padding: 1.1rem 1.4rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-muted, #94a3b8);
-  border-bottom: 1px solid var(--card-border, #334155);
-}
-
-.saas-data-table td {
-  padding: 1.15rem 1.4rem;
-  border-bottom: 1px solid var(--card-border, #334155);
-  color: var(--text, #f8fafc);
-  vertical-align: middle;
-}
-
-.saas-data-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.tr-code-row {
-  transition: background 0.15s ease;
-}
-
-.tr-code-row:hover {
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.text-right {
-  text-align: right;
-}
-
-.sub-unit {
-  font-size: 0.75rem;
-  color: var(--text-muted, #94a3b8);
-  margin-left: 0.25rem;
-  font-weight: 400;
-}
-
-.hpa-highlight {
-  font-weight: 800;
-  color: var(--accent-light, #60a5fa);
-  font-size: 0.95rem;
-}
-
-.share-cell-layout {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  max-width: 200px;
-}
-
-.mini-progress-track {
-  flex: 1;
-  height: 7px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.mini-progress-fill {
-  height: 100%;
-  background: var(--accent, #3b82f6);
-  border-radius: 4px;
-}
-
-.share-pct-label {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--text-muted, #cbd5e1);
-  min-width: 32px;
-}
-
-/* Estado Vazio Elegante */
-.empty-dashboard-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3.5rem 1.5rem;
-  background: var(--card-bg, #1e293b);
-  border: 1px dashed var(--border, #475569);
-  border-radius: 14px;
-  text-align: center;
-  gap: 1rem;
-}
-
-.empty-icon-wrap {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  background: rgba(59, 130, 246, 0.12);
-  color: var(--accent, #3b82f6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-}
-
-.empty-dashboard-card h2 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text, #f8fafc);
-}
-
-.empty-dashboard-card p {
-  margin: 0;
-  max-width: 480px;
-  font-size: 0.88rem;
-  color: var(--text-muted, #94a3b8);
-  line-height: 1.5;
-}
-
-/* ── MODO CLARO (A11Y & DESIGN TASTE) ── */
-:global([data-theme="light"]) .dashboard-header {
-  border-bottom-color: #e2e8f0;
-}
-
-:global([data-theme="light"]) .title-row h1 {
-  color: #0f172a;
-}
-
-:global([data-theme="light"]) .period-control-wrap {
-  background: #ffffff;
-  border-color: #cbd5e1;
-}
-
-:global([data-theme="light"]) .select-periodo {
-  color: #0f172a;
-}
-
-:global([data-theme="light"]) .btn-refresh {
-  background: #ffffff;
-  border-color: #cbd5e1;
-  color: #475569;
-}
-
-:global([data-theme="light"]) .btn-refresh:hover {
-  color: #0f172a;
-  border-color: #2563eb;
-}
-
-:global([data-theme="light"]) .system-status-bar {
-  background: #f8fafc;
-  border-color: #e2e8f0;
-}
-
-:global([data-theme="light"]) .status-item.is-active {
-  color: #0f172a;
-}
-
-:global([data-theme="light"]) .kpi-executive-strip {
-  background: #ffffff;
-  border-color: #e2e8f0;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-}
-
-:global([data-theme="light"]) .kpi-strip-cell {
-  border-color: #e2e8f0;
-}
-
-:global([data-theme="light"]) .kpi-strip-cell:hover {
-  background: #f8fafc;
-}
-
-:global([data-theme="light"]) .kpi-cell-num {
-  color: #0f172a;
-}
-
-:global([data-theme="light"]) .kpi-cell-sub strong {
-  color: #0f172a;
-}
-
-:global([data-theme="light"]) .kpi-cell-progress {
-  background: #e2e8f0;
-}
-
-:global([data-theme="light"]) .kpi-cell-sub {
-  color: #475569;
-}
-
-:global([data-theme="light"]) .kpi-queue-link {
-  color: #1d4ed8;
-}
-
-:global([data-theme="light"]) .action-alert-banner {
-  background: #fffbeb;
-  border-color: #fde68a;
-}
-
-:global([data-theme="light"]) .alert-title {
-  color: #78350f;
-}
-
-:global([data-theme="light"]) .alert-desc {
-  color: #92400e;
-}
-
-:global([data-theme="light"]) .alert-desc strong {
-  color: #78350f;
-}
-
-:global([data-theme="light"]) .dashboard-panel {
-  background: #ffffff;
-  border-color: #e2e8f0;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-}
-
-:global([data-theme="light"]) .panel-header {
-  border-bottom-color: #e2e8f0;
-}
-
-:global([data-theme="light"]) .panel-title h2 {
-  color: #0f172a;
-}
-
-:global([data-theme="light"]) .pipeline-stage {
-  background: #f8fafc;
-  border-color: #e2e8f0;
-}
-
-:global([data-theme="light"]) .stage-val {
-  color: #0f172a;
-}
-
-:global([data-theme="light"]) .repo-list-row {
-  background: #f8fafc;
-  border-color: #e2e8f0;
-}
-
-:global([data-theme="light"]) .repo-list-row:hover {
-  background: #f0f7ff;
-  border-color: #2563eb;
-}
-
-:global([data-theme="light"]) .repo-row-name {
-  color: #0f172a;
-}
-
-:global([data-theme="light"]) .repo-hpa-val {
-  color: #0f172a;
-}
-
-:global([data-theme="light"]) .repo-meta-pill {
-  background: #e2e8f0;
-  color: #334155;
-}
-
-:global([data-theme="light"]) .repo-meta-pill.pill-amber {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-:global([data-theme="light"]) .repo-mini-bar {
-  background: #e2e8f0;
-}
-
-:global([data-theme="light"]) .svg-gridline {
-  stroke: #e2e8f0;
-}
-
-:global([data-theme="light"]) .svg-baseline {
-  stroke: #cbd5e1;
-}
-
-:global([data-theme="light"]) .svg-bar-rect {
-  fill: #93c5fd;
-}
-
-:global([data-theme="light"]) .svg-bar-group:hover .svg-bar-rect {
-  fill: #3b82f6;
-}
-
-:global([data-theme="light"]) .svg-bar-group.is-selected .svg-bar-rect {
-  fill: #1d4ed8;
-}
-
-:global([data-theme="light"]) .svg-bar-val {
-  fill: #0f172a;
-}
-
-:global([data-theme="light"]) .svg-bar-lbl {
-  fill: #475569;
-}
-
-:global([data-theme="light"]) .chart-footer-bar {
-  border-top-color: #e2e8f0;
-}
-
-:global([data-theme="light"]) .btn-reset-period {
-  border-color: #cbd5e1;
-  color: #334155;
-}
-
-:global([data-theme="light"]) .btn-reset-period:hover {
-  background: #f1f5f9;
-  border-color: #2563eb;
-  color: #1d4ed8;
-}
-
-:global([data-theme="light"]) .input-table-search {
-  background: #ffffff;
-  border-color: #cbd5e1;
-  color: #0f172a;
-}
-
-:global([data-theme="light"]) .input-table-search:focus {
-  border-color: #2563eb;
-}
-
-:global([data-theme="light"]) .table-sort-group {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-}
-
-:global([data-theme="light"]) .sort-tab-btn {
-  color: #475569;
-}
-
-:global([data-theme="light"]) .sort-tab-btn.active {
-  background: #ffffff;
-  color: #0f172a;
-  border-color: #cbd5e1;
-}
-
-:global([data-theme="light"]) .saas-data-table th {
-  color: #475569;
-  border-bottom-color: #e2e8f0;
-}
-
-:global([data-theme="light"]) .saas-data-table td {
-  border-bottom-color: #e2e8f0;
-  color: #0f172a;
-}
-
-:global([data-theme="light"]) .tr-code-row:hover {
-  background: #f8fafc;
-}
-
-:global([data-theme="light"]) .hpa-highlight {
-  color: #1d4ed8;
-}
-
-:global([data-theme="light"]) .mini-progress-track {
-  background: #e2e8f0;
-}
-
-:global([data-theme="light"]) .empty-dashboard-card {
-  background: #ffffff;
-  border-color: #cbd5e1;
-}
-
-:global([data-theme="light"]) .empty-dashboard-card h2 {
-  color: #0f172a;
-}
-
-/* ── RESPONSIVIDADE (TABLET & MOBILE) ── */
-@media (max-width: 1100px) {
-  .kpi-executive-strip {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .kpi-strip-cell:nth-child(3) {
-    border-right: none;
-  }
-  .pipeline-track {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .dashboard-two-col-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .kpi-executive-strip {
-    grid-template-columns: 1fr;
-  }
-  .kpi-strip-cell {
-    border-right: none;
-    border-bottom: 1px solid var(--card-border, #334155);
-  }
-  .kpi-strip-cell:last-child {
-    border-bottom: none;
-  }
-  .pipeline-track {
-    grid-template-columns: 1fr;
-  }
-  .stage-arrow {
-    display: none;
-  }
-  .header-controls-col {
-    width: 100%;
-    justify-content: space-between;
-  }
-}
-</style>

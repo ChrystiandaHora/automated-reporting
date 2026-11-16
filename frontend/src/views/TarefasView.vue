@@ -1,14 +1,14 @@
 <template>
-  <div class="tarefas-wrapper">
-    <div class="tarefas-tabs" role="tablist" aria-label="Visões de Tarefas do Mês">
+  <div>
+    <div class="mb-4 flex gap-1 border-b-2 border-border-strong" role="tablist" aria-label="Visões de Tarefas do Mês">
       <router-link
         v-for="aba in abas"
         :key="aba.to"
         :to="aba.to"
-        class="tarefas-tab"
+        class="-mb-0.5 inline-flex items-center gap-1.5 border-b-2 px-5 py-2 text-[0.85rem] font-bold no-underline transition-all hover:bg-slate-400/10 hover:text-foreground"
         role="tab"
         :aria-selected="route.path === aba.to"
-        :class="{ active: route.path === aba.to }"
+        :class="route.path === aba.to ? 'border-primary bg-primary-glow text-foreground' : 'border-transparent text-muted-foreground'"
       >
         <i :class="aba.icon" aria-hidden="true"></i>
         <span>{{ aba.label }}</span>
@@ -27,27 +27,3 @@ const abas = [
   { to: '/tarefas-mes/kanban', label: 'Kanban', icon: 'fa-solid fa-table-columns' }
 ]
 </script>
-
-<style scoped>
-.tarefas-tabs {
-  display: flex;
-  gap: 0.25rem;
-  border-bottom: 2px solid var(--border);
-  margin-bottom: 1rem;
-}
-.tarefas-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.55rem 1.25rem;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-decoration: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-  transition: all 0.15s;
-}
-.tarefas-tab:hover { color: var(--text); background: rgba(148, 163, 184, 0.08); }
-.tarefas-tab.active { color: var(--text); border-bottom-color: var(--accent); background: var(--accent-glow); }
-</style>

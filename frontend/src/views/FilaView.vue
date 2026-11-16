@@ -1,101 +1,97 @@
 <template>
-  <div class="page fila-page">
-    <div class="page-header">
-      <div class="title-row">
-        <h1>Fila de Execução</h1>
+  <div class="fila-page w-full max-w-full overflow-x-hidden">
+    <PageHeader>
+      <div data-tour="fila-titulo" class="flex flex-wrap items-center gap-2">
+        <PageTitle>Fila de Execução</PageTitle>
         <TutorialModal screenId="fila" />
-        <span v-if="concurrencyInfo" class="concurrency-badge" :title="`Fila de análises: ${concurrencyInfo.queues.analises} workers | Fila de envios: ${concurrencyInfo.queues.envios} workers | Pool compartilhado de até ${concurrencyInfo.total_system_limit} workers simultâneos`">
-          <i class="fa-solid fa-bolt" aria-hidden="true" style="margin-right: 4px;"></i>Concorrência: {{ concurrencyInfo.queues.analises }} análises / {{ concurrencyInfo.queues.envios }} envios ({{ concurrencyInfo.total_system_limit }} total | {{ concurrencyInfo.cpu_cores }} Cores CPU)
+        <span v-if="concurrencyInfo" data-tour="fila-concorrencia" class="ml-2 rounded-full border border-primary bg-primary-glow px-2.5 py-1 text-xs font-semibold text-primary" :title="`Fila de análises: ${concurrencyInfo.queues.analises} workers | Fila de envios: ${concurrencyInfo.queues.envios} workers | Pool compartilhado de até ${concurrencyInfo.total_system_limit} workers simultâneos`">
+          <i class="fa-solid fa-bolt mr-1" aria-hidden="true"></i>Concorrência: {{ concurrencyInfo.queues.analises }} análises / {{ concurrencyInfo.queues.envios }} envios ({{ concurrencyInfo.total_system_limit }} total | {{ concurrencyInfo.cpu_cores }} Cores CPU)
         </span>
       </div>
-      <div class="header-actions">
-        <button 
-          v-if="pausedJobsCount > 0" 
-          class="btn-ghost btn-sm btn-retomar" 
+      <div data-tour="fila-acoes" class="flex shrink-0 items-center gap-2.5">
+        <BaseButton
+          v-if="pausedJobsCount > 0"
+          variant="plain"
+          :class="[ghostPlain, btnSm, btnRetomar]"
           @click="retomarTodas"
           :title="`Volta para a fila as ${pausedJobsCount} tarefa(s) pausada(s)`"
         >
           <i class="fa-solid fa-play" aria-hidden="true"></i>
           <span>Retomar Pausadas ({{ pausedJobsCount }})</span>
-        </button>
-        <button 
-          v-if="pausableJobsCount > 0" 
-          class="btn-ghost btn-sm btn-pausar" 
+        </BaseButton>
+        <BaseButton
+          v-if="pausableJobsCount > 0"
+          variant="plain"
+          :class="[ghostPlain, btnSm, btnPausar]"
           @click="pausarTodas"
           :title="`Pausa as ${pausableJobsCount} análise(s)/envio(s) que ainda não começaram. O que está em execução termina normalmente.`"
         >
           <i class="fa-solid fa-pause" aria-hidden="true"></i>
           <span>Pausar Pendentes ({{ pausableJobsCount }})</span>
-        </button>
-        <button 
-          v-if="failedJobsCount > 0" 
-          class="btn-retry-all" 
+        </BaseButton>
+        <button
+          v-if="failedJobsCount > 0"
+          data-tour="fila-reenfileirar-falhas"
+          class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-0 bg-linear-135 from-red-500 to-red-600 px-3.5 py-2 text-xs font-semibold text-white shadow-[0_2px_8px] shadow-red-500/35 transition-all duration-200 hover:-translate-y-px hover:shadow-[0_4px_12px] hover:shadow-red-500/45 hover:brightness-110"
           @click="reenfileirarTodasComFalha"
           :title="`Reenfileira todas as ${failedJobsCount} tarefas com falha`"
         >
-          <i class="fa-solid fa-arrows-rotate" aria-hidden="true" style="margin-right: 4px;"></i>
+          <i class="fa-solid fa-arrows-rotate mr-1" aria-hidden="true"></i>
           <span>Reenfileirar Todas com Falha ({{ failedJobsCount }})</span>
         </button>
-        <button 
-          class="btn-ghost btn-sm btn-limpar-antigos" 
-          @click="limparMesesAnteriores" 
+        <BaseButton
+          size="sm"
+          @click="limparMesesAnteriores"
           title="Remover tarefas da fila concluídas ou com erro de meses passados"
         >
           <i class="fa-solid fa-broom" aria-hidden="true"></i>
           <span>Limpar Meses Anteriores</span>
-        </button>
-        <button class="btn-ghost btn-sm" @click="atualizarFila">
-          <i class="fa-solid fa-arrows-rotate" aria-hidden="true" style="margin-right: 4px;"></i>
+        </BaseButton>
+        <BaseButton size="sm" @click="atualizarFila">
+          <i class="fa-solid fa-arrows-rotate mr-1" aria-hidden="true"></i>
           <span>Atualizar</span>
-        </button>
+        </BaseButton>
       </div>
-    </div>
+    </PageHeader>
 
     <!-- Feedback de carregamento inicial -->
-    <div v-if="filaStore.loading && filaStore.jobs.length === 0" class="loading">Carregando fila...</div>
+    <StateMessage v-if="filaStore.loading && filaStore.jobs.length === 0" type="loading">Carregando fila...</StateMessage>
 
     <template v-else>
       <!-- SEÇÃO DE TAREFAS EM EXECUÇÃO AGORA (FIXADA NO TOPO) -->
-      <section v-if="jobsEmExecucao.length > 0" class="fila-execucao-topo" aria-label="Tarefas em execução agora">
-        <div class="execucao-topo-header">
-          <div class="execucao-topo-title">
-            <span class="live-pulse-icon">
+      <section v-if="jobsEmExecucao.length > 0" class="relative mt-5 mb-2 overflow-hidden rounded-[14px] border border-primary bg-card p-5 shadow-[0_0_24px] shadow-blue-500/20 before:absolute before:inset-x-0 before:top-0 before:h-0.75 before:bg-(image:--accent-grad)" aria-label="Tarefas em execução agora">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <span class="flex size-9 animate-queue-icon items-center justify-center rounded-[10px] bg-primary-glow text-lg text-primary shadow-[0_0_12px] shadow-primary-glow">
               <i class="fa-solid fa-bolt" aria-hidden="true"></i>
             </span>
             <div>
-              <h2>Em Execução Agora</h2>
-              <span class="execucao-topo-sub">
+              <h2 class="text-lg leading-tight font-extrabold text-foreground">Em Execução Agora</h2>
+              <span class="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                 {{ jobsEmExecucao.length === 1 ? '1 tarefa sendo processada em tempo real' : `${jobsEmExecucao.length} tarefas sendo processadas simultaneamente` }}
-                <span v-if="pendingJobsCount > 0" class="execucao-topo-pending-pill">
+                <span v-if="pendingJobsCount > 0" class="font-semibold text-accent">
                   • {{ pendingJobsCount }} aguardando na fila
                 </span>
               </span>
             </div>
           </div>
-          <div class="execucao-topo-badge">
-            <span class="live-dot-pulse"></span>
+          <div class="inline-flex items-center gap-2 rounded-full border border-primary bg-blue-500/15 px-3 py-1 text-xs font-extrabold tracking-wider text-primary uppercase">
+            <span :class="liveDot"></span>
             <span>AO VIVO</span>
           </div>
         </div>
 
-        <div class="running-cards-grid">
-          <div 
-            v-for="job in jobsEmExecucao" 
-            :key="job.id" 
-            class="running-task-card"
-            :class="`running-task-${job.tipo}`"
+        <div class="grid grid-cols-[repeat(auto-fill,minmax(420px,1fr))] gap-4 max-sm:grid-cols-1">
+          <div
+            v-for="job in jobsEmExecucao"
+            :key="job.id"
+            class="flex min-w-0 flex-col gap-3 rounded-[10px] border border-l-4 border-blue-500/35 border-l-primary bg-muted p-4 shadow-card transition-[border-color,box-shadow] duration-200 hover:border-primary hover:shadow-[0_0_16px] hover:shadow-blue-500/20"
           >
-            <div class="running-task-header">
-              <div class="running-task-badges">
-                <span 
-                  class="badge" 
-                  :class="{
-                    'badge-blue': job.tipo === 'analise',
-                    'badge-purple': job.tipo === 'envio' || job.tipo === 'ajuste',
-                    'badge-orange': job.tipo === 'verificacao'
-                  }"
-                >
-                  <i 
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <BaseBadge :variant="varianteBadgeTipo(job.tipo)">
+                  <i
+                    class="mr-1"
                     :class="{
                       'fa-solid fa-wand-magic-sparkles': job.tipo === 'analise',
                       'fa-solid fa-cloud-arrow-up': job.tipo === 'envio',
@@ -103,76 +99,75 @@
                       'fa-solid fa-arrows-rotate': job.tipo === 'verificacao'
                     }"
                     aria-hidden="true"
-                    style="margin-right: 4px;"
                   ></i>
                   {{ formatarTipoJob(job.tipo) }}
-                </span>
-                <span class="running-job-id">Job #{{ job.id }}</span>
-                <span class="running-job-time">{{ formatarData(job.criado_em) }}</span>
+                </BaseBadge>
+                <span class="text-xs font-bold text-muted-foreground">Job #{{ job.id }}</span>
+                <span class="text-xs text-subtle-foreground">{{ formatarData(job.criado_em) }}</span>
               </div>
 
-              <div class="running-task-actions">
+              <div class="flex items-center gap-1.5">
                 <router-link
                   v-if="job.commit_id && job.commit_id !== 'sem-commit'"
                   :to="`/commits/${job.commit_id}`"
-                  class="btn-ghost btn-xs"
+                  :class="linkGhostXs"
                   title="Ver página deste commit"
                 >
-                  <i class="fa-solid fa-code-commit" aria-hidden="true" style="margin-right: 4px;"></i>Ver Commit
+                  <i class="fa-solid fa-code-commit mr-1" aria-hidden="true"></i>Ver Commit
                 </router-link>
 
-                <button 
-                  class="btn-live-logs btn-xs" 
+                <button
+                  :class="['inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-primary bg-blue-500/15 font-bold text-primary transition-all duration-200 hover:bg-primary hover:text-white', btnXs]"
                   @click="abrirLogs(job)"
                   title="Acompanhar logs ao vivo da execução"
                 >
-                  <i class="fa-solid fa-terminal" aria-hidden="true" style="margin-right: 4px;"></i>
+                  <i class="fa-solid fa-terminal mr-1" aria-hidden="true"></i>
                   <span>Logs (Ao Vivo)</span>
                 </button>
-                
-                <button 
-                  class="btn-danger-link btn-xs" 
+
+                <button
+                  :class="btnDangerXs"
                   @click="cancelarJob(job.id)"
                   title="Interromper esta tarefa imediatamente"
                 >
-                  <i class="fa-solid fa-ban" aria-hidden="true" style="margin-right: 4px;"></i>
+                  <i class="fa-solid fa-ban mr-1" aria-hidden="true"></i>
                   <span>Cancelar</span>
                 </button>
               </div>
             </div>
 
-            <div class="running-task-body">
-              <div v-if="job.commit_id && job.commit_id !== 'sem-commit'" class="running-task-commit-info">
-                <router-link :to="`/commits/${job.commit_id}`" class="commit-hash-link">
+            <div class="flex min-w-0 flex-col gap-2">
+              <div v-if="job.commit_id && job.commit_id !== 'sem-commit'" class="flex min-w-0 items-center gap-2 text-sm">
+                <router-link :to="`/commits/${job.commit_id}`" :class="hashLink">
                   {{ job.commit_id.slice(0, 8) }}
                 </router-link>
-                <span class="running-commit-msg" :title="job.commit_mensagem">
+                <span class="truncate font-semibold text-foreground" :title="job.commit_mensagem">
                   {{ job.commit_mensagem }}
                 </span>
               </div>
 
-              <div class="running-task-meta">
+              <div class="flex flex-wrap items-baseline gap-1.5 text-sm">
                 <template v-if="job.tipo === 'analise'">
-                  <span class="meta-label">Modelo AI:</span>
-                  <strong class="meta-value">{{ job.modelo || 'Gemini 3.8 Flash' }}</strong>
+                  <span :class="metaLabel">Modelo AI:</span>
+                  <strong :class="metaValue">{{ job.modelo || 'Gemini 3.8 Flash' }}</strong>
                 </template>
                 <template v-else-if="job.tipo === 'envio'">
-                  <span class="meta-label">Atividade:</span>
-                  <strong class="meta-value">"{{ job.titulo_atividade || 'Lançamento de atividade no portal Munka...' }}"</strong>
+                  <span :class="metaLabel">Atividade:</span>
+                  <strong :class="metaValue">"{{ job.titulo_atividade || 'Lançamento de atividade no portal Munka...' }}"</strong>
                 </template>
                 <template v-else-if="job.tipo === 'ajuste'">
-                  <span class="meta-label">Ajuste Munka:</span>
-                  <strong class="meta-value">{{ job.titulo_atividade || 'Ajuste de campos de tarefa no portal' }}</strong>
+                  <span :class="metaLabel">Ajuste Munka:</span>
+                  <strong :class="metaValue">{{ job.titulo_atividade || 'Ajuste de campos de tarefa no portal' }}</strong>
                 </template>
                 <template v-else-if="job.tipo === 'verificacao'">
-                  <span class="meta-label">Sincronização:</span>
-                  <strong class="meta-value">Varredura e auditoria dos status no portal Munka</strong>
+                  <span :class="metaLabel">Sincronização:</span>
+                  <strong :class="metaValue">Varredura e auditoria dos status no portal Munka</strong>
                 </template>
               </div>
 
-              <div class="running-log-box">
-                <span class="live-dot-pulse"></span>
-                <span class="live-log-text">{{ obterUltimoLog(job) }}</span>
+              <div :class="runningLogBox">
+                <span :class="liveDot"></span>
+                <span :class="liveLogText">{{ obterUltimoLog(job) }}</span>
               </div>
             </div>
           </div>
@@ -180,137 +175,129 @@
       </section>
 
       <!-- Aviso sutil quando não há tarefas rodando, mas há pendentes na fila -->
-      <div v-if="jobsEmExecucao.length === 0 && pendingJobsCount > 0" class="fila-pending-bar">
-        <div class="pending-bar-info">
+      <div v-if="jobsEmExecucao.length === 0 && pendingJobsCount > 0" class="mt-4 mb-2 flex items-center justify-between rounded-[10px] border border-dashed border-border-strong bg-card px-5 py-3 text-sm text-muted-foreground">
+        <div class="flex items-center gap-2.5 [&_i]:text-accent">
           <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
           <span><strong>{{ pendingJobsCount }} tarefa(s) aguardando na fila.</strong> Os workers iniciarão o processamento conforme a disponibilidade de concorrência.</span>
         </div>
       </div>
 
       <!-- Layout Dividido Verticalmente: Lançamentos (Esquerda) e Ajustes (Direita) -->
-      <div class="fila-split-layout">
-      
+      <div class="mt-4 grid w-full max-w-full grid-cols-2 items-start gap-7 max-lg:grid-cols-1">
+
       <!-- COLUNA ESQUERDA: Lançamentos ao Munka & Análises -->
-      <section class="fila-coluna coluna-lancamentos">
-        <div class="coluna-header">
-          <div class="coluna-title-left">
-            <div class="coluna-icon icon-lancamentos">
+      <section data-tour="fila-lancamentos" class="flex w-full min-w-0 flex-col gap-4 border-r border-r-border-strong pr-7 max-lg:border-r-0 max-lg:border-b max-lg:border-b-border-strong max-lg:pr-0 max-lg:pb-6">
+        <div :class="colunaHeader">
+          <div class="flex min-w-0 items-center gap-3">
+            <div :class="[colunaIcon, 'bg-blue-500/15 text-blue-500']">
               <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i>
             </div>
             <div>
-              <h2>Lançamentos</h2>
-              <span class="coluna-sub">Análises AI e Envios ao Portal Munka</span>
+              <h2 :class="colunaTitulo">Lançamentos</h2>
+              <span class="text-xs text-muted-foreground">Análises AI e Envios ao Portal Munka</span>
             </div>
           </div>
-          <span class="coluna-badge">{{ jobsLancamentos.length }}</span>
+          <span :class="[colunaBadge, 'border-border-strong bg-muted text-foreground']">{{ jobsLancamentos.length }}</span>
         </div>
 
-        <div v-if="jobsLancamentos.length === 0" class="empty-coluna">
-          <i class="fa-regular fa-folder-open empty-coluna-icon" aria-hidden="true"></i>
+        <div v-if="jobsLancamentos.length === 0" :class="emptyColuna">
+          <i class="fa-regular fa-folder-open mb-1 text-[2rem] opacity-50" aria-hidden="true"></i>
           <span>Nenhum lançamento de atividade na fila.</span>
         </div>
 
-        <div v-else class="fila-grouped">
+        <div v-else class="flex w-full min-w-0 flex-col gap-5">
           <!-- Percorre os commits agrupados -->
-          <div v-for="grupo in jobsLancamentosAgrupados" :key="grupo.commit_id" class="commit-group">
+          <div v-for="grupo in jobsLancamentosAgrupados" :key="grupo.commit_id" class="flex w-full min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card p-6 text-foreground shadow-card transition-all duration-250">
             <!-- Cabeçalho do Commit -->
-            <button 
-              class="commit-group-header" 
+            <button
+              class="flex w-full min-w-0 cursor-pointer items-center justify-between gap-3 rounded-none border-0 border-b border-b-border-strong bg-transparent px-0 pt-0 pb-3 text-left text-sm text-inherit outline-none select-none"
               type="button"
               :aria-expanded="!isGrupoColapsado(grupo.commit_id, grupo)"
               :aria-controls="'group-jobs-' + grupo.commit_id"
-              @click="alternarGrupo(grupo.commit_id)" 
+              @click="alternarGrupo(grupo.commit_id)"
             >
-              <div class="commit-group-info">
-                <span class="collapse-icon" aria-hidden="true">{{ isGrupoColapsado(grupo.commit_id, grupo) ? '▶' : '▼' }}</span>
-                <router-link v-if="grupo.commit_id && grupo.commit_id !== 'sem-commit'" :to="`/commits/${grupo.commit_id}`" class="commit-hash-link" @click.stop>
+              <div class="flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden">
+                <span class="inline-block shrink-0 rounded-md border border-border bg-background px-1.5 py-0.5 text-[0.65rem] text-muted-foreground transition-all duration-200" aria-hidden="true">{{ isGrupoColapsado(grupo.commit_id, grupo) ? '▶' : '▼' }}</span>
+                <router-link v-if="grupo.commit_id && grupo.commit_id !== 'sem-commit'" :to="`/commits/${grupo.commit_id}`" :class="hashLink" @click.stop>
                   {{ grupo.commit_id.slice(0, 8) }}
                 </router-link>
-                <span class="commit-msg-link" :title="grupo.commit_mensagem">
+                <span class="block min-w-0 flex-1 truncate text-sm font-semibold text-foreground" :title="grupo.commit_mensagem">
                   {{ grupo.commit_mensagem }}
                 </span>
-                <span v-if="temExecucaoNoGrupo(grupo)" class="badge-running-pill" title="Existe tarefa sendo executada neste commit">
-                  <span class="live-dot-pulse"></span>
+                <span v-if="temExecucaoNoGrupo(grupo)" class="ml-2 inline-flex items-center gap-1.5 rounded-full border border-primary bg-blue-500/15 px-2 py-0.5 align-middle text-xs font-bold text-primary" title="Existe tarefa sendo executada neste commit">
+                  <span :class="liveDot"></span>
                   <span>Em Execução</span>
                 </span>
               </div>
-              <div class="commit-group-right">
-                <button 
-                  v-if="pausaveisNoGrupo(grupo) > 0" 
-                  type="button"
-                  class="btn-ghost btn-xs btn-pausar" 
+              <div class="flex shrink-0 items-center gap-2">
+                <BaseButton
+                  v-if="pausaveisNoGrupo(grupo) > 0"
+                  variant="plain"
+                  :class="[ghostPlain, btnXs, btnPausar]"
                   @click.stop="filaStore.pausarJobs({ job_ids: idsPausaveis(grupo.jobs) })"
                   :title="`Pausar ${pausaveisNoGrupo(grupo)} tarefa(s) pendente(s) deste commit`"
                 >
                   <i class="fa-solid fa-pause" aria-hidden="true"></i>
                   <span>Pausar ({{ pausaveisNoGrupo(grupo) }})</span>
-                </button>
-                <button 
-                  v-if="pausadosNoGrupo(grupo) > 0" 
-                  type="button"
-                  class="btn-ghost btn-xs btn-retomar" 
+                </BaseButton>
+                <BaseButton
+                  v-if="pausadosNoGrupo(grupo) > 0"
+                  variant="plain"
+                  :class="[ghostPlain, btnXs, btnRetomar]"
                   @click.stop="filaStore.retomarJobs({ job_ids: idsPausados(grupo.jobs) })"
                   :title="`Retomar ${pausadosNoGrupo(grupo)} tarefa(s) pausada(s) deste commit`"
                 >
                   <i class="fa-solid fa-play" aria-hidden="true"></i>
                   <span>Retomar ({{ pausadosNoGrupo(grupo) }})</span>
-                </button>
-                <button 
-                  v-if="temErrosNoGrupo(grupo)" 
-                  class="btn-retry-commit" 
+                </BaseButton>
+                <button
+                  v-if="temErrosNoGrupo(grupo)"
+                  class="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-md border-0 bg-linear-135 from-red-500 to-red-700 px-2.5 py-1 text-xs font-semibold text-white shadow-[0_2px_6px] shadow-red-500/30 transition-all duration-200 hover:-translate-y-px hover:brightness-115"
                   @click.stop="reenfileirarGrupo(grupo)"
                   :title="`Reenfileirar ${errosNoGrupoCount(grupo)} tarefa(s) com falha deste commit`"
                 >
-                  <i class="fa-solid fa-arrows-rotate" aria-hidden="true" style="margin-right: 4px;"></i>
+                  <i class="fa-solid fa-arrows-rotate mr-1" aria-hidden="true"></i>
                   <span>Falhas ({{ errosNoGrupoCount(grupo) }})</span>
                 </button>
-                <span class="job-count-badge">{{ grupo.jobs.length }}</span>
+                <span class="shrink-0 rounded-full border border-border-strong bg-muted px-2 py-0.5 text-xs font-bold text-muted-foreground">{{ grupo.jobs.length }}</span>
               </div>
             </button>
 
             <!-- Lista de tarefas deste commit -->
-            <div v-show="!isGrupoColapsado(grupo.commit_id, grupo)" :id="'group-jobs-' + grupo.commit_id" class="commit-group-jobs">
-              <div 
-                v-for="job in grupo.jobs" 
-                :key="job.id" 
-                class="job-row"
-                :class="`job-row-${job.status}`"
+            <div v-show="!isGrupoColapsado(grupo.commit_id, grupo)" :id="'group-jobs-' + grupo.commit_id" class="flex min-w-0 flex-col overflow-hidden pt-2">
+              <div
+                v-for="job in grupo.jobs"
+                :key="job.id"
+                class="mb-1.5 min-w-0 rounded-md border-b border-b-border-strong px-4.5 py-4 transition-colors duration-150 last:mb-0 last:border-b-0"
+                :class="classesJobRow[job.status]"
               >
-                <div class="job-header">
-                  <span 
-                    class="badge" 
-                    :class="job.tipo === 'analise' ? 'badge-blue' : 'badge-purple'"
-                  >
+                <div class="mb-2.5 flex flex-wrap items-center gap-2.5">
+                  <BaseBadge :variant="job.tipo === 'analise' ? 'blue' : 'purple'">
                     {{ job.tipo === 'analise' ? 'Análise AI' : 'Envio Portal' }}
-                  </span>
-                  
-                  <span class="job-time">{{ formatarData(job.criado_em) }}</span>
-                  
-                  <div class="job-actions">
+                  </BaseBadge>
+
+                  <span :class="jobTime">{{ formatarData(job.criado_em) }}</span>
+
+                  <div class="ml-auto flex flex-wrap items-center gap-2">
                     <!-- Botão de Verificação / Correção -->
-                    <button 
-                      v-if="job.status === 'done' && job.tipo === 'envio'" 
-                      class="btn-xs btn-verificacao-status" 
-                      :class="{
-                        'btn-status-ok': !isVerificando(job.id) && obterStatusVerificacao(job) === 'ok',
-                        'btn-status-divergencia': !isVerificando(job.id) && obterStatusVerificacao(job) === 'divergencia',
-                        'btn-status-default': isVerificando(job.id) || !obterStatusVerificacao(job)
-                      }"
+                    <button
+                      v-if="job.status === 'done' && job.tipo === 'envio'"
+                      :class="['cursor-pointer rounded-md border px-2.5 py-1 text-xs font-semibold transition-all duration-200 hover:-translate-y-px disabled:cursor-not-allowed', classesVerificacao(job)]"
                       @click="handleAcaoVerificacao(job)"
                       :disabled="isVerificando(job.id)"
                       :title="obterTituloVerificacao(job)"
                     >
                       <template v-if="isVerificando(job.id)">
-                        <i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true" style="margin-right: 4px;"></i>Verificando...
+                        <i class="fa-solid fa-circle-notch fa-spin mr-1" aria-hidden="true"></i>Verificando...
                       </template>
                       <template v-else-if="obterStatusVerificacao(job) === 'ok'">
-                        <i class="fa-solid fa-circle-check" aria-hidden="true" style="margin-right: 4px;"></i>Lançamento OK
+                        <i class="fa-solid fa-circle-check mr-1" aria-hidden="true"></i>Lançamento OK
                       </template>
                       <template v-else-if="obterStatusVerificacao(job) === 'divergencia'">
-                        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true" style="margin-right: 4px;"></i>Corrigir
+                        <i class="fa-solid fa-triangle-exclamation mr-1" aria-hidden="true"></i>Corrigir
                       </template>
                       <template v-else>
-                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true" style="margin-right: 4px;"></i>Verificar
+                        <i class="fa-solid fa-magnifying-glass mr-1" aria-hidden="true"></i>Verificar
                       </template>
                     </button>
 
@@ -318,66 +305,68 @@
                     <router-link
                       v-if="job.status === 'done' && job.tipo === 'analise' && job.commit_id"
                       :to="`/commits/${job.commit_id}`"
-                      class="btn-ghost btn-xs"
+                      :class="linkGhostXs"
                     >
-                      <i class="fa-solid fa-code-commit" aria-hidden="true" style="margin-right: 4px;"></i>Ver Commit
+                      <i class="fa-solid fa-code-commit mr-1" aria-hidden="true"></i>Ver Commit
                     </router-link>
 
                     <!-- Botão de Ver Tarefa (envio concluído abre a tarefa no portal) -->
                     <a
                       v-else-if="job.status === 'done' && job.resultado && job.resultado.task_url"
-                      :href="job.resultado.task_url" 
-                      target="_blank" 
-                      class="btn-ghost btn-xs" 
+                      :href="job.resultado.task_url"
+                      target="_blank"
+                      :class="linkGhostXs"
                     >
                       Ver Tarefa
                     </a>
-                    
+
                     <!-- Botão de Ver Logs -->
-                    <button 
-                      v-if="job.status === 'running' || (job.resultado && job.resultado.logs && job.resultado.logs.length)" 
-                      class="btn-ghost btn-xs" 
+                    <BaseButton
+                      v-if="job.status === 'running' || (job.resultado && job.resultado.logs && job.resultado.logs.length)"
+                      size="xs"
                       @click="abrirLogs(job)"
                     >
-                      <i :class="job.status === 'running' ? 'fa-solid fa-terminal' : 'fa-solid fa-file-waveform'" aria-hidden="true" style="margin-right: 4px;"></i>
+                      <i class="mr-1" :class="job.status === 'running' ? 'fa-solid fa-terminal' : 'fa-solid fa-file-waveform'" aria-hidden="true"></i>
                       <span>{{ job.status === 'running' ? 'Logs (Ao Vivo)' : 'Ver Logs' }}</span>
-                    </button>
-                    
+                    </BaseButton>
+
                     <!-- Botão Pausar (só antes de começar: envio em execução está no meio do portal) -->
-                    <button 
-                      v-if="podePausar(job)" 
-                      class="btn-ghost btn-xs btn-pausar" 
+                    <BaseButton
+                      v-if="podePausar(job)"
+                      variant="plain"
+                      :class="[ghostPlain, btnXs, btnPausar]"
                       @click="filaStore.pausarJobs({ job_ids: [job.id] })"
                       title="Pausa esta tarefa antes de ela começar"
                     >
                       <i class="fa-solid fa-pause" aria-hidden="true"></i><span>Pausar</span>
-                    </button>
+                    </BaseButton>
 
                     <!-- Botão Retomar -->
-                    <button 
-                      v-if="job.status === 'paused'" 
-                      class="btn-ghost btn-xs btn-retomar" 
+                    <BaseButton
+                      v-if="job.status === 'paused'"
+                      variant="plain"
+                      :class="[ghostPlain, btnXs, btnRetomar]"
                       @click="filaStore.retomarJobs({ job_ids: [job.id] })"
                       title="Devolve esta tarefa para a fila"
                     >
                       <i class="fa-solid fa-play" aria-hidden="true"></i><span>Retomar</span>
-                    </button>
+                    </BaseButton>
 
                     <!-- Botão Cancelar -->
-                    <button 
-                      v-if="job.status === 'pending' || job.status === 'running' || job.status === 'paused'" 
-                      class="btn-danger-link" 
+                    <button
+                      v-if="job.status === 'pending' || job.status === 'running' || job.status === 'paused'"
+                      :class="btnDanger"
                       @click="cancelarJob(job.id)"
                       :title="job.status === 'running' ? 'Interrompe a execução' : 'Remove da fila'"
                     >
-                      <i class="fa-solid fa-ban" aria-hidden="true" style="margin-right: 4px;"></i>
+                      <i class="fa-solid fa-ban mr-1" aria-hidden="true"></i>
                       <span>Cancelar</span>
                     </button>
 
                     <!-- Botão Limpar -->
-                    <button 
-                      v-if="['done', 'error'].includes(job.status)" 
-                      class="btn-danger-link" 
+                    <button
+                      v-if="['done', 'error'].includes(job.status)"
+                      :class="btnDanger"
                       @click="removerJob(job.id)"
                     >
                       Limpar
@@ -385,63 +374,63 @@
                   </div>
                 </div>
 
-                <div class="job-body">
-                  <div v-if="job.tipo === 'analise'" class="job-meta">
+                <div class="mb-2.5 min-w-0">
+                  <div v-if="job.tipo === 'analise'" :class="jobMeta">
                     <strong>Modelo:</strong> {{ job.modelo }}
                   </div>
-                  
-                  <div v-else-if="job.tipo === 'envio'" class="job-meta">
+
+                  <div v-else-if="job.tipo === 'envio'" :class="jobMeta">
                     <strong>Atividade:</strong> "{{ job.titulo_atividade || 'Carregando título...' }}"
                   </div>
 
                   <!-- Mensagem de Erro -->
-                  <div v-if="job.status === 'error'" class="error-box">
+                  <div v-if="job.status === 'error'" :class="errorBox">
                     <span>{{ obterMensagemErro(job) }}</span>
                   </div>
 
                   <!-- Faixa de Logs em Tempo Real durante Execução -->
-                  <div v-if="job.status === 'running'" class="running-log-box">
-                    <span class="live-dot-pulse"></span>
-                    <span class="live-log-text">{{ obterUltimoLog(job) }}</span>
+                  <div v-if="job.status === 'running'" :class="runningLogBox">
+                    <span :class="liveDot"></span>
+                    <span :class="liveLogText">{{ obterUltimoLog(job) }}</span>
                   </div>
 
                   <!-- Seleção de outro modelo em caso de limite atingido -->
-                  <div v-if="podeMudarModelo(job)" class="mudar-modelo-box">
-                    <label :for="'select-model-' + job.id" class="mudar-modelo-label">Limite atingido. Tentar outro modelo:</label>
-                    <div class="mudar-modelo-control">
-                      <select 
+                  <div v-if="podeMudarModelo(job)" :class="mudarModeloBox">
+                    <label :for="'select-model-' + job.id" :class="mudarModeloLabelTag">Limite atingido. Tentar outro modelo:</label>
+                    <div :class="mudarModeloControl">
+                      <select
                         :id="'select-model-' + job.id"
-                        :value="obterModeloSelecionado(job.id, job.modelo)" 
+                        :value="obterModeloSelecionado(job.id, job.modelo)"
                         @change="atualizarModeloSelecionado(job.id, $event)"
-                        class="select-modelo"
+                        class="w-auto rounded-md border border-border-strong bg-card px-2 py-1 text-xs font-semibold text-foreground shadow-field transition-all duration-200 focus:border-primary focus:ring-3 focus:ring-primary-glow focus:outline-none"
                       >
                         <option v-for="m in models" :key="m.name" :value="m.name">
                           {{ m.name }}
                         </option>
                       </select>
-                      <button class="btn-primary-mudar" @click="reprocessarComOutroModelo(job)">
+                      <button :class="btnPrimaryMudar" @click="reprocessarComOutroModelo(job)">
                         Reprocessar
                       </button>
                     </div>
                   </div>
 
                   <!-- Reenviar em caso de término ou falha de envio -->
-                  <div v-if="job.tipo === 'envio' && (job.status === 'error' || job.status === 'completed')" class="mudar-modelo-box">
-                    <span class="mudar-modelo-label">
+                  <div v-if="job.tipo === 'envio' && (job.status === 'error' || job.status === 'completed')" :class="mudarModeloBox">
+                    <span :class="mudarModeloLabel">
                       {{ job.status === 'completed' ? 'Atividade concluída. Deseja re-enviar ao portal?' : 'Esta atividade falhou no envio. Deseja tentar novamente?' }}
                     </span>
-                    <div class="mudar-modelo-control">
-                      <button class="btn-primary-mudar" @click="reenviarAtividade(job)">
+                    <div :class="mudarModeloControl">
+                      <button :class="btnPrimaryMudar" @click="reenviarAtividade(job)">
                         {{ job.status === 'completed' ? 'Re-enviar Envio' : 'Tentar Novamente' }}
                       </button>
                     </div>
                   </div>
                 </div>
 
-                <div class="job-footer">
-                  <div class="status-indicator">
-                    <span class="status-dot" :class="`status-${job.status}`"></span>
-                    <span class="status-text">{{ formatarStatus(job.status) }}</span>
+                <div :class="jobFooter">
+                  <div class="flex items-center gap-2 font-semibold">
+                    <span :class="['size-2 rounded-full', classesDotStatus[job.status]]"></span>
+                    <span class="text-xs tracking-wider uppercase">{{ formatarStatus(job.status) }}</span>
                   </div>
                 </div>
               </div>
@@ -451,70 +440,69 @@
       </section>
 
       <!-- COLUNA DIREITA: Ajustes dos Cards & Sincronizações -->
-      <section class="fila-coluna coluna-ajustes">
-        <div class="coluna-header">
-          <div class="coluna-title-left">
-            <div class="coluna-icon icon-ajustes">
+      <section data-tour="fila-ajustes" class="flex w-full min-w-0 flex-col gap-4">
+        <div :class="colunaHeader">
+          <div class="flex min-w-0 items-center gap-3">
+            <div :class="[colunaIcon, 'bg-primary-glow text-primary']">
               <i class="fa-solid fa-sliders" aria-hidden="true"></i>
             </div>
             <div>
-              <h2>Ajustes & Sincronizações</h2>
-              <span class="coluna-sub">Ajustes de campos e auditoria de status no Munka</span>
+              <h2 :class="colunaTitulo">Ajustes & Sincronizações</h2>
+              <span class="text-xs text-muted-foreground">Ajustes de campos e auditoria de status no Munka</span>
             </div>
           </div>
-          <span class="coluna-badge badge-ajuste">{{ jobsAjustes.length }}</span>
+          <span :class="[colunaBadge, 'border-primary bg-primary-glow text-primary']">{{ jobsAjustes.length }}</span>
         </div>
 
-        <div v-if="jobsAjustes.length === 0" class="empty-coluna">
-          <i class="fa-solid fa-sliders empty-coluna-icon" aria-hidden="true"></i>
+        <div v-if="jobsAjustes.length === 0" :class="emptyColuna">
+          <i class="fa-solid fa-sliders mb-1 text-[2rem] opacity-50" aria-hidden="true"></i>
           <span>Nenhum ajuste ou sincronização na fila.</span>
-          <router-link to="/tarefas-mes" class="btn-link-tarefas-mes">
+          <router-link to="/tarefas-mes" class="mt-2 inline-block rounded-sm px-2 py-1 text-sm font-bold text-primary no-underline transition-colors duration-150 hover:bg-primary-glow hover:no-underline">
             Ir para Tarefas do Mês para ajustar cards →
           </router-link>
         </div>
 
-        <div v-else class="ajustes-cards-list">
-          <div 
-            v-for="job in jobsAjustes" 
-            :key="job.id" 
-            class="ajuste-card"
-            :class="`ajuste-card-${job.status}`"
+        <div v-else class="flex w-full min-w-0 flex-col gap-4">
+          <div
+            v-for="job in jobsAjustes"
+            :key="job.id"
+            :class="['w-full min-w-0 rounded-xl border bg-card p-5 shadow-card transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-y-primary hover:border-r-primary', classesCardAjuste[job.status] ?? classesCardAjusteBase]"
           >
             <!-- Card Header -->
-            <div class="ajuste-card-header">
-              <div class="ajuste-card-header-left">
-                <span class="badge" :class="job.tipo === 'ajuste' ? 'badge-purple' : 'badge-orange'">
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2.5">
+                <BaseBadge :variant="job.tipo === 'ajuste' ? 'purple' : 'orange'">
                   <i :class="job.tipo === 'ajuste' ? 'fa-solid fa-sliders' : 'fa-solid fa-arrows-rotate'" aria-hidden="true"></i>
                   <span>{{ job.tipo === 'ajuste' ? 'Ajuste Munka' : 'Sincronização' }}</span>
-                </span>
-                <span class="job-time">{{ formatarData(job.criado_em) }}</span>
+                </BaseBadge>
+                <span :class="jobTime">{{ formatarData(job.criado_em) }}</span>
               </div>
 
-              <div class="job-actions">
+              <div class="ml-auto flex flex-wrap items-center gap-2">
                 <!-- Botão Ver Logs -->
-                <button 
-                  v-if="job.status === 'running' || (job.resultado && job.resultado.logs && job.resultado.logs.length)" 
-                  class="btn-ghost btn-xs" 
+                <BaseButton
+                  v-if="job.status === 'running' || (job.resultado && job.resultado.logs && job.resultado.logs.length)"
+                  size="xs"
                   @click="abrirLogs(job)"
                 >
-                  <i :class="job.status === 'running' ? 'fa-solid fa-terminal' : 'fa-solid fa-file-waveform'" aria-hidden="true" style="margin-right: 4px;"></i>
+                  <i class="mr-1" :class="job.status === 'running' ? 'fa-solid fa-terminal' : 'fa-solid fa-file-waveform'" aria-hidden="true"></i>
                   <span>{{ job.status === 'running' ? 'Logs (Ao Vivo)' : 'Ver Logs' }}</span>
-                </button>
+                </BaseButton>
 
                 <!-- Botão Cancelar -->
-                <button 
-                  v-if="job.status === 'pending' || job.status === 'running'" 
-                  class="btn-danger-link" 
+                <button
+                  v-if="job.status === 'pending' || job.status === 'running'"
+                  :class="btnDanger"
                   @click="cancelarJob(job.id)"
                 >
-                  <i class="fa-solid fa-ban" aria-hidden="true" style="margin-right: 4px;"></i>
+                  <i class="fa-solid fa-ban mr-1" aria-hidden="true"></i>
                   <span>Cancelar</span>
                 </button>
 
                 <!-- Botão Limpar -->
-                <button 
-                  v-if="['done', 'error'].includes(job.status)" 
-                  class="btn-danger-link" 
+                <button
+                  v-if="['done', 'error'].includes(job.status)"
+                  :class="btnDanger"
                   @click="removerJob(job.id)"
                 >
                   Limpar
@@ -523,18 +511,18 @@
             </div>
 
             <!-- Card Body -->
-            <div class="ajuste-card-body">
-              <div class="ajuste-title-row">
-                <span class="ajuste-title">
+            <div class="mb-3 flex min-w-0 flex-col gap-2.5">
+              <div>
+                <span class="text-base font-bold wrap-anywhere text-foreground">
                   {{ job.titulo_atividade || (job.tipo === 'ajuste' ? 'Ajuste de Tarefa no Munka' : 'Sincronização de Status') }}
                 </span>
               </div>
 
               <!-- Chips com os campos alterados -->
-              <div v-if="obterAlteracoesJob(job)" class="ajuste-chips-container">
-                <span class="chips-label">Campos alterados:</span>
-                <div class="chips-list">
-                  <span v-for="(val, chave) in obterAlteracoesJob(job)" :key="chave" class="param-chip">
+              <div v-if="obterAlteracoesJob(job)" class="mt-1 flex flex-col gap-1.5">
+                <span class="text-xs font-bold tracking-wide text-muted-foreground uppercase">Campos alterados:</span>
+                <div class="flex flex-wrap gap-1.5">
+                  <span v-for="(val, chave) in obterAlteracoesJob(job)" :key="chave" class="inline-flex gap-1 rounded-md border border-border-strong bg-muted px-2 py-0.5 text-xs text-foreground [&_strong]:text-primary">
                     <strong>{{ formatarNomeCampo(String(chave)) }}:</strong>
                     <span>{{ formatarValorCampo(String(chave), String(val)) }}</span>
                   </span>
@@ -542,37 +530,37 @@
               </div>
 
               <!-- Se for sincronização -->
-              <div v-else-if="job.tipo === 'verificacao'" class="sync-desc-box">
+              <div v-else-if="job.tipo === 'verificacao'" class="flex items-center gap-2 rounded-md border border-badge-orange-border bg-badge-orange px-3 py-2 text-xs text-badge-orange-foreground">
                 <i class="fa-solid fa-circle-nodes" aria-hidden="true"></i>
                 <span>Varredura da listagem de tarefas do mês e atualização dos status no portal.</span>
               </div>
 
               <!-- Faixa de Logs ao Vivo durante Execução -->
-              <div v-if="job.status === 'running'" class="running-log-box">
-                <span class="live-dot-pulse"></span>
-                <span class="live-log-text">{{ obterUltimoLog(job) }}</span>
+              <div v-if="job.status === 'running'" :class="runningLogBox">
+                <span :class="liveDot"></span>
+                <span :class="liveLogText">{{ obterUltimoLog(job) }}</span>
               </div>
 
               <!-- Mensagem de Erro -->
-              <div v-if="job.status === 'error'" class="error-box">
+              <div v-if="job.status === 'error'" :class="errorBox">
                 <span>{{ obterMensagemErro(job) }}</span>
               </div>
 
               <!-- Resumo de Conclusão -->
-              <div v-if="job.status === 'done' && job.resultado" class="done-summary-box">
+              <div v-if="job.status === 'done' && job.resultado" class="flex flex-col gap-0.5 rounded-md border border-badge-green-border bg-badge-green px-3 py-2 text-xs">
                 <template v-if="job.tipo === 'ajuste'">
-                  <span class="summary-check">
-                    <i class="fa-solid fa-circle-check" aria-hidden="true" style="margin-right: 4px;"></i>
+                  <span class="font-semibold text-badge-green-foreground">
+                    <i class="fa-solid fa-circle-check mr-1" aria-hidden="true"></i>
                     <span>Sucesso: {{ job.resultado.sucessos || 1 }} tarefa(s) ajustada(s) no portal.</span>
                   </span>
-                  <span v-if="job.resultado.puladas" class="summary-warn">
-                    <i class="fa-solid fa-triangle-exclamation" aria-hidden="true" style="margin-right: 4px;"></i>
+                  <span v-if="job.resultado.puladas" class="text-xs text-warning">
+                    <i class="fa-solid fa-triangle-exclamation mr-1" aria-hidden="true"></i>
                     <span>{{ job.resultado.puladas }} tarefa(s) já estavam concluídas pelo supervisor e foram preservadas.</span>
                   </span>
                 </template>
                 <template v-else>
-                  <span class="summary-check">
-                    <i class="fa-solid fa-circle-check" aria-hidden="true" style="margin-right: 4px;"></i>
+                  <span class="font-semibold text-badge-green-foreground">
+                    <i class="fa-solid fa-circle-check mr-1" aria-hidden="true"></i>
                     <span>Sincronização concluída: {{ job.resultado.total_portal || 0 }} tarefas lidas no portal, {{ job.resultado.total_atualizadas || 0 }} atualizadas no banco.</span>
                   </span>
                 </template>
@@ -580,10 +568,10 @@
             </div>
 
             <!-- Card Footer -->
-            <div class="job-footer">
-              <div class="status-indicator">
-                <span class="status-dot" :class="`status-${job.status}`"></span>
-                <span class="status-text">{{ formatarStatus(job.status) }}</span>
+            <div :class="jobFooter">
+              <div class="flex items-center gap-2 font-semibold">
+                <span :class="['size-2 rounded-full', classesDotStatus[job.status]]"></span>
+                <span class="text-xs tracking-wider uppercase">{{ formatarStatus(job.status) }}</span>
               </div>
             </div>
           </div>
@@ -594,29 +582,27 @@
     </template>
 
     <!-- Modal de Logs -->
-    <div v-if="logJobSelecionado" class="modal-overlay" @click.self="fecharLogs">
-      <div ref="logsModalRef" class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="logs-modal-title">
-        <h2 id="logs-modal-title">Logs de Automação (Job #{{ logJobSelecionado.id }})</h2>
-        <p class="modal-subtitle">Tarefa: "{{ logJobSelecionado.titulo_atividade }}"</p>
-        
-        <div class="terminal-container">
-          <div class="terminal-header">
+    <BaseModal v-if="logJobSelecionado" ref="logsModalRef" size="auto" labelledby="logs-modal-title" class="max-h-[85vh] w-200 max-w-[95vw] overflow-y-auto" @close="fecharLogs">
+        <h2 id="logs-modal-title" class="mb-1 text-xl font-bold text-foreground">Logs de Automação (Job #{{ logJobSelecionado.id }})</h2>
+        <p class="-mt-2 mb-2 text-xs text-muted-foreground">Tarefa: "{{ logJobSelecionado.titulo_atividade }}"</p>
+
+        <div class="mt-2 overflow-hidden rounded-[10px] border border-border-strong bg-canvas">
+          <div class="flex items-center justify-between border-b border-white/8 bg-canvas-subtle px-4 py-2.5 text-xs font-semibold text-slate-400">
             <span>Logs de Execução Playwright</span>
-            <span class="status-badge" :class="logJobSelecionado.status === 'running' ? 'badge-blue' : `badge-${logJobSelecionado.status}`">
+            <span class="rounded-sm px-1.5 py-0.5 text-[0.65rem] font-bold uppercase" :class="classesBadgeLog[logJobSelecionado.status]">
               <span v-if="logJobSelecionado.status === 'running'">
-                <i class="fa-solid fa-bolt" aria-hidden="true" style="margin-right: 4px;"></i>TRANSMITINDO AO VIVO
+                <i class="fa-solid fa-bolt mr-1" aria-hidden="true"></i>TRANSMITINDO AO VIVO
               </span>
               <span v-else>{{ logJobSelecionado.status }}</span>
             </span>
           </div>
-          <pre class="terminal-body"><div v-for="(log, idx) in (logJobSelecionado.resultado?.logs || [])" :key="idx" :class="{'error-line': log.includes('\u274c') || log.includes('ERRO')}">{{ log }}</div></pre>
+          <pre class="max-h-95 overflow-y-auto p-4 font-terminal text-xs leading-normal break-all whitespace-pre-wrap text-terminal-foreground"><div v-for="(log, idx) in (logJobSelecionado.resultado?.logs || [])" :key="idx" :class="{'text-canvas-danger': log.includes('\u274c') || log.includes('ERRO')}">{{ log }}</div></pre>
         </div>
 
-        <div class="modal-actions">
-          <button class="btn-ghost" @click="fecharLogs">Fechar</button>
-        </div>
-      </div>
-    </div>
+      <template #actions>
+        <BaseButton @click="fecharLogs">Fechar</BaseButton>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
@@ -625,14 +611,99 @@ import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { useFilaStore } from '../stores/fila'
 import { useToastStore } from '../stores/toast'
 import TutorialModal from '../components/TutorialModal.vue'
+import BaseBadge from '../components/ui/BaseBadge.vue'
+import BaseButton from '../components/ui/BaseButton.vue'
+import BaseModal from '../components/ui/BaseModal.vue'
+import PageHeader from '../components/ui/PageHeader.vue'
+import PageTitle from '../components/ui/PageTitle.vue'
+import StateMessage from '../components/ui/StateMessage.vue'
 import { api, type Config } from '../api'
+
+// ── Classes utilitárias reaproveitadas no template ──
+const btnXs = 'rounded-[5px] px-2.25 py-1 text-xs'
+const btnSm = 'rounded-md px-3.25 py-1.5 text-[0.82rem]'
+// Visual "ghost" para botões plain que trocam a cor do texto (pausar/retomar)
+const ghostPlain = 'border border-border-strong bg-card hover:enabled:-translate-y-px hover:enabled:border-primary disabled:opacity-40'
+const btnPausar = 'text-amber-600 hover:enabled:text-primary'
+const btnRetomar = 'text-emerald-600 hover:enabled:text-primary'
+// Link com o visual do BaseButton ghost xs (BaseButton só renderiza <button>)
+const linkGhostXs = `inline-flex cursor-pointer items-center justify-center gap-2 border border-border-strong bg-card font-semibold leading-none text-foreground no-underline transition-all duration-200 hover:-translate-y-px hover:border-primary hover:text-primary ${btnXs}`
+const btnDangerBase = 'cursor-pointer border-0 bg-transparent text-xs font-semibold tracking-wide text-danger uppercase transition-all duration-200 hover:bg-red-500/8'
+const btnDanger = `${btnDangerBase} px-2 py-1 rounded-md`
+const btnDangerXs = `${btnDangerBase} ${btnXs}`
+const btnPrimaryMudar = 'cursor-pointer rounded-md border-0 bg-(image:--accent-grad) px-3 py-1.5 text-xs font-bold text-white uppercase shadow-[0_2px_6px] shadow-blue-500/15 transition-all duration-200 hover:-translate-y-px hover:brightness-110'
+const hashLink = 'shrink-0 rounded-md border border-border bg-background px-2 py-[3px] font-mono text-[0.8rem] font-bold text-muted-foreground no-underline transition-all duration-200 hover:border-primary hover:bg-primary-glow hover:text-primary'
+const liveDot = 'size-2 shrink-0 animate-queue-dot rounded-full bg-blue-500 shadow-[0_0_8px] shadow-blue-500'
+const runningLogBox = 'flex min-w-0 items-center gap-2 overflow-hidden rounded-md border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-sm text-primary'
+const liveLogText = 'min-w-0 truncate font-mono'
+const errorBox = 'mt-1.5 rounded-r-md border-l-3 border-l-danger bg-red-500/8 px-3.5 py-2.5 text-xs font-medium wrap-anywhere text-danger'
+const jobTime = 'text-xs text-muted-foreground'
+const jobMeta = 'overflow-hidden text-sm text-ellipsis text-foreground'
+const jobFooter = 'flex items-center border-t border-slate-400/12 pt-2 text-xs'
+const metaLabel = 'text-xs font-bold tracking-wide text-muted-foreground uppercase'
+const metaValue = 'font-semibold wrap-anywhere text-foreground'
+const mudarModeloBox = 'mt-3 flex flex-col gap-2 rounded-[10px] border border-dashed border-border-strong bg-muted p-3.5'
+const mudarModeloLabel = 'text-xs font-semibold text-muted-foreground'
+const mudarModeloLabelTag = `${mudarModeloLabel} mb-[0.35rem] block leading-[1.4] tracking-[0.05em] uppercase`
+const mudarModeloControl = 'flex flex-wrap items-center gap-2'
+const colunaHeader = 'flex min-w-0 items-center justify-between rounded-xl border border-border-strong bg-card px-5 py-3.5 shadow-card'
+const colunaIcon = 'flex size-9.5 shrink-0 items-center justify-center rounded-lg text-lg'
+const colunaTitulo = 'text-base leading-tight font-extrabold text-foreground'
+const colunaBadge = 'shrink-0 rounded-full border px-2.5 py-1 text-sm font-bold'
+const emptyColuna = 'flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border-strong bg-card px-6 py-12 text-center text-sm text-muted-foreground'
+
+const classesDotStatus: Record<string, string> = {
+  pending: 'bg-yellow-500',
+  paused: 'bg-slate-400',
+  running: 'bg-blue-500 shadow-[0_0_8px] shadow-blue-500 animate-queue-dot-slow',
+  done: 'bg-emerald-500 shadow-[0_0_6px] shadow-emerald-500/30',
+  error: 'bg-red-500 shadow-[0_0_6px] shadow-red-500/30',
+}
+
+const classesJobRow: Record<string, string> = {
+  running: 'border-l-3 border-l-primary bg-primary-glow',
+  done: 'border-l-3 border-l-success bg-emerald-500/5',
+  error: 'border-l-3 border-l-danger bg-red-500/5',
+}
+
+function varianteBadgeTipo(tipo: string): 'blue' | 'purple' | 'orange' | 'plain' {
+  if (tipo === 'analise') return 'blue'
+  if (tipo === 'envio' || tipo === 'ajuste') return 'purple'
+  if (tipo === 'verificacao') return 'orange'
+  return 'plain'
+}
+
+const classesCardAjusteBase = 'border-border-strong bg-card hover:border-l-primary'
+const classesCardAjuste: Record<string, string> = {
+  running: 'border-primary border-l-3 border-l-primary bg-linear-135 from-card to-primary-glow',
+  done: 'border-border-strong border-l-3 border-l-success bg-card',
+  error: 'border-border-strong border-l-3 border-l-danger bg-card',
+}
+
+const classesBadgeLog: Record<string, string> = {
+  running: 'border border-badge-code-border bg-badge-code text-badge-code-foreground',
+  done: 'bg-emerald-500/15 text-emerald-400',
+  error: 'bg-red-500/15 text-red-400',
+}
+
+const classesVerificacaoPadrao = 'border-blue-400/40 bg-blue-400/8 text-primary hover:bg-blue-400/18'
+const classesVerificacaoOk = 'border-emerald-500/40 bg-emerald-500/10 text-success hover:bg-emerald-500/20'
+const classesVerificacaoDivergencia = 'border-amber-500/50 bg-amber-500/12 text-warning hover:bg-amber-500/25'
+function classesVerificacao(job: any): string {
+  if (!isVerificando(job.id)) {
+    const status = obterStatusVerificacao(job)
+    if (status === 'ok') return classesVerificacaoOk
+    if (status === 'divergencia') return classesVerificacaoDivergencia
+  }
+  return classesVerificacaoPadrao
+}
 
 const filaStore = useFilaStore()
 const toastStore = useToastStore()
 const logJobSelecionado = ref<any>(null)
 const concurrencyInfo = ref<Config['concurrency'] | null>(null)
 
-const logsModalRef = ref<HTMLElement | null>(null)
+const logsModalRef = ref<InstanceType<typeof BaseModal> | null>(null)
 const previousActiveElement = ref<HTMLElement | null>(null)
 
 const jobsEmVerificacao = ref<Record<number, boolean>>({})
@@ -954,7 +1025,7 @@ watch(logJobSelecionado, (newVal) => {
     previousActiveElement.value = document.activeElement as HTMLElement
     document.addEventListener('keydown', handleLogsKeydown)
     nextTick(() => {
-      const btn = logsModalRef.value?.querySelector('.modal-actions button') as HTMLElement
+      const btn = logsModalRef.value?.panel?.querySelector('[data-modal-actions] button') as HTMLElement
       btn?.focus()
     })
   } else {
@@ -1103,1038 +1174,3 @@ async function reenviarAtividade(job: any) {
   }
 }
 </script>
-
-<style scoped>
-.fila-page {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-.title-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.concurrency-badge {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--accent);
-  background: var(--accent-glow);
-  border: 1px solid var(--accent);
-  padding: 4px 10px;
-  border-radius: 99px;
-  margin-left: 0.5rem;
-}
-
-.header-actions {
-  display: flex;
-  gap: 0.6rem;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.btn-retry-all {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  color: #ffffff;
-  border: none;
-  padding: 0.45rem 0.9rem;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.btn-retry-all:hover {
-  filter: brightness(1.1);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.45);
-}
-
-/* Pausar / Retomar */
-.btn-pausar,
-.btn-retomar {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-.btn-pausar { color: #d97706; }
-.btn-retomar { color: #059669; }
-
-/* Seção de Tarefas em Execução no Topo */
-.fila-execucao-topo {
-  margin-top: 1.25rem;
-  margin-bottom: 0.5rem;
-  background: var(--card-bg);
-  border: 1px solid var(--accent);
-  border-radius: 14px;
-  padding: 1.25rem;
-  box-shadow: 0 0 24px rgba(59, 130, 246, 0.18), 0 4px 16px rgba(0, 0, 0, 0.08);
-  position: relative;
-  overflow: hidden;
-}
-
-.fila-execucao-topo::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--accent-grad);
-}
-
-.execucao-topo-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.execucao-topo-title {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.live-pulse-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: var(--accent-glow);
-  color: var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  box-shadow: 0 0 12px var(--accent-glow);
-  animation: pulseIcon 2s infinite ease-in-out;
-}
-
-.execucao-topo-header h2 {
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: var(--text);
-  line-height: 1.2;
-  margin: 0;
-}
-
-.execucao-topo-sub {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-}
-
-.execucao-topo-pending-pill {
-  color: var(--accent-cyan);
-  font-weight: 600;
-}
-
-.execucao-topo-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  padding: 4px 12px;
-  border-radius: 99px;
-  text-transform: uppercase;
-}
-
-.running-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
-  gap: 1rem;
-}
-
-@media (max-width: 640px) {
-  .running-cards-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.running-task-card {
-  background: var(--header-group-bg, rgba(255, 255, 255, 0.02));
-  border: 1px solid rgba(59, 130, 246, 0.35);
-  border-left: 4px solid var(--accent);
-  border-radius: 10px;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
-  transition: border-color 0.2s, box-shadow 0.2s;
-  min-width: 0;
-}
-
-.running-task-card:hover {
-  border-color: var(--accent);
-  box-shadow: 0 0 16px rgba(59, 130, 246, 0.2);
-}
-
-.running-task-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.running-task-badges {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.running-job-id {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--text-muted);
-}
-
-.running-job-time {
-  font-size: 0.75rem;
-  color: var(--text-subtle);
-}
-
-.running-task-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.btn-live-logs {
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  border-radius: 6px;
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  transition: all 0.2s ease;
-}
-
-.btn-live-logs:hover {
-  background: var(--accent);
-  color: #fff;
-}
-
-.running-task-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  min-width: 0;
-}
-
-.running-task-commit-info {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-  min-width: 0;
-}
-
-.running-commit-msg {
-  font-weight: 600;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.running-task-meta {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  font-size: 0.85rem;
-  flex-wrap: wrap;
-}
-
-.meta-label {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-}
-
-.meta-value {
-  color: var(--text);
-  font-weight: 600;
-  word-break: break-word;
-}
-
-.badge-running-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 99px;
-  margin-left: 0.5rem;
-  vertical-align: middle;
-}
-
-.fila-pending-bar {
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  background: var(--card-bg);
-  border: 1px dashed var(--border);
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.82rem;
-  color: var(--text-muted);
-}
-
-.pending-bar-info {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.pending-bar-info i {
-  color: var(--accent-cyan);
-}
-
-@keyframes pulseIcon {
-  0% { transform: scale(1); box-shadow: 0 0 6px var(--accent-glow); }
-  50% { transform: scale(1.08); box-shadow: 0 0 16px var(--accent-glow); }
-  100% { transform: scale(1); box-shadow: 0 0 6px var(--accent-glow); }
-}
-
-/* Layout Dividido Verticalmente */
-.fila-split-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 1.75rem;
-  align-items: start;
-  margin-top: 1rem;
-  width: 100%;
-  max-width: 100%;
-}
-
-.coluna-lancamentos {
-  border-right: 1px solid var(--border);
-  padding-right: 1.75rem;
-}
-
-@media (max-width: 1024px) {
-  .fila-split-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .coluna-lancamentos {
-    border-right: none;
-    padding-right: 0;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 1.5rem;
-  }
-}
-
-/* Colunas */
-.fila-coluna {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  min-width: 0;
-  width: 100%;
-}
-
-.coluna-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.85rem 1.25rem;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-  min-width: 0;
-}
-
-.coluna-title-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  min-width: 0;
-}
-
-.coluna-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  flex-shrink: 0;
-}
-
-.icon-lancamentos {
-  background: rgba(59, 130, 246, 0.15);
-  color: #3b82f6;
-}
-
-.icon-ajustes {
-  background: var(--accent-glow);
-  color: var(--accent);
-}
-
-.coluna-header h2 {
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: var(--text);
-  line-height: 1.2;
-}
-
-.coluna-sub {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.coluna-badge {
-  background: var(--header-group-bg);
-  border: 1px solid var(--border);
-  color: var(--text);
-  font-weight: 700;
-  font-size: 0.85rem;
-  padding: 3px 10px;
-  border-radius: 99px;
-  flex-shrink: 0;
-}
-
-.badge-ajuste {
-  background: var(--accent-glow);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.empty-coluna {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 1.5rem;
-  background: var(--card-bg);
-  border: 1px dashed var(--border);
-  border-radius: 12px;
-  color: var(--text-muted);
-  font-size: 0.88rem;
-  text-align: center;
-  gap: 0.5rem;
-}
-
-.empty-coluna-icon {
-  font-size: 2rem;
-  opacity: 0.5;
-  margin-bottom: 0.25rem;
-}
-
-.btn-link-tarefas-mes {
-  color: var(--accent);
-  font-weight: 700;
-  text-decoration: none;
-  font-size: 0.82rem;
-  margin-top: 0.5rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  display: inline-block;
-  transition: background-color 0.15s ease;
-}
-
-.btn-link-tarefas-mes:hover {
-  text-decoration: none;
-  background: var(--accent-glow);
-}
-
-/* Grupos de Commits (Lançamentos) */
-.fila-grouped {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  min-width: 0;
-  width: 100%;
-}
-
-.commit-group {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-width: 0;
-  width: 100%;
-}
-
-button.commit-group-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 0 0.75rem 0 !important;
-  background: transparent !important;
-  border: none !important;
-  border-bottom: 1px solid var(--border) !important;
-  border-radius: 0 !important;
-  font-size: 0.88rem;
-  cursor: pointer;
-  user-select: none;
-  font-family: inherit;
-  color: inherit;
-  width: 100%;
-  text-align: left;
-  gap: 0.75rem;
-  min-width: 0;
-  outline: none;
-}
-
-.commit-group-info {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  overflow: hidden;
-  min-width: 0;
-  flex: 1;
-}
-
-.collapse-icon {
-  font-size: 0.65rem !important;
-  color: var(--text-muted) !important;
-  padding: 2px 6px !important;
-  display: inline-block;
-  flex-shrink: 0;
-}
-
-.commit-hash-link {
-  font-family: monospace;
-  text-decoration: none;
-  font-weight: 700;
-  font-size: 0.8rem;
-  flex-shrink: 0;
-}
-
-.commit-msg-link {
-  color: var(--text);
-  font-weight: 600;
-  font-size: 0.9rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-  flex: 1;
-  display: block;
-}
-
-.commit-group-right {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-shrink: 0;
-}
-
-.job-count-badge {
-  background: var(--header-group-bg);
-  border: 1px solid var(--border);
-  padding: 2px 8px;
-  border-radius: 99px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
-.btn-retry-commit {
-  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
-  color: #ffffff;
-  border: none;
-  padding: 0.25rem 0.65rem;
-  border-radius: 6px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  flex-shrink: 0;
-}
-
-.btn-retry-commit:hover {
-  filter: brightness(1.15);
-  transform: translateY(-1px);
-}
-
-.commit-group-jobs {
-  border: none !important;
-  background: transparent !important;
-  display: flex;
-  flex-direction: column;
-  padding-top: 0.5rem !important;
-  overflow: hidden;
-  min-width: 0;
-}
-
-.job-row {
-  padding: 1rem 1.15rem;
-  border-bottom: 1px solid var(--border);
-  border-radius: 6px;
-  margin-bottom: 0.35rem;
-  transition: background 0.15s;
-  min-width: 0;
-}
-
-.job-row:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
-}
-
-.job-header {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  margin-bottom: 0.65rem;
-  flex-wrap: wrap;
-}
-
-.job-time {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-}
-
-.job-actions {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.job-body {
-  margin-bottom: 0.65rem;
-  min-width: 0;
-}
-
-.job-meta {
-  font-size: 0.85rem;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.job-footer {
-  display: flex;
-  align-items: center;
-  font-size: 0.75rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid rgba(148, 163, 184, 0.12);
-}
-
-.status-indicator {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-weight: 600;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.status-dot.status-pending { background: #eab308; }
-.status-dot.status-paused { background: #94a3b8; }
-.status-dot.status-running { background: #3b82f6; box-shadow: 0 0 8px #3b82f6; animation: pulseDot 1.5s infinite; }
-.status-dot.status-done { background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.3); }
-.status-dot.status-error { background: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.3); }
-
-.status-text {
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-size: 0.7rem;
-}
-
-/* Botões de Verificação */
-.btn-verificacao-status {
-  transition: all 0.2s ease;
-  font-weight: 600;
-  border-radius: 6px;
-  padding: 0.25rem 0.6rem;
-  font-size: 0.72rem;
-  cursor: pointer;
-}
-.btn-status-default {
-  border: 1px solid rgba(96, 165, 250, 0.4) !important;
-  color: var(--accent) !important;
-  background: rgba(96, 165, 250, 0.08) !important;
-}
-.btn-status-default:hover {
-  background: rgba(96, 165, 250, 0.18) !important;
-  transform: translateY(-1px);
-}
-.btn-status-ok {
-  border: 1px solid rgba(16, 185, 129, 0.4) !important;
-  color: var(--success) !important;
-  background: rgba(16, 185, 129, 0.1) !important;
-}
-.btn-status-ok:hover {
-  background: rgba(16, 185, 129, 0.2) !important;
-  transform: translateY(-1px);
-}
-.btn-status-divergencia {
-  border: 1px solid rgba(245, 158, 11, 0.5) !important;
-  color: var(--warning) !important;
-  background: rgba(245, 158, 11, 0.12) !important;
-}
-.btn-status-divergencia:hover {
-  background: rgba(245, 158, 11, 0.25) !important;
-  transform: translateY(-1px);
-}
-
-/* Mudar Modelo / Reenviar Box */
-.mudar-modelo-box {
-  margin-top: 0.75rem;
-  padding: 0.85rem;
-  background: var(--header-group-bg);
-  border: 1px dashed var(--border);
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-.mudar-modelo-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-.mudar-modelo-control {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.select-modelo {
-  background: var(--card-bg) !important;
-  color: var(--text) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 6px !important;
-  font-size: 0.75rem !important;
-  padding: 0.25rem 0.5rem !important;
-  font-weight: 600 !important;
-  width: auto !important;
-}
-.btn-primary-mudar {
-  background: var(--accent-grad) !important;
-  color: #fff !important;
-  border: none !important;
-  font-size: 0.72rem !important;
-  font-weight: 700 !important;
-  padding: 0.35rem 0.75rem !important;
-  cursor: pointer !important;
-  border-radius: 6px !important;
-  text-transform: uppercase;
-  transition: all 0.2s ease !important;
-  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.15) !important;
-}
-.btn-primary-mudar:hover {
-  filter: brightness(1.1) !important;
-  transform: translateY(-1px) !important;
-}
-
-/* Coluna de Ajustes (Cards) */
-.ajustes-cards-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  min-width: 0;
-  width: 100%;
-}
-
-.ajuste-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1.25rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
-  min-width: 0;
-  width: 100%;
-}
-
-.ajuste-card:hover {
-  border-color: var(--accent);
-  transform: translateY(-1px);
-}
-
-.ajuste-card-running {
-  border-color: var(--accent) !important;
-  border-left: 3px solid var(--accent) !important;
-  background: linear-gradient(135deg, var(--card-bg) 0%, var(--accent-glow) 100%);
-}
-
-.ajuste-card-done {
-  border-left: 3px solid var(--success) !important;
-}
-
-.ajuste-card-error {
-  border-left: 3px solid var(--error) !important;
-}
-
-.ajuste-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.75rem;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.ajuste-card-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.ajuste-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  margin-bottom: 0.75rem;
-  min-width: 0;
-}
-
-.ajuste-title {
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: var(--text);
-  word-break: break-word;
-}
-
-.ajuste-chips-container {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  margin-top: 0.2rem;
-}
-
-.chips-label {
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  font-weight: 700;
-  letter-spacing: 0.03em;
-}
-
-.chips-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.param-chip {
-  background: var(--header-group-bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 2px 8px;
-  font-size: 0.78rem;
-  color: var(--text);
-  display: inline-flex;
-  gap: 0.3rem;
-}
-
-.param-chip strong {
-  color: var(--accent);
-}
-
-.sync-desc-box {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: var(--badge-orange-bg);
-  border: 1px solid var(--badge-orange-border);
-  border-radius: 6px;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.8rem;
-  color: var(--badge-orange-color);
-}
-
-.running-log-box {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 6px;
-  font-size: 0.82rem;
-  color: var(--accent);
-  overflow: hidden;
-  min-width: 0;
-}
-
-.live-dot-pulse {
-  width: 8px;
-  height: 8px;
-  background: #3b82f6;
-  border-radius: 50%;
-  box-shadow: 0 0 8px #3b82f6;
-  animation: pulseDot 1.2s infinite ease-in-out;
-  flex-shrink: 0;
-}
-
-.live-log-text {
-  font-family: monospace;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
-.error-box {
-  padding: 0.6rem 0.85rem;
-  background: rgba(239, 68, 68, 0.08);
-  border-left: 3px solid var(--error);
-  border-radius: 0 6px 6px 0;
-  color: var(--error);
-  font-size: 0.78rem;
-  font-weight: 500;
-  margin-top: 0.4rem;
-  word-break: break-word;
-}
-
-.done-summary-box {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 0.5rem 0.75rem;
-  background: var(--badge-green-bg);
-  border: 1px solid var(--badge-green-border);
-  border-radius: 6px;
-  font-size: 0.8rem;
-}
-
-.summary-check {
-  color: var(--badge-green-color);
-  font-weight: 600;
-}
-
-.summary-warn {
-  color: var(--warning);
-  font-size: 0.75rem;
-}
-
-/* Modais e Terminais */
-.modal-wide {
-  width: 100% !important;
-  max-width: 800px !important;
-  max-height: 85vh !important;
-  overflow-y: auto !important;
-  box-sizing: border-box !important;
-}
-
-.modal-subtitle {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin-top: -0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.terminal-container {
-  background: #0d1117;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
-  margin-top: 0.5rem;
-}
-
-.terminal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.6rem 1rem;
-  background: #161b22;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #94a3b8;
-}
-
-.status-badge {
-  text-transform: uppercase;
-  font-size: 0.65rem;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 700;
-}
-.badge-done { background: rgba(16, 185, 129, 0.15); color: #34d399; }
-.badge-error { background: rgba(239, 68, 68, 0.15); color: #f87171; }
-
-.terminal-body {
-  padding: 1rem;
-  max-height: 380px;
-  overflow-y: auto;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 0.78rem;
-  color: #e6edf3;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-
-.error-line {
-  color: #f85149;
-}
-
-.btn-xs {
-  padding: 0.25rem 0.6rem !important;
-  font-size: 0.72rem !important;
-  border-radius: 6px !important;
-}
-
-.btn-danger-link {
-  background: transparent;
-  border: none;
-  color: var(--error);
-  font-size: 0.72rem;
-  font-weight: 600;
-  cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-}
-
-.btn-danger-link:hover {
-  background: rgba(239, 68, 68, 0.08);
-}
-
-@keyframes pulseDot {
-  0% { transform: scale(0.9); opacity: 0.6; }
-  50% { transform: scale(1.3); opacity: 1; }
-  100% { transform: scale(0.9); opacity: 0.6; }
-}
-</style>

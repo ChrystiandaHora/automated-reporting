@@ -18,6 +18,36 @@ const activeJobsCount = computed(() => {
   return filaStore.jobs.filter(j => j.status === 'pending' || j.status === 'running').length
 })
 
+const itensNavegacao = [
+  { to: '/dashboard', icone: 'fa-chart-line', rotulo: 'Dashboard' },
+  { to: '/commits', icone: 'fa-code-commit', rotulo: 'Commits' },
+  { to: '/importar', icone: 'fa-cloud-arrow-down', rotulo: 'Importar' },
+  { to: '/analisar', icone: 'fa-wand-magic-sparkles', rotulo: 'Análise' },
+  { to: '/fila', icone: 'fa-list-check', rotulo: 'Fila' },
+  { to: '/fila-logs', icone: 'fa-file-waveform', rotulo: 'Logs' },
+  { to: '/modelos', icone: 'fa-microchip', rotulo: 'Modelos' },
+  { to: '/historico', icone: 'fa-clock-rotate-left', rotulo: 'Histórico' },
+  { to: '/tarefas-mes', icone: 'fa-calendar-check', rotulo: 'Tarefas do Mês' },
+  { to: '/config', icone: 'fa-gear', rotulo: 'Configuração' }
+]
+
+// Mesma regra do router-link-active: a rota exata ou qualquer subrota.
+function itemAtivo(to: string): boolean {
+  return route.path === to || route.path.startsWith(`${to}/`)
+}
+
+const modosTema: { modo: ThemeMode; icone: string; rotulo: string; titulo: string; aria: string }[] = [
+  { modo: 'light', icone: 'fa-sun', rotulo: 'Claro', titulo: 'Tema Claro', aria: 'Ativar Tema Claro' },
+  { modo: 'dark', icone: 'fa-moon', rotulo: 'Escuro', titulo: 'Tema Escuro', aria: 'Ativar Tema Escuro' },
+  {
+    modo: 'auto',
+    icone: 'fa-circle-half-stroke',
+    rotulo: 'Auto',
+    titulo: 'Tema Automático (Baseado no horário local: 06:00 às 18:00 Claro, 18:00 às 06:00 Escuro)',
+    aria: 'Ativar Tema Automático por horário'
+  }
+]
+
 const routeTitles: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/commits': 'Commits',
@@ -247,11 +277,11 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="app">
-    <a href="#main-content" class="skip-link">Pular para o conteúdo principal</a>
-    <header class="topbar" role="banner">
-      <div class="brand">
-        <svg class="brand-icon" viewBox="0 0 36 36" fill="none" aria-hidden="true" focusable="false">
+  <div class="flex min-h-screen flex-col">
+    <a href="#main-content" class="absolute -top-25 left-4 z-9999 rounded-md bg-primary px-4 py-2 font-semibold text-white no-underline transition-[top] duration-200 focus:top-4 focus:outline-3 focus:outline-offset-2 focus:outline-primary-light">Pular para o conteúdo principal</a>
+    <header class="sticky top-0 z-100 flex h-16 items-center gap-8 border-b border-border-strong bg-topbar px-8 shadow-topbar backdrop-blur-lg transition-colors duration-300" role="banner">
+      <div class="group flex shrink-0 cursor-default items-center gap-3">
+        <svg class="size-8 drop-shadow-[0_0_8px] drop-shadow-blue-500/30 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-[1.08] group-hover:rotate-4" viewBox="0 0 36 36" fill="none" aria-hidden="true" focusable="false">
           <rect width="36" height="36" rx="10" fill="url(#brand-grad)" />
           <path d="M11 26V10L25 26V10" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
           <circle cx="18" cy="18" r="2.5" fill="#38bdf8" />
@@ -263,10 +293,10 @@ onUnmounted(() => {
             </linearGradient>
           </defs>
         </svg>
-        <span class="brand-text">NEXUS</span>
-        <span 
-          v-if="hasProjectUpdate" 
-          class="project-update-badge" 
+        <span class="text-[1.35rem] font-black tracking-[0.08em] text-foreground">NEXUS</span>
+        <span
+          v-if="hasProjectUpdate"
+          class="ml-3 animate-pulse-badge cursor-pointer rounded-full bg-linear-135 from-purple-500 to-blue-500 px-2 py-0.75 align-middle text-[0.65rem] font-bold tracking-[0.02em] text-white"
           role="status"
           :title="`Nova atualização disponível! ${projectBehindCount} commit(s) atrás. Execute 'git pull' no terminal para atualizar o projeto.`"
         >
@@ -274,1043 +304,81 @@ onUnmounted(() => {
         </span>
       </div>
 
-      <nav class="nav" aria-label="Navegação principal">
-        <router-link to="/dashboard">
-          <i class="fa-solid fa-chart-line nav-icon" aria-hidden="true"></i>
-          <span>Dashboard</span>
-        </router-link>
-        <router-link to="/commits">
-          <i class="fa-solid fa-code-commit nav-icon" aria-hidden="true"></i>
-          <span>Commits</span>
-        </router-link>
-        <router-link to="/importar">
-          <i class="fa-solid fa-cloud-arrow-down nav-icon" aria-hidden="true"></i>
-          <span>Importar</span>
-        </router-link>
-        <router-link to="/analisar">
-          <i class="fa-solid fa-wand-magic-sparkles nav-icon" aria-hidden="true"></i>
-          <span>Análise</span>
-        </router-link>
-        <router-link to="/fila">
-          <i class="fa-solid fa-list-check nav-icon" aria-hidden="true"></i>
-          <span>Fila</span>
-          <span v-if="activeJobsCount > 0" class="fila-badge" aria-live="polite" :aria-label="`${activeJobsCount} tarefas ativas`">{{ activeJobsCount }}</span>
-        </router-link>
-        <router-link to="/fila-logs">
-          <i class="fa-solid fa-file-waveform nav-icon" aria-hidden="true"></i>
-          <span>Logs</span>
-        </router-link>
-        <router-link to="/modelos">
-          <i class="fa-solid fa-microchip nav-icon" aria-hidden="true"></i>
-          <span>Modelos</span>
-        </router-link>
-        <router-link to="/historico">
-          <i class="fa-solid fa-clock-rotate-left nav-icon" aria-hidden="true"></i>
-          <span>Histórico</span>
-        </router-link>
-        <router-link to="/tarefas-mes">
-          <i class="fa-solid fa-calendar-check nav-icon" aria-hidden="true"></i>
-          <span>Tarefas do Mês</span>
-        </router-link>
-        <router-link to="/config">
-          <i class="fa-solid fa-gear nav-icon" aria-hidden="true"></i>
-          <span>Configuração</span>
+      <nav class="flex gap-2" aria-label="Navegação principal">
+        <router-link
+          v-for="item in itensNavegacao"
+          :key="item.to"
+          :to="item.to"
+          class="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-[0.88rem] capitalize no-underline transition-all duration-200"
+          :class="itemAtivo(item.to)
+            ? 'border-primary bg-primary-glow font-semibold text-primary'
+            : 'border-transparent font-medium text-muted-foreground hover:bg-slate-400/10 hover:text-foreground'"
+        >
+          <i class="fa-solid text-[0.85rem]" :class="[item.icone, itemAtivo(item.to) ? 'text-primary opacity-100' : 'opacity-85']" aria-hidden="true"></i>
+          <span>{{ item.rotulo }}</span>
+          <span
+            v-if="item.to === '/fila' && activeJobsCount > 0"
+            class="inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1.5 text-[0.7rem] font-extrabold transition-all duration-200"
+            :class="itemAtivo(item.to) ? 'bg-primary text-white' : 'bg-warning text-black'"
+            aria-live="polite"
+            :aria-label="`${activeJobsCount} tarefas ativas`"
+          >{{ activeJobsCount }}</span>
         </router-link>
       </nav>
 
-      <div class="topbar-actions">
+      <div class="ml-auto flex items-center gap-3">
         <NotificacoesSino />
 
-        <button 
-          class="anti-sleep-btn" 
-          :class="{ active: isWakeLockActive, 'is-locked': isWakeLockActive && activeJobsCount > 0 }" 
-          @click="toggleWakeLock" 
+        <button
+          class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-250 select-none"
+          :class="[
+            isWakeLockActive
+              ? 'border-emerald-500/40 bg-emerald-500/12 text-emerald-400 shadow-[0_0_12px] shadow-emerald-500/22'
+              : 'border-border-strong bg-card text-muted-foreground hover:border-primary hover:text-foreground',
+            isWakeLockActive && activeJobsCount > 0 ? 'cursor-not-allowed' : 'cursor-pointer'
+          ]"
+          @click="toggleWakeLock"
           :aria-pressed="isWakeLockActive"
-          :title="isWakeLockActive 
-            ? (activeJobsCount > 0 
-                ? `Anti-Sleep ATIVO: ${activeJobsCount} processo(s) na fila. Permanecerá ativo até a conclusão das tarefas e 2 minutos após o término.` 
+          :title="isWakeLockActive
+            ? (activeJobsCount > 0
+                ? `Anti-Sleep ATIVO: ${activeJobsCount} processo(s) na fila. Permanecerá ativo até a conclusão das tarefas e 2 minutos após o término.`
                 : 'Anti-Sleep ATIVO: Fila vazia. O estado voltará para OFF após 2 minutos sem atividade, ou clique para desligar manualmente.')
             : 'Clique para ativar o Modo Anti-Sleep (Impede suspensão do computador enquanto houver processos ou por até 2 minutos sem atividade).'
           "
           aria-label="Alternar Modo Anti-Sleep"
         >
-          <span class="anti-sleep-dot" aria-hidden="true"></span>
-          <i class="fa-solid fa-mug-hot anti-sleep-icon" aria-hidden="true"></i>
-          <span class="anti-sleep-text">{{ isWakeLockActive ? 'Anti-Sleep Ativo' : 'Anti-Sleep Off' }}</span>
+          <span
+            class="size-1.75 rounded-full transition-all duration-200"
+            :class="isWakeLockActive ? 'animate-pulse-dot-active bg-emerald-500 shadow-[0_0_8px] shadow-emerald-500' : 'bg-subtle-foreground'"
+            aria-hidden="true"
+          ></span>
+          <i class="fa-solid fa-mug-hot" aria-hidden="true"></i>
+          <span class="max-sm:hidden">{{ isWakeLockActive ? 'Anti-Sleep Ativo' : 'Anti-Sleep Off' }}</span>
         </button>
 
-        <div class="theme-segmented" role="group" aria-label="Seleção de tema visual">
-          <button 
-            class="theme-segment-btn" 
-            :class="{ active: themeMode === 'light' }" 
-            @click="setMode('light')" 
-            :aria-pressed="themeMode === 'light'"
-            aria-label="Ativar Tema Claro"
-            title="Tema Claro"
+        <div class="inline-flex gap-0.5 rounded-[10px] border border-border-strong bg-card p-0.75 transition-all duration-300" role="group" aria-label="Seleção de tema visual">
+          <button
+            v-for="m in modosTema"
+            :key="m.modo"
+            class="inline-flex cursor-pointer items-center gap-1.5 rounded-[7px] border-none px-2.5 py-1.5 text-xs font-semibold transition-all duration-200 max-sm:p-1.5"
+            :class="themeMode === m.modo
+              ? 'bg-primary text-white shadow-[0_2px_8px] shadow-primary-glow'
+              : 'bg-transparent text-muted-foreground hover:bg-slate-400/8 hover:text-foreground'"
+            @click="setMode(m.modo)"
+            :aria-pressed="themeMode === m.modo"
+            :aria-label="m.aria"
+            :title="m.titulo"
           >
-            <i class="fa-solid fa-sun theme-fa-icon" aria-hidden="true"></i>
-            <span class="theme-label">Claro</span>
-          </button>
-
-          <button 
-            class="theme-segment-btn" 
-            :class="{ active: themeMode === 'dark' }" 
-            @click="setMode('dark')" 
-            :aria-pressed="themeMode === 'dark'"
-            aria-label="Ativar Tema Escuro"
-            title="Tema Escuro"
-          >
-            <i class="fa-solid fa-moon theme-fa-icon" aria-hidden="true"></i>
-            <span class="theme-label">Escuro</span>
-          </button>
-
-          <button 
-            class="theme-segment-btn" 
-            :class="{ active: themeMode === 'auto' }" 
-            @click="setMode('auto')" 
-            :aria-pressed="themeMode === 'auto'"
-            aria-label="Ativar Tema Automático por horário"
-            title="Tema Automático (Baseado no horário local: 06:00 às 18:00 Claro, 18:00 às 06:00 Escuro)"
-          >
-            <i class="fa-solid fa-circle-half-stroke theme-fa-icon" aria-hidden="true"></i>
-            <span class="theme-label">Auto</span>
+            <i class="fa-solid inline-flex size-3.5 items-center justify-center text-[0.82rem]" :class="m.icone" aria-hidden="true"></i>
+            <span class="max-sm:hidden">{{ m.rotulo }}</span>
           </button>
         </div>
       </div>
     </header>
 
-    <main class="content" id="main-content" tabIndex="-1">
+    <main class="mx-auto w-full max-w-7xl flex-1 px-4 py-6 has-[.fila-page]:max-w-384 sm:px-6 sm:py-8 lg:px-8 lg:py-10" id="main-content" tabIndex="-1">
       <router-view />
     </main>
     <ToastManager />
   </div>
 </template>
-
-<style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.skip-link {
-  position: absolute;
-  top: -100px;
-  left: 1rem;
-  background: var(--accent);
-  color: #ffffff;
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  font-weight: 600;
-  z-index: 9999;
-  transition: top 0.2s ease;
-  text-decoration: none;
-}
-.skip-link:focus {
-  top: 1rem;
-  outline: 3px solid var(--accent-light);
-  outline-offset: 2px;
-}
-
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-:root, [data-theme="dark"] {
-  --bg: #0F172A;
-  --card-bg: #1E293B;
-  --card-border: #334155;
-  --border: #475569;
-  --input-border: #64748B;
-  --text: #F8FAFC;
-  --text-muted: #CBD5E1;
-  --text-subtle: #94A3B8;
-  --accent: #3B82F6;
-  --accent-light: #60A5FA;
-  --accent-cyan: #06B6D4;
-  --accent-grad: linear-gradient(135deg, #06b6d4 0%, #3B82F6 50%, #a855f7 100%);
-  --accent-glow: rgba(59, 130, 246, 0.25);
-  --success: #10B981;
-  --warning: #F59E0B;
-  --error: #EF4444;
-  --topbar-bg: rgba(15, 23, 42, 0.85);
-
-  --badge-code-bg: rgba(96, 165, 250, 0.12);
-  --badge-code-color: #93C5FD;
-  --badge-code-border: rgba(96, 165, 250, 0.3);
-
-  --badge-hpa-bg: rgba(251, 191, 36, 0.12);
-  --badge-hpa-color: #FCD34D;
-  --badge-hpa-border: rgba(251, 191, 36, 0.3);
-
-  --badge-green-bg: rgba(16, 185, 129, 0.15);
-  --badge-green-color: #34D399;
-  --badge-green-border: rgba(16, 185, 129, 0.3);
-
-  --badge-orange-bg: rgba(245, 158, 11, 0.15);
-  --badge-orange-color: #FBBF24;
-  --badge-orange-border: rgba(245, 158, 11, 0.3);
-
-  --badge-purple-bg: rgba(168, 85, 247, 0.15);
-  --badge-purple-color: #C084FC;
-  --badge-purple-border: rgba(168, 85, 247, 0.3);
-
-  --header-group-bg: rgba(255, 255, 255, 0.03);
-  --sha-box-bg: rgba(255, 255, 255, 0.05);
-  --sha-box-color: #94A3B8;
-  
-  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  -webkit-font-smoothing: antialiased;
-}
-
-[data-theme="light"] {
-  --bg: #F8FAFC;
-  --card-bg: #FFFFFF;
-  --card-border: #CBD5E1;
-  --border: #94A3B8;
-  --input-border: #718096;
-  --text: #0F172A;
-  --text-muted: #374151;
-  --text-subtle: #4B5563;
-  --accent: #1D4ED8;
-  --accent-light: #1E40AF;
-  --accent-cyan: #0369A1;
-  --accent-grad: linear-gradient(135deg, #1D4ED8 0%, #4F46E5 50%, #7C3AED 100%);
-  --accent-glow: rgba(29, 78, 216, 0.12);
-  --success: #047857;
-  --warning: #92400E;
-  --error: #B91C1C;
-  --topbar-bg: rgba(248, 250, 252, 0.95);
-
-  --badge-code-bg: #EFF6FF;
-  --badge-code-color: #1E40AF;
-  --badge-code-border: #BFDBFE;
-
-  --badge-hpa-bg: #FEF3C7;
-  --badge-hpa-color: #92400E;
-  --badge-hpa-border: #FDE68A;
-
-  --badge-green-bg: #D1FAE5;
-  --badge-green-color: #065F46;
-  --badge-green-border: #A7F3D0;
-
-  --badge-orange-bg: #FFEDD5;
-  --badge-orange-color: #9A3412;
-  --badge-orange-border: #FDBA74;
-
-  --badge-purple-bg: #F3E8FF;
-  --badge-purple-color: #6B21A8;
-  --badge-purple-border: #E9D5FF;
-
-  --header-group-bg: #F1F5F9;
-  --sha-box-bg: #F1F5F9;
-  --sha-box-color: #1E293B;
-}
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.02);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--card-border);
-  border-radius: 99px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-subtle);
-}
-
-.app { display: flex; flex-direction: column; min-height: 100vh; }
-
-/* ── Topbar ── */
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: var(--topbar-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  padding: 0 2rem;
-  height: 64px;
-  gap: 2rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-shrink: 0;
-  cursor: default;
-}
-
-.brand-icon {
-  width: 32px;
-  height: 32px;
-  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.3));
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.brand:hover .brand-icon {
-  transform: scale(1.08) rotate(4deg);
-}
-
-.brand-text {
-  font-weight: 900;
-  font-size: 1.35rem;
-  letter-spacing: 0.08em;
-  color: var(--text);
-}
-
-.nav {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.nav a {
-  color: var(--text-muted);
-  text-decoration: none;
-  text-transform: capitalize;
-  font-weight: 500;
-  font-size: 0.88rem;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.nav a:hover { 
-  color: var(--text); 
-  background: rgba(148, 163, 184, 0.1); 
-}
-.nav a.router-link-active { 
-  background: var(--accent-glow);
-  color: var(--accent);
-  border-color: var(--accent);
-  font-weight: 600;
-}
-
-.topbar-actions {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-/* ── Anti-Sleep Button ── */
-.anti-sleep-btn {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  padding: 0.35rem 0.75rem;
-  border-radius: 99px;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  cursor: pointer;
-  font-size: 0.78rem;
-  font-weight: 600;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  user-select: none;
-}
-
-.anti-sleep-btn:hover {
-  border-color: var(--accent);
-  color: var(--text);
-}
-
-.anti-sleep-btn.active {
-  background: rgba(16, 185, 129, 0.12);
-  border-color: rgba(16, 185, 129, 0.4);
-  color: #34d399;
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.22);
-}
-
-.anti-sleep-btn.is-locked {
-  cursor: not-allowed;
-}
-
-.anti-sleep-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--text-subtle);
-  transition: all 0.2s ease;
-}
-
-.anti-sleep-btn.active .anti-sleep-dot {
-  background: #10b981;
-  box-shadow: 0 0 8px #10b981;
-  animation: pulse-dot 1.8s infinite;
-}
-
-@keyframes pulse-dot {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.4); opacity: 0.7; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-@media (max-width: 640px) {
-  .anti-sleep-text { display: none; }
-}
-
-/* ── Theme Segmented Control ── */
-.theme-segmented {
-  display: inline-flex;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 3px;
-  gap: 2px;
-  transition: all 0.3s ease;
-}
-
-.theme-segment-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  padding: 0.35rem 0.65rem;
-  border-radius: 7px;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  cursor: pointer;
-  font-size: 0.78rem;
-  font-weight: 600;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.theme-segment-btn:hover {
-  color: var(--text);
-  background: rgba(148, 163, 184, 0.08);
-}
-
-.theme-segment-btn.active {
-  background: var(--accent);
-  color: #ffffff;
-  box-shadow: 0 2px 8px var(--accent-glow);
-}
-
-.theme-icon, .theme-fa-icon {
-  width: 14px;
-  height: 14px;
-  font-size: 0.82rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.nav-icon {
-  font-size: 0.85rem;
-  opacity: 0.85;
-}
-
-.nav a.router-link-active .nav-icon {
-  opacity: 1;
-  color: var(--accent);
-}
-
-@media (max-width: 640px) {
-  .theme-label { display: none; }
-  .theme-segment-btn { padding: 0.35rem; }
-}
-
-.fila-badge {
-  background: var(--warning);
-  color: #000;
-  border-radius: 99px;
-  padding: 0 6px;
-  font-size: 0.7rem;
-  font-weight: 800;
-  height: 18px;
-  min-width: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-.nav a.router-link-active .fila-badge {
-  background: var(--accent);
-  color: #fff;
-}
-
-.project-update-badge {
-  margin-left: 0.75rem;
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  background: linear-gradient(135deg, #a855f7, #3b82f6);
-  color: #ffffff;
-  padding: 3px 8px;
-  border-radius: 99px;
-  vertical-align: middle;
-  animation: pulse-badge 2.5s infinite;
-  cursor: pointer;
-}
-
-@keyframes pulse-badge {
-  0% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.5); }
-  70% { box-shadow: 0 0 0 8px rgba(168, 85, 247, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0); }
-}
-
-/* ── Content ── */
-.content {
-  flex: 1;
-  max-width: 80rem;
-  width: 100%;
-  margin-left: auto;
-  margin-right: auto;
-  padding: 1.5rem 1rem;
-  box-sizing: border-box;
-}
-
-.content:has(.fila-page) {
-  max-width: 96rem;
-}
-
-@media (min-width: 640px) {
-  .content { padding: 2rem 1.5rem; }
-}
-
-@media (min-width: 1024px) {
-  .content { padding: 2.5rem 2rem; }
-}
-
-/* ── Shared page ── */
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 2rem;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 1.25rem;
-}
-.page-header h1 { 
-  font-size: 1.75rem; 
-  font-weight: 700; 
-  letter-spacing: -0.02em;
-  color: var(--text);
-}
-
-.loading, .empty { 
-  color: var(--text-muted); 
-  padding: 3rem 0; 
-  text-align: center;
-  font-size: 0.95rem;
-  letter-spacing: 0.01em;
-}
-.error { 
-  color: var(--error); 
-  font-size: 0.875rem; 
-  margin-top: 0.5rem; 
-  background: rgba(239, 68, 68, 0.1);
-  border-left: 3px solid var(--error);
-  padding: 0.625rem 0.875rem;
-  border-radius: 4px;
-  line-height: 1.5;
-}
-.success { color: var(--success); font-weight: 600; }
-
-/* ── Badges ── */
-.badge {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 6px;
-  display: inline-block;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  line-height: 1;
-}
-.badge-green  { background: var(--badge-green-bg); color: var(--badge-green-color); border: 1px solid var(--badge-green-border); }
-.badge-gray   { background: var(--header-group-bg); color: var(--text-muted); border: 1px solid var(--border); }
-.badge-blue   { background: var(--badge-code-bg); color: var(--badge-code-color); border: 1px solid var(--badge-code-border); }
-.badge-orange { background: var(--badge-orange-bg); color: var(--badge-orange-color); border: 1px solid var(--badge-orange-border); }
-.badge-purple { background: var(--badge-purple-bg); color: var(--badge-purple-color); border: 1px solid var(--badge-purple-border); }
-
-/* ── Inputs ── */
-input, textarea, select {
-  background: var(--card-bg) !important;
-  border: 1px solid var(--input-border) !important;
-  color: var(--text) !important;
-  border-radius: 8px !important;
-  padding: 0.6rem 0.85rem !important;
-  font-size: 0.9rem !important;
-  font-family: inherit !important;
-  width: 100% !important;
-  resize: vertical !important;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04) !important;
-}
-input:focus, textarea:focus, select:focus {
-  outline: none !important;
-  border-color: var(--accent) !important;
-  box-shadow: 0 0 0 3px var(--accent-glow) !important;
-}
-
-/* ── Buttons ── */
-.btn-primary {
-  background: var(--accent) !important;
-  color: #ffffff !important;
-  border: none !important;
-  border-radius: 8px !important;
-  padding: 0.6rem 1.25rem !important;
-  font-weight: 600 !important;
-  cursor: pointer !important;
-  font-size: 0.88rem !important;
-  letter-spacing: 0.01em !important;
-  box-shadow: 0 4px 12px var(--accent-glow) !important;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  transform: none !important;
-}
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-1px) !important;
-  filter: brightness(1.1) !important;
-}
-.btn-primary:active:not(:disabled) {
-  transform: translateY(0) !important;
-}
-.btn-primary:disabled { opacity: 0.4 !important; cursor: not-allowed !important; box-shadow: none !important; }
-
-.btn-ghost {
-  background: var(--card-bg) !important;
-  color: var(--text) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 8px !important;
-  padding: 0.6rem 1.1rem !important;
-  font-size: 0.88rem !important;
-  font-weight: 600 !important;
-  cursor: pointer !important;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  box-shadow: none !important;
-  transform: none !important;
-}
-.btn-ghost:hover:not(:disabled) {
-  border-color: var(--accent) !important;
-  color: var(--accent) !important;
-  transform: translateY(-1px) !important;
-}
-.btn-ghost:disabled { opacity: 0.4 !important; cursor: not-allowed !important; }
-
-/* ── Modal ── */
-.modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(15, 23, 42, 0.75) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-  display: flex; align-items: center; justify-content: center;
-  z-index: 200;
-  animation: fadeIn 0.25s ease-out;
-}
-.modal {
-  background: var(--card-bg) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 16px !important;
-  padding: 1.75rem !important;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2) !important;
-  width: 520px;
-  max-width: 95vw;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  color: var(--text) !important;
-  animation: scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.modal.modal-md {
-  width: 640px !important;
-}
-.modal.modal-lg {
-  width: 860px !important;
-}
-.modal.modal-xl {
-  width: 1060px !important;
-}
-.modal h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem; color: var(--text); }
-.modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; }
-
-label {
-  font-size: 0.78rem;
-  font-weight: 700;
-  display: block;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 0.35rem;
-  line-height: 1.4;
-}
-
-/* ── Cards Overrides ── */
-.job-card, .commit-card, .commit-group, .atividade-card, .config-section, .import-box, .story-dashboard {
-  background: var(--card-bg) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 12px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
-  padding: 1.5rem !important;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  color: var(--text) !important;
-}
-
-.job-card:hover, .commit-card:hover, .atividade-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--accent) !important;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08) !important;
-}
-
-.commit-group-header, .atividade-header {
-  border-bottom: 1px solid var(--border) !important;
-  background: transparent !important;
-  padding-bottom: 0.75rem !important;
-}
-
-.commit-group-jobs, .atividade-body {
-  padding-top: 1rem !important;
-}
-
-.job-row {
-  border-bottom: 1px solid var(--border) !important;
-  border-left: none !important;
-  transition: all 0.2s ease !important;
-}
-.job-row-running {
-  background: var(--accent-glow) !important;
-  border-left: 3px solid var(--accent) !important;
-}
-.job-row-done {
-  background: rgba(16, 185, 129, 0.05) !important;
-  border-left: 3px solid var(--success) !important;
-}
-.job-row-error {
-  background: rgba(239, 68, 68, 0.05) !important;
-  border-left: 3px solid var(--error) !important;
-}
-
-.commit-hash-link, .sha-link, .activity-link, .file-chip, .collapse-icon {
-  border-radius: 6px !important;
-  padding: 3px 8px !important;
-  background: var(--bg) !important;
-  border: 1px solid var(--border) !important;
-  transition: all 0.2s ease !important;
-  font-size: 0.8rem !important;
-  color: var(--text-muted) !important;
-}
-.commit-hash-link:hover, .sha-link:hover, .activity-link:hover {
-  background: var(--accent-glow) !important;
-  border-color: var(--accent) !important;
-  color: var(--accent) !important;
-}
-
-.table-wrapper {
-  border: 1px solid var(--border) !important;
-  border-radius: 12px !important;
-  overflow: hidden !important;
-}
-
-table {
-  border-collapse: collapse !important;
-  width: 100% !important;
-}
-th {
-  background: var(--bg) !important;
-  border-bottom: 1px solid var(--border) !important;
-  font-size: 0.75rem !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.05em !important;
-  padding: 0.75rem 1rem !important;
-  color: var(--text-muted) !important;
-}
-td {
-  border-bottom: 1px solid var(--border) !important;
-  padding: 0.75rem 1rem !important;
-  color: var(--text) !important;
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes scaleIn {
-  from { transform: scale(0.97); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-/* Story dashboard details */
-.story-dashboard {
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: center !important;
-  margin-bottom: 1.5rem !important;
-}
-.story-step {
-  border: 1px solid var(--border) !important;
-  background: var(--bg) !important;
-  box-shadow: none !important;
-  padding: 0.75rem 1.25rem !important;
-  border-radius: 10px !important;
-  flex: 1 !important;
-  max-width: 30% !important;
-  opacity: 0.6 !important;
-  transition: all 0.3s ease !important;
-}
-.story-step.active {
-  background: var(--accent-glow) !important;
-  border: 1px solid var(--accent) !important;
-  opacity: 1 !important;
-}
-.story-step.completed {
-  background: rgba(16, 185, 129, 0.08) !important;
-  border: 1px solid var(--success) !important;
-  opacity: 1 !important;
-}
-.story-arrow {
-  color: var(--text-muted) !important;
-  font-weight: 300 !important;
-}
-
-.meta-bar {
-  background: var(--bg) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 10px !important;
-  padding: 0.75rem 1.25rem !important;
-  margin-bottom: 1.5rem !important;
-}
-.card-tabs {
-  margin-top: 1rem !important;
-  border-bottom: 1px solid var(--border) !important;
-}
-.tab-btn {
-  background: transparent !important;
-  border: none !important;
-  padding: 0.5rem 1rem !important;
-  font-weight: 600 !important;
-  color: var(--text-muted) !important;
-  border-bottom: 2px solid transparent !important;
-  cursor: pointer !important;
-  transition: all 0.2s ease !important;
-}
-.tab-btn.active {
-  color: var(--accent) !important;
-  border-bottom-color: var(--accent) !important;
-}
-
-/* ── Padronização Global de Botões ── */
-button,
-.btn,
-.btn-primary,
-.btn-secondary,
-.btn-ghost,
-.btn-danger,
-.btn-link,
-.btn-sm,
-.btn-xs,
-.action-btn,
-.pill-btn,
-.filter-pill,
-.mode-tab-btn {
-  text-decoration: none !important;
-  font-family: inherit;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-button:hover,
-.btn:hover,
-.btn-primary:hover,
-.btn-secondary:hover,
-.btn-ghost:hover,
-.btn-danger:hover,
-.btn-link:hover,
-.action-btn:hover,
-.pill-btn:hover,
-.filter-pill:hover,
-.mode-tab-btn:hover {
-  text-decoration: none !important;
-}
-
-.btn,
-.btn-primary,
-.btn-secondary,
-.btn-ghost,
-.btn-danger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  font-weight: 600;
-  border-radius: 8px;
-  line-height: 1;
-}
-
-.btn-sm {
-  padding: 0.4rem 0.8rem;
-  font-size: 0.82rem;
-  border-radius: 6px;
-}
-
-.btn-xs {
-  padding: 0.25rem 0.55rem;
-  font-size: 0.75rem;
-  border-radius: 5px;
-}
-
-/* ── Toolbar de Filtros e Busca Padronizada ── */
-.filters-toolbar,
-.filters-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  margin-bottom: 1.25rem;
-  padding: 0.75rem 1rem;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 10px;
-}
-
-.search-box,
-.search-wrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  flex: 1;
-  min-width: 240px;
-  max-width: 480px;
-}
-
-.search-box .search-icon,
-.search-wrap .search-icon {
-  position: absolute;
-  left: 0.85rem;
-  color: var(--text-muted);
-  font-size: 0.88rem;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.search-input,
-.input-search {
-  width: 100%;
-  height: 38px;
-  background: var(--bg);
-  border: 1px solid var(--input-border);
-  border-radius: 8px;
-  color: var(--text);
-  padding: 0 2.35rem;
-  font-size: 0.85rem;
-  font-family: inherit;
-  transition: all 0.2s ease;
-}
-
-.search-input:focus,
-.input-search:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
-}
-
-.clear-search-btn,
-.btn-clear-search {
-  position: absolute;
-  right: 0.5rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.78rem;
-  transition: all 0.15s ease;
-}
-
-.clear-search-btn:hover,
-.btn-clear-search:hover {
-  background: var(--card-border);
-  color: var(--text);
-}
-
-.status-filters,
-.status-filter-pills,
-.status-segmented {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-}
-
-.filter-pill,
-.pill-btn,
-.status-btn {
-  height: 34px;
-  padding: 0 0.75rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  border-radius: 8px;
-  font-size: 0.82rem;
-  font-weight: 500;
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.2s ease;
-}
-
-.filter-pill:hover,
-.pill-btn:hover,
-.status-btn:hover {
-  border-color: var(--accent);
-  color: var(--text);
-}
-
-.filter-pill.active,
-.pill-btn.active,
-.status-btn.active {
-  background: var(--accent-glow);
-  border-color: var(--accent);
-  color: var(--accent);
-  font-weight: 600;
-}
-
-/* ── Efeito Global de Destaque no Tutorial (Spotlight Target) ── */
-.tutorial-target-highlighted {
-  position: relative !important;
-  z-index: 9998 !important;
-  box-shadow: 0 0 0 3px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.6) !important;
-  border-radius: 8px;
-  transition: box-shadow 0.3s ease, border-color 0.3s ease !important;
-}
-</style>

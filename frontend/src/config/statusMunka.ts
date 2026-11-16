@@ -1,28 +1,31 @@
 /** Catálogo único de status do Munka (espelha backend/status_munka.py). */
+/** Variantes do BaseBadge usadas pelos status (`plain` = sem estilo, o antigo amarelo). */
+export type VarianteBadgeStatus = 'gray' | 'green' | 'blue' | 'orange' | 'plain'
+
 export interface StatusMunka {
   id: string
   rotulo: string
   concluida: boolean
-  badge: string
+  badge: VarianteBadgeStatus
 }
 
 export const STATUS_OUTROS: StatusMunka = {
   id: 'outros',
   rotulo: 'Sem status / Outros',
   concluida: false,
-  badge: 'badge-gray'
+  badge: 'gray'
 }
 
 export const CATALOGO_STATUS: StatusMunka[] = [
-  { id: '15', rotulo: 'Backlog', concluida: false, badge: 'badge-gray' },
-  { id: '16', rotulo: 'Backlog Prioritário', concluida: false, badge: 'badge-gray' },
-  { id: '17', rotulo: 'Pendente', concluida: false, badge: 'badge-yellow' },
-  { id: '18', rotulo: 'Desenvolvimento', concluida: false, badge: 'badge-orange' },
-  { id: '19', rotulo: 'Concluído para o Supervisor', concluida: true, badge: 'badge-green' },
-  { id: '20', rotulo: 'Homologação', concluida: false, badge: 'badge-blue' },
-  { id: '21', rotulo: 'Concluído', concluida: true, badge: 'badge-green' },
-  { id: '22', rotulo: 'Arquivado', concluida: false, badge: 'badge-gray' },
-  { id: '35', rotulo: 'Evidência com Pendência', concluida: false, badge: 'badge-orange' }
+  { id: '15', rotulo: 'Backlog', concluida: false, badge: 'gray' },
+  { id: '16', rotulo: 'Backlog Prioritário', concluida: false, badge: 'gray' },
+  { id: '17', rotulo: 'Pendente', concluida: false, badge: 'plain' },
+  { id: '18', rotulo: 'Desenvolvimento', concluida: false, badge: 'orange' },
+  { id: '19', rotulo: 'Concluído para o Supervisor', concluida: true, badge: 'green' },
+  { id: '20', rotulo: 'Homologação', concluida: false, badge: 'blue' },
+  { id: '21', rotulo: 'Concluído', concluida: true, badge: 'green' },
+  { id: '22', rotulo: 'Arquivado', concluida: false, badge: 'gray' },
+  { id: '35', rotulo: 'Evidência com Pendência', concluida: false, badge: 'orange' }
 ]
 
 export function normalizarTexto(valor?: string | null): string {
@@ -67,15 +70,16 @@ export function isStatusConcluido(valor?: string | null): boolean {
   return s.includes('conclu') || s.includes('supervisor') || s.includes('aprovad') || s.includes('finalizad')
 }
 
-export function classeBadgeStatus(valor?: string | null): string {
-  if (!valor) return 'badge-gray'
+/** Variante do BaseBadge para o status. */
+export function classeBadgeStatus(valor?: string | null): VarianteBadgeStatus {
+  if (!valor) return 'gray'
   const r = resolverStatus(valor)
   if (r) return r.badge
   const s = normalizarTexto(valor)
-  if (s.includes('conclu') || s.includes('aprov')) return 'badge-green'
-  if (s.includes('homolog')) return 'badge-blue'
-  if (s.includes('desenv')) return 'badge-orange'
-  if (s.includes('backlog')) return 'badge-gray'
-  if (s.includes('aberto') || s.includes('pendente')) return 'badge-yellow'
-  return 'badge-blue'
+  if (s.includes('conclu') || s.includes('aprov')) return 'green'
+  if (s.includes('homolog')) return 'blue'
+  if (s.includes('desenv')) return 'orange'
+  if (s.includes('backlog')) return 'gray'
+  if (s.includes('aberto') || s.includes('pendente')) return 'plain'
+  return 'blue'
 }

@@ -1,60 +1,60 @@
 <template>
-  <div class="page kanban-page">
-    <header class="kanban-header">
-      <div class="title-row">
-        <h1>Kanban de Tarefas - Munka</h1>
+  <div>
+    <header class="mb-4 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex flex-wrap items-center gap-3">
+        <h1 class="text-2xl font-bold text-foreground">Kanban de Tarefas - Munka</h1>
         <TutorialModal screenId="tarefas-kanban" />
-        <span class="counter-badge">{{ tarefasFiltradas.length }} de {{ dados.total }}</span>
+        <span class="rounded-full bg-primary-glow px-2.5 py-0.5 text-xs font-bold text-primary-light">{{ tarefasFiltradas.length }} de {{ dados.total }}</span>
       </div>
 
-      <div class="periodo" role="group" aria-label="Seletor de Mês e Ano">
-        <button type="button" class="btn-mes" aria-label="Mês anterior" @click="mudarMes(-1)">
+      <div class="flex items-center gap-2" role="group" aria-label="Seletor de Mês e Ano">
+        <button type="button" class="cursor-pointer rounded-lg border border-border bg-card px-3 py-1.5 text-foreground" aria-label="Mês anterior" @click="mudarMes(-1)">
           <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
         </button>
-        <select v-model.number="mes" class="filter-select" aria-label="Mês selecionado" @change="carregar">
+        <BaseSelect v-model.number="mes" auto-width aria-label="Mês selecionado" @change="carregar">
           <option v-for="(nome, idx) in meses" :key="idx" :value="idx + 1">{{ nome }}</option>
-        </select>
-        <input v-model.number="ano" type="number" class="filter-input ano" min="2020" max="2035" aria-label="Ano selecionado" @change="carregar" />
-        <button type="button" class="btn-mes" aria-label="Próximo mês" @click="mudarMes(1)">
+        </BaseSelect>
+        <BaseInput v-model.number="ano" type="number" auto-width class="w-22" min="2020" max="2035" aria-label="Ano selecionado" @change="carregar" />
+        <button type="button" class="cursor-pointer rounded-lg border border-border bg-card px-3 py-1.5 text-foreground" aria-label="Próximo mês" @click="mudarMes(1)">
           <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
         </button>
       </div>
     </header>
 
-    <div class="filters-bar">
-      <label class="filter-field">
-        <span class="filter-label">Regra</span>
-        <select v-model="filtroRegra" class="filter-select" aria-label="Filtrar por regra">
+    <div data-tour="tarefas-kanban-filtros" class="mb-4 flex flex-wrap gap-4">
+      <label class="mb-[0.35rem] flex flex-col gap-1">
+        <span class="text-[0.7rem] font-bold uppercase text-subtle-foreground">Regra</span>
+        <BaseSelect v-model="filtroRegra" aria-label="Filtrar por regra">
           <option value="">Todas</option>
           <option v-for="r in opcoesRegra" :key="r" :value="r">{{ r }}</option>
-        </select>
+        </BaseSelect>
       </label>
-      <label class="filter-field">
-        <span class="filter-label">Nome da atividade</span>
-        <input v-model="filtroAtividade" type="text" class="filter-input" placeholder="Contém..." aria-label="Filtrar por nome da atividade" />
+      <label class="mb-[0.35rem] flex flex-col gap-1">
+        <span class="text-[0.7rem] font-bold uppercase text-subtle-foreground">Nome da atividade</span>
+        <BaseInput v-model="filtroAtividade" type="text" placeholder="Contém..." aria-label="Filtrar por nome da atividade" />
       </label>
     </div>
 
-    <div v-if="loading" class="loading">Carregando tarefas...</div>
+    <StateMessage v-if="loading" type="loading">Carregando tarefas...</StateMessage>
 
-    <div v-else class="kanban-board" role="list">
-      <section v-for="col in colunas" :key="col.status.id" class="kanban-col" role="listitem" :aria-label="col.status.rotulo">
-        <header class="kanban-col-head">
-          <span class="col-title">{{ col.status.rotulo }}</span>
-          <span class="col-count">{{ col.tarefas.length }}</span>
+    <div v-else data-tour="tarefas-kanban-board" class="flex items-start gap-3 overflow-x-auto pb-3" role="list">
+      <section v-for="col in colunas" :key="col.status.id" class="flex max-h-[70vh] flex-none basis-[280px] flex-col rounded-[10px] border border-border bg-card" role="listitem" :aria-label="col.status.rotulo">
+        <header class="flex items-center justify-between border-b border-border px-3 py-2.5">
+          <span class="text-[0.85rem] font-bold text-foreground">{{ col.status.rotulo }}</span>
+          <span class="rounded-full bg-slate-400/15 px-2 py-0.5 text-xs font-bold text-muted-foreground">{{ col.tarefas.length }}</span>
         </header>
-        <div class="kanban-col-body">
-          <p v-if="col.tarefas.length === 0" class="col-vazia">Nenhuma tarefa</p>
-          <article v-for="t in col.tarefas" :key="t.id" class="kanban-card">
-            <div class="card-titulo">{{ t.titulo }}</div>
-            <div class="card-meta">
-              <span v-if="t.codigo" class="chip">{{ t.codigo }}</span>
-              <span class="chip">{{ t.hpa }}h</span>
-              <span v-if="t.status_munka && t.status_munka !== col.status.rotulo" class="chip chip-portal" :title="'Texto no portal'">{{ t.status_munka }}</span>
+        <div class="flex flex-col gap-2 overflow-y-auto p-2.5">
+          <p v-if="col.tarefas.length === 0" class="py-3 text-center text-[0.8rem] text-subtle-foreground">Nenhuma tarefa</p>
+          <article v-for="t in col.tarefas" :key="t.id" class="flex flex-col gap-1.5 rounded-lg border border-border bg-background px-3 py-2.5">
+            <div class="break-words text-[0.82rem] font-semibold text-foreground">{{ t.titulo }}</div>
+            <div class="flex flex-wrap gap-1">
+              <span v-if="t.codigo" class="rounded-md border border-badge-code-border bg-badge-code px-1.5 py-0.5 text-[0.68rem] font-bold text-badge-code-foreground">{{ t.codigo }}</span>
+              <span class="rounded-md border border-badge-code-border bg-badge-code px-1.5 py-0.5 text-[0.68rem] font-bold text-badge-code-foreground">{{ t.hpa }}h</span>
+              <span v-if="t.status_munka && t.status_munka !== col.status.rotulo" class="rounded-md border border-badge-orange-border bg-badge-orange px-1.5 py-0.5 text-[0.68rem] font-bold text-badge-orange-foreground" title="Texto no portal">{{ t.status_munka }}</span>
             </div>
-            <div class="card-rodape">
-              <span v-if="t.munka_atualizado_em" class="card-data">Atualizado em {{ formatarData(t.munka_atualizado_em) }}</span>
-              <a v-if="t.task_url" :href="t.task_url" target="_blank" rel="noopener noreferrer" class="card-link" aria-label="Abrir tarefa no Munka">
+            <div class="flex items-center justify-between gap-2">
+              <span v-if="t.munka_atualizado_em" class="text-[0.68rem] text-subtle-foreground">Atualizado em {{ formatarData(t.munka_atualizado_em) }}</span>
+              <a v-if="t.task_url" :href="t.task_url" target="_blank" rel="noopener noreferrer" class="text-[0.8rem] text-primary-light" aria-label="Abrir tarefa no Munka">
                 <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
               </a>
             </div>
@@ -73,6 +73,9 @@ import { useToastStore } from '../stores/toast'
 import { useTarefasMesStore } from '../stores/tarefasMes'
 import { CATALOGO_STATUS, STATUS_OUTROS, resolverStatus, type StatusMunka } from '../config/statusMunka'
 import TutorialModal from '../components/TutorialModal.vue'
+import BaseInput from '../components/ui/BaseInput.vue'
+import BaseSelect from '../components/ui/BaseSelect.vue'
+import StateMessage from '../components/ui/StateMessage.vue'
 
 const meses = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -144,33 +147,3 @@ async function carregar() {
 
 onMounted(carregar)
 </script>
-
-<style scoped>
-.kanban-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
-.title-row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
-.title-row h1 { font-size: 1.5rem; font-weight: 700; color: var(--text); }
-.counter-badge { font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; background: var(--accent-glow); color: var(--accent-light); }
-.periodo { display: flex; align-items: center; gap: 0.5rem; }
-.btn-mes { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text); border-radius: 8px; padding: 0.4rem 0.7rem; cursor: pointer; }
-.filters-bar { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
-.filter-field { display: flex; flex-direction: column; gap: 0.25rem; }
-.filter-label { font-size: 0.7rem; font-weight: 700; color: var(--text-subtle); text-transform: uppercase; }
-.filter-select, .filter-input { background: var(--card-bg); border: 1px solid var(--input-border); color: var(--text); border-radius: 8px; padding: 0.4rem 0.6rem; font-size: 0.85rem; }
-.filter-input.ano { width: 5.5rem; }
-
-.kanban-board { display: flex; gap: 0.75rem; overflow-x: auto; padding-bottom: 0.75rem; align-items: flex-start; }
-.kanban-col { flex: 0 0 280px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; display: flex; flex-direction: column; max-height: 70vh; }
-.kanban-col-head { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--card-border); }
-.col-title { font-size: 0.85rem; font-weight: 700; color: var(--text); }
-.col-count { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); background: rgba(148, 163, 184, 0.15); border-radius: 999px; padding: 0.1rem 0.5rem; }
-.kanban-col-body { padding: 0.6rem; display: flex; flex-direction: column; gap: 0.5rem; overflow-y: auto; }
-.col-vazia { font-size: 0.8rem; color: var(--text-subtle); text-align: center; padding: 0.75rem 0; }
-.kanban-card { background: var(--bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 0.6rem 0.7rem; display: flex; flex-direction: column; gap: 0.4rem; }
-.card-titulo { font-size: 0.82rem; font-weight: 600; color: var(--text); word-break: break-word; }
-.card-meta { display: flex; flex-wrap: wrap; gap: 0.3rem; }
-.chip { font-size: 0.68rem; font-weight: 700; padding: 0.1rem 0.45rem; border-radius: 6px; background: var(--badge-code-bg); color: var(--badge-code-color); border: 1px solid var(--badge-code-border); }
-.chip-portal { background: var(--badge-orange-bg); color: var(--badge-orange-color); border-color: var(--badge-orange-border); }
-.card-rodape { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
-.card-data { font-size: 0.68rem; color: var(--text-subtle); }
-.card-link { color: var(--accent-light); font-size: 0.8rem; }
-</style>

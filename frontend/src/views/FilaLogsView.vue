@@ -1,21 +1,22 @@
 <template>
-  <div class="page">
+  <div class="mx-auto max-w-[1200px] p-6">
     <!-- Header da Página -->
-    <div class="page-header">
-      <div class="title-row">
-        <h1>Logs de Execução</h1>
+    <PageHeader class="flex-wrap gap-4">
+      <div class="flex items-center gap-3">
+        <PageTitle>Logs de Execução</PageTitle>
         <TutorialModal screenId="fila-logs" />
-        <span v-if="logs.length > 0" class="logs-count-badge">
+        <span v-if="logs.length > 0" class="rounded-xl border border-border bg-background px-2.5 py-0.75 text-sm text-muted-foreground">
           {{ logsFiltrados.length }} de {{ logs.length }} log{{ logs.length > 1 ? 's' : '' }}
         </span>
       </div>
 
-      <div class="header-actions">
+      <div class="flex items-center gap-3" data-tour="fila-logs-acoes">
         <!-- Botão Excluir Selecionados -->
         <button 
           v-if="selecionados.length > 0"
           type="button"
-          class="btn-danger-link btn-bulk-delete" 
+          data-tour="fila-logs-excluir-selecionados"
+          class="cursor-pointer rounded-md border border-red-500/40 bg-red-500/12 px-3 py-1.5 text-sm text-danger transition hover:border-danger hover:bg-red-500/22" 
           @click="removerSelecionados"
           :title="`Excluir ${selecionados.length} log(s) selecionado(s)`"
           aria-label="Excluir logs selecionados"
@@ -24,50 +25,36 @@
           <span>Excluir Selecionados ({{ selecionados.length }})</span>
         </button>
 
-        <button type="button" class="btn-ghost btn-sm" @click="carregarLogs">
+        <BaseButton size="sm" @click="carregarLogs">
           <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
           <span>Atualizar</span>
-        </button>
+        </BaseButton>
       </div>
-    </div>
+    </PageHeader>
 
     <!-- Barra de Filtros e Seleção -->
-    <div class="filters-bar" role="search" aria-label="Filtros de logs">
-      <div class="search-box">
-        <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true"></i>
-        <input 
-          id="search-logs-input"
-          v-model="filtroTexto" 
-          type="search" 
-          placeholder="Buscar por título, commit ou conteúdo de log..." 
-          aria-label="Buscar nos logs de execução"
-          class="input-search"
-        />
-        <button 
-          v-if="filtroTexto" 
-          type="button" 
-          class="btn-clear-search" 
-          @click="filtroTexto = ''"
-          aria-label="Limpar busca"
-        >
-          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-        </button>
-      </div>
+    <FiltersBar class="shadow-card" role="search" aria-label="Filtros de logs" data-tour="fila-logs-filtros">
+      <SearchBox
+        v-model="filtroTexto"
+        placeholder="Buscar por título, commit ou conteúdo de log..."
+        aria-label="Buscar nos logs de execução"
+        data-tour="fila-logs-busca"
+      />
 
       <!-- Filtro de Status -->
-      <div class="status-filters" role="group" aria-label="Filtrar por status">
+      <div class="inline-flex flex-wrap items-center gap-1.5" role="group" aria-label="Filtrar por status" data-tour="fila-logs-status">
         <button 
           type="button"
-          class="filter-pill"
-          :class="{ active: filtroStatus === 'todos' }"
+          data-tour="fila-logs-pill"
+          :class="classesPill.todos"
           @click="filtroStatus = 'todos'"
         >
           Todos ({{ logs.length }})
         </button>
         <button 
           type="button"
-          class="filter-pill filter-retrying"
-          :class="{ active: filtroStatus === 'retrying' }"
+          data-tour="fila-logs-pill"
+          :class="classesPill.retrying"
           @click="filtroStatus = 'retrying'"
         >
           <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
@@ -75,8 +62,8 @@
         </button>
         <button 
           type="button"
-          class="filter-pill filter-error"
-          :class="{ active: filtroStatus === 'error' }"
+          data-tour="fila-logs-pill"
+          :class="classesPill.error"
           @click="filtroStatus = 'error'"
         >
           <i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>
@@ -84,8 +71,8 @@
         </button>
         <button 
           type="button"
-          class="filter-pill filter-done"
-          :class="{ active: filtroStatus === 'done' }"
+          data-tour="fila-logs-pill"
+          :class="classesPill.done"
           @click="filtroStatus = 'done'"
         >
           <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
@@ -94,11 +81,12 @@
       </div>
 
       <!-- Checkbox de Selecionar Todos -->
-      <div v-if="logsFiltrados.length > 0" class="select-all-container">
-        <label class="checkbox-label" for="select-all-checkbox">
+      <div v-if="logsFiltrados.length > 0" class="flex items-center">
+        <label :class="labelCheck" for="select-all-checkbox">
           <input 
             id="select-all-checkbox"
             type="checkbox" 
+            class="size-4 cursor-pointer accent-primary"
             :checked="todosSelecionados" 
             @change="alternarSelecionarTodos"
             aria-label="Selecionar todos os logs visíveis"
@@ -106,33 +94,34 @@
           <span>Selecionar Todos</span>
         </label>
       </div>
-    </div>
+    </FiltersBar>
 
     <!-- Indicador de Carregamento -->
-    <div v-if="loading && logs.length === 0" class="loading" role="status">
+    <StateMessage v-if="loading && logs.length === 0" type="loading" class="rounded-xl border border-border bg-card p-12 shadow-card" role="status">
       Carregando histórico de logs...
-    </div>
+    </StateMessage>
 
     <!-- Estado Vazio -->
-    <div v-else-if="logsFiltrados.length === 0" class="empty" role="status">
+    <StateMessage v-else-if="logsFiltrados.length === 0" type="empty" class="rounded-xl border border-border bg-card p-12 shadow-card" role="status">
       {{ filtroTexto || filtroStatus !== 'todos' ? 'Nenhum log encontrado para os filtros selecionados.' : 'Nenhum log de execução salvo ainda.' }}
-    </div>
+    </StateMessage>
 
     <!-- Lista de Logs -->
-    <div v-else class="logs-list" role="feed" aria-label="Lista de logs de execução">
+    <div v-else class="flex flex-col gap-3.5" role="feed" aria-label="Lista de logs de execução" data-tour="fila-logs-lista">
       <article 
         v-for="log in logsFiltrados" 
         :key="log.id" 
-        class="log-card"
-        :class="`log-card-${log.status}`"
+        :class="[cardLog, bordaPorStatus[log.status]]"
+        data-tour="fila-logs-card"
       >
-        <div class="log-card-header">
-          <div class="log-header-left">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted px-4 py-3">
+          <div class="flex items-center gap-2.5">
             <!-- Checkbox Individual -->
-            <label class="checkbox-label" :for="`checkbox-log-${log.id}`">
+            <label :class="labelCheck" :for="`checkbox-log-${log.id}`">
               <input 
                 :id="`checkbox-log-${log.id}`"
                 type="checkbox" 
+                class="size-4 cursor-pointer accent-primary"
                 :checked="isSelecionado(log.id)" 
                 @change="alternarSelecao(log.id)"
                 :aria-label="`Selecionar log #${log.id} da atividade ${log.titulo_atividade || log.commit_id}`"
@@ -140,54 +129,50 @@
             </label>
 
             <!-- Badge Tipo -->
-            <span 
-              class="badge" 
-              :class="log.tipo === 'analise' ? 'badge-blue' : 'badge-purple'"
-            >
+            <BaseBadge :variant="log.tipo === 'analise' ? 'blue' : 'purple'">
               {{ log.tipo === 'analise' ? 'Análise AI' : 'Envio Portal' }}
-            </span>
+            </BaseBadge>
 
             <!-- Badge Status / Tentativa -->
-            <span class="badge" :class="obterClasseStatusBadge(log.status)">
-              <i v-if="log.status === 'done'" class="fa-solid fa-circle-check" aria-hidden="true" style="margin-right: 4px;"></i>
-              <i v-else-if="log.status === 'retrying'" class="fa-solid fa-arrows-rotate" aria-hidden="true" style="margin-right: 4px;"></i>
-              <i v-else-if="log.status === 'error'" class="fa-solid fa-circle-xmark" aria-hidden="true" style="margin-right: 4px;"></i>
+            <BaseBadge :variant="varianteStatusBadge(log.status)" :class="classeBadgeStatus(log.status)">
+              <i v-if="log.status === 'done'" class="fa-solid fa-circle-check mr-1" aria-hidden="true"></i>
+              <i v-else-if="log.status === 'retrying'" class="fa-solid fa-arrows-rotate mr-1" aria-hidden="true"></i>
+              <i v-else-if="log.status === 'error'" class="fa-solid fa-circle-xmark mr-1" aria-hidden="true"></i>
               {{ obterTextoStatus(log) }}
-            </span>
+            </BaseBadge>
 
             <!-- Data / Timestamp -->
-            <span class="log-time" :title="formatarDataCompleta(log.criado_em)">
+            <span class="text-xs text-muted-foreground" :title="formatarDataCompleta(log.criado_em)">
               {{ formatarDataRelativa(log.criado_em) }}
             </span>
           </div>
 
-          <div class="log-header-right">
+          <div class="flex items-center gap-2.5">
             <!-- Link do Commit -->
             <router-link 
               v-if="log.commit_id" 
               :to="`/commits/${log.commit_id}`" 
-              class="commit-hash-link"
+              class="rounded-md border border-border bg-background px-2 py-[3px] font-mono text-[0.8rem] text-muted-foreground transition-all duration-200 hover:border-primary hover:bg-primary-glow hover:text-primary"
               :title="`Ver commit ${log.commit_id}`"
             >
               {{ log.commit_id.slice(0, 8) }}
             </router-link>
 
             <!-- Botão de Expandir / Colapsar Terminal -->
-            <button 
-              type="button"
-              class="btn-ghost btn-xs"
+            <BaseButton
+              size="xs"
               :aria-expanded="isExpandido(log.id)"
               :aria-controls="`terminal-body-${log.id}`"
               @click="alternarExpandir(log.id)"
             >
-              <i :class="isExpandido(log.id) ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'" aria-hidden="true" style="margin-right: 4px;"></i>
+              <i :class="[isExpandido(log.id) ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down', 'mr-1']" aria-hidden="true"></i>
               <span>{{ isExpandido(log.id) ? 'Ocultar Texto' : 'Expandir Logs' }}</span>
-            </button>
+            </BaseButton>
 
             <!-- Botão Deletar Individual -->
             <button 
               type="button"
-              class="btn-danger-link btn-xs" 
+              class="cursor-pointer rounded-[5px] border border-red-500/40 bg-red-500/12 px-2.25 py-1 text-xs text-danger transition hover:border-danger hover:bg-red-500/22" 
               @click="removerLog(log.id)"
               :aria-label="`Excluir log #${log.id}`"
               title="Excluir este log"
@@ -198,35 +183,35 @@
           </div>
         </div>
 
-        <div class="log-card-body">
-          <div class="log-meta-info">
-            <span v-if="log.titulo_atividade" class="log-activity-title">
+        <div class="px-4 py-3.5">
+          <div class="mb-2.5 flex flex-col gap-1.25 text-sm text-foreground">
+            <span v-if="log.titulo_atividade" class="font-semibold text-foreground">
               <strong>Atividade:</strong> "{{ log.titulo_atividade }}"
             </span>
-            <span v-if="log.commit_mensagem" class="log-commit-msg" :title="log.commit_mensagem">
+            <span v-if="log.commit_mensagem" class="truncate text-sm text-muted-foreground" :title="log.commit_mensagem">
               <strong>Commit:</strong> {{ log.commit_mensagem }}
             </span>
           </div>
 
           <!-- Resumo de Primeira / Última linha se colapsado -->
-          <div v-if="!isExpandido(log.id)" class="log-preview" @click="alternarExpandir(log.id)">
-            <span class="preview-text">
+          <div v-if="!isExpandido(log.id)" class="flex cursor-pointer items-center justify-between rounded-lg border border-border bg-background px-3.5 py-2 font-mono text-sm text-muted-foreground transition hover:border-primary hover:text-foreground" @click="alternarExpandir(log.id)">
+            <span class="max-w-[78%] truncate">
               {{ obterResumoLog(log) }}
             </span>
-            <span class="preview-hint">(Clique para expandir texto completo)</span>
+            <span class="shrink-0 font-sans text-xs font-medium text-primary">(Clique para expandir texto completo)</span>
           </div>
 
           <!-- Terminal de Logs Formatado (Quando Expandido) -->
           <div 
             v-show="isExpandido(log.id)" 
             :id="`terminal-body-${log.id}`" 
-            class="terminal-container"
+            class="mt-2.5 overflow-hidden rounded-lg border border-border bg-terminal shadow-[inset_0_2px_8px] shadow-black/40"
           >
-            <div class="terminal-header">
+            <div class="flex items-center justify-between border-b border-white/8 bg-gray-900 px-3.5 py-2 text-xs text-gray-400">
               <span>Terminal de Log de Execução (Tentativa #{{ log.tentativa }})</span>
               <button 
                 type="button" 
-                class="btn-copy-log" 
+                class="cursor-pointer rounded border border-white/20 bg-transparent px-2 py-0.75 text-xs text-gray-300 transition hover:bg-white/10 hover:text-white" 
                 @click="copiarTextoLog(log)"
                 aria-label="Copiar texto dos logs para a área de transferência"
               >
@@ -234,7 +219,7 @@
                 <span>Copiar</span>
               </button>
             </div>
-            <pre class="terminal-body"><div v-for="(linha, idx) in log.logs" :key="idx" :class="{'error-line': linha.includes('\u274c') || linha.includes('ERRO') || linha.includes('Falha'), 'warning-line': linha.includes('\u26a0') || linha.includes('\u23f8')}">{{ linha }}</div></pre>
+            <pre class="max-h-95 overflow-y-auto bg-terminal p-3.5 font-terminal text-xs leading-normal break-words whitespace-pre-wrap text-gray-200"><div v-for="(linha, idx) in log.logs" :key="idx" :class="{'text-red-400': linha.includes('\u274c') || linha.includes('ERRO') || linha.includes('Falha'), 'text-yellow-300': linha.includes('\u26a0') || linha.includes('\u23f8')}">{{ linha }}</div></pre>
           </div>
         </div>
       </article>
@@ -247,6 +232,13 @@ import { ref, computed, onMounted } from 'vue'
 import { api, type FilaLogItem } from '../api'
 import { useToastStore } from '../stores/toast'
 import TutorialModal from '../components/TutorialModal.vue'
+import BaseBadge from '../components/ui/BaseBadge.vue'
+import BaseButton from '../components/ui/BaseButton.vue'
+import FiltersBar from '../components/ui/FiltersBar.vue'
+import PageHeader from '../components/ui/PageHeader.vue'
+import PageTitle from '../components/ui/PageTitle.vue'
+import SearchBox from '../components/ui/SearchBox.vue'
+import StateMessage from '../components/ui/StateMessage.vue'
 
 const toastStore = useToastStore()
 
@@ -256,6 +248,30 @@ const filtroTexto = ref('')
 const filtroStatus = ref<'todos' | 'retrying' | 'error' | 'done'>('todos')
 const selecionados = ref<number[]>([])
 const expandidos = ref<Record<number, boolean>>({})
+
+// ── Classes reutilizadas no template ──
+const badgeErro = 'border border-red-500/30 bg-red-500/12 text-danger'
+const labelCheck = 'mb-1.5 flex cursor-pointer items-center gap-1.5 text-sm font-bold tracking-[0.05em] text-muted-foreground uppercase select-none'
+const cardLog = 'overflow-hidden rounded-xl border border-border bg-card shadow-card transition duration-250 hover:border-primary hover:border-l-primary hover:shadow-[0_8px_25px_rgba(0,0,0,0.08)]'
+const bordaPorStatus: Record<string, string> = {
+  retrying: 'border-l-4 border-l-warning',
+  error: 'border-l-4 border-l-danger',
+  done: 'border-l-4 border-l-success',
+}
+
+const pillBase = 'inline-flex h-[34px] cursor-pointer items-center gap-[0.45rem] rounded-lg border px-3 text-[0.82rem] select-none transition-all duration-200'
+const pillInativo = 'border-border bg-background font-medium text-muted-foreground hover:border-border-strong hover:bg-muted hover:text-foreground'
+const pillAtivo: Record<string, string> = {
+  todos: 'border-primary bg-primary font-semibold text-white',
+  retrying: 'border-warning bg-warning font-semibold text-white',
+  error: 'border-danger bg-danger font-semibold text-white',
+  done: 'border-success bg-success font-semibold text-white',
+}
+type FiltroStatus = 'todos' | 'retrying' | 'error' | 'done'
+const classesPill = computed(() => {
+  const montar = (valor: FiltroStatus) => [pillBase, filtroStatus.value === valor ? pillAtivo[valor] : pillInativo]
+  return { todos: montar('todos'), retrying: montar('retrying'), error: montar('error'), done: montar('done') }
+})
 
 async function carregarLogs() {
   loading.value = true
@@ -367,11 +383,15 @@ function obterTextoStatus(log: FilaLogItem) {
   return log.status
 }
 
-function obterClasseStatusBadge(status: string) {
-  if (status === 'done') return 'badge-green'
-  if (status === 'retrying') return 'badge-orange'
-  if (status === 'error') return 'badge-red'
-  return 'badge-blue'
+function classeBadgeStatus(status: string) {
+  return status === 'error' ? badgeErro : ''
+}
+
+function varianteStatusBadge(status: string) {
+  if (status === 'done') return 'green'
+  if (status === 'retrying') return 'orange'
+  if (status === 'error') return 'plain'
+  return 'blue'
 }
 
 function obterResumoLog(log: FilaLogItem) {
@@ -416,453 +436,3 @@ function formatarDataRelativa(iso: string) {
   }
 }
 </script>
-
-<style scoped>
-.page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1.5rem;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.title-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.title-row h1 {
-  font-size: 1.6rem;
-  font-weight: 700;
-  margin: 0;
-  color: var(--text);
-}
-
-.logs-count-badge {
-  background: var(--bg);
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  padding: 0.2rem 0.65rem;
-  border-radius: 12px;
-  border: 1px solid var(--card-border);
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.btn-bulk-delete {
-  font-size: 0.85rem;
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  cursor: pointer;
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  background: rgba(239, 68, 68, 0.12);
-  color: var(--error);
-  transition: all 0.2s ease;
-}
-
-.btn-bulk-delete:hover {
-  background: rgba(239, 68, 68, 0.22);
-  border-color: var(--error);
-}
-
-.filters-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  background: var(--card-bg);
-  padding: 0.75rem 1rem;
-  border-radius: 12px;
-  border: 1px solid var(--card-border);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-  flex-wrap: wrap;
-}
-
-.search-box {
-  position: relative;
-  display: flex;
-  align-items: center;
-  flex: 1;
-  min-width: 260px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 0.75rem;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  pointer-events: none;
-}
-
-.input-search {
-  width: 100%;
-  height: 38px;
-  padding: 0 2.35rem;
-  border-radius: 8px;
-  border: 1px solid var(--input-border);
-  background: var(--bg);
-  color: var(--text);
-  font-size: 0.88rem;
-  outline: none;
-  transition: all 0.2s ease;
-}
-
-.input-search:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
-}
-
-.btn-clear-search {
-  position: absolute;
-  right: 0.5rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  border-radius: 4px;
-  font-size: 0.78rem;
-  transition: all 0.15s ease;
-}
-
-.btn-clear-search:hover {
-  background: var(--card-border);
-  color: var(--text);
-}
-
-.status-filters {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-}
-
-.filter-pill {
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  background: var(--bg);
-  border: 1px solid var(--card-border);
-  color: var(--text-muted);
-  padding: 0 0.8rem;
-  border-radius: 8px;
-  font-size: 0.82rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.filter-pill:hover {
-  background: var(--header-group-bg);
-  color: var(--text);
-  border-color: var(--border);
-}
-
-.filter-pill.active {
-  background: var(--accent);
-  color: #ffffff;
-  border-color: var(--accent);
-  font-weight: 600;
-}
-
-.filter-pill.filter-retrying.active {
-  background: var(--warning);
-  border-color: var(--warning);
-  color: #ffffff;
-}
-
-.filter-pill.filter-error.active {
-  background: var(--error);
-  border-color: var(--error);
-  color: #ffffff;
-}
-
-.filter-pill.filter-done.active {
-  background: var(--success);
-  border-color: var(--success);
-  color: #ffffff;
-}
-
-.select-all-container {
-  display: flex;
-  align-items: center;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  cursor: pointer;
-  user-select: none;
-}
-
-.checkbox-label input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: var(--accent);
-}
-
-.logs-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-}
-
-.log-card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-  transition: all 0.25s ease;
-}
-
-.log-card:hover {
-  border-color: var(--accent);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-}
-
-.log-card-retrying {
-  border-left: 4px solid var(--warning);
-}
-
-.log-card-error {
-  border-left: 4px solid var(--error);
-}
-
-.log-card-done {
-  border-left: 4px solid var(--success);
-}
-
-.log-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  background: var(--header-group-bg);
-  border-bottom: 1px solid var(--card-border);
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.log-header-left, .log-header-right {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.log-time {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-.commit-hash-link {
-  font-family: monospace;
-  font-size: 0.82rem;
-  background: var(--bg);
-  border: 1px solid var(--card-border);
-  color: var(--text-muted);
-  padding: 0.2rem 0.5rem;
-  border-radius: 6px;
-  text-decoration: none;
-  transition: all 0.2s ease;
-}
-
-.commit-hash-link:hover {
-  background: var(--accent-glow);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.log-card-body {
-  padding: 0.85rem 1rem;
-}
-
-.log-meta-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  font-size: 0.9rem;
-  margin-bottom: 0.6rem;
-  color: var(--text);
-}
-
-.log-activity-title {
-  color: var(--text);
-  font-weight: 600;
-}
-
-.log-commit-msg {
-  font-size: 0.83rem;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.log-preview {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.55rem 0.85rem;
-  background: var(--bg);
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
-  cursor: pointer;
-  font-family: monospace;
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  transition: all 0.2s ease;
-}
-
-.log-preview:hover {
-  border-color: var(--accent);
-  color: var(--text);
-}
-
-.preview-text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 78%;
-}
-
-.preview-hint {
-  font-family: inherit;
-  font-size: 0.75rem;
-  color: var(--accent);
-  font-weight: 500;
-  flex-shrink: 0;
-}
-
-/* Terminal Console Component */
-.terminal-container {
-  margin-top: 0.65rem;
-  background: #090d16;
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
-}
-
-.terminal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.45rem 0.85rem;
-  background: #111827;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 0.78rem;
-  color: #9ca3af;
-}
-
-.btn-copy-log {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #d1d5db;
-  font-size: 0.75rem;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-copy-log:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-}
-
-.terminal-body {
-  padding: 0.85rem;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
-  font-size: 0.8rem;
-  line-height: 1.45;
-  color: #e5e7eb;
-  background: #090d16;
-  max-height: 380px;
-  overflow-y: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-  margin: 0;
-}
-
-.error-line {
-  color: #f87171;
-}
-
-.warning-line {
-  color: #fde047;
-}
-
-/* Badges Theme Responsive */
-.badge {
-  display: inline-block;
-  padding: 0.2rem 0.55rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.badge-blue {
-  background: var(--badge-code-bg);
-  color: var(--badge-code-color);
-  border: 1px solid var(--badge-code-border);
-}
-
-.badge-purple {
-  background: var(--badge-purple-bg);
-  color: var(--badge-purple-color);
-  border: 1px solid var(--badge-purple-border);
-}
-
-.badge-green {
-  background: var(--badge-green-bg);
-  color: var(--badge-green-color);
-  border: 1px solid var(--badge-green-border);
-}
-
-.badge-orange {
-  background: var(--badge-orange-bg);
-  color: var(--badge-orange-color);
-  border: 1px solid var(--badge-orange-border);
-}
-
-.badge-red {
-  background: rgba(239, 68, 68, 0.12);
-  color: var(--error);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-.loading, .empty {
-  text-align: center;
-  padding: 3rem;
-  color: var(--text-muted);
-  font-size: 0.95rem;
-  background: var(--card-bg);
-  border-radius: 12px;
-  border: 1px solid var(--card-border);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-}
-</style>

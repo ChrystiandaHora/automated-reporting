@@ -1,173 +1,148 @@
 <template>
-  <div class="page">
-    <div class="page-header">
-      <div class="title-row">
-        <h1>Histórico de Envios</h1>
+  <div>
+    <PageHeader>
+      <div class="flex items-center gap-2">
+        <PageTitle>Histórico de Envios</PageTitle>
         <TutorialModal screenId="historico" />
-        <span v-if="items.length > 0" class="history-count-badge">
+        <span v-if="items.length > 0" class="text-xs font-bold text-muted-foreground bg-muted px-2 py-0.75 border border-border-strong rounded-full ml-2 align-middle">
           {{ items.length }} atividade{{ items.length > 1 ? 's' : '' }}
         </span>
       </div>
-      <button class="btn-ghost btn-sm" @click="carregarHistorico()">
+      <BaseButton size="sm" @click="carregarHistorico()">
         <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
         <span>Atualizar</span>
-      </button>
-    </div>
+      </BaseButton>
+    </PageHeader>
 
-    <div v-if="loading" class="loading">Carregando...</div>
+    <StateMessage v-if="loading" type="loading">Carregando...</StateMessage>
 
-    <div v-else-if="items.length === 0" class="empty">
+    <StateMessage v-else-if="items.length === 0" type="empty">
       Nenhuma atividade enviada ainda.
-    </div>
+    </StateMessage>
 
-    <div v-else class="history-content">
+    <div v-else>
       <!-- Barra de Filtros e Busca -->
-      <div class="filters-toolbar" role="search" aria-label="Filtros de histórico">
-        <div class="search-box">
-          <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true"></i>
-          <input 
-            v-model="termoBusca"
-            type="search"
-            placeholder="Buscar por título, código, autor ou commit..."
-            class="search-input"
-            aria-label="Buscar atividades no histórico"
-          />
-          <button 
-            v-if="termoBusca"
-            type="button"
-            class="clear-search-btn"
-            @click="termoBusca = ''"
-            title="Limpar busca"
-            aria-label="Limpar busca"
-          >
-            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-          </button>
-        </div>
+      <FiltersBar data-tour="historico-filtros" role="search" aria-label="Filtros de histórico">
+        <SearchBox
+          v-model="termoBusca"
+          data-tour="historico-busca"
+          placeholder="Buscar por título, código, autor ou commit..."
+          ariaLabel="Buscar atividades no histórico"
+        />
 
-        <div class="status-segmented" role="group" aria-label="Filtrar por status">
-          <button 
-            type="button"
-            class="status-btn"
-            :class="{ active: filtroStatus === 'todos' }"
-            @click="filtroStatus = 'todos'"
-          >
+        <div class="inline-flex flex-wrap items-center gap-1.5" role="group" aria-label="Filtrar por status">
+          <PillButton :active="filtroStatus === 'todos'" @click="filtroStatus = 'todos'">
             Todas ({{ items.length }})
-          </button>
-          <button 
-            type="button"
-            class="status-btn"
-            :class="{ active: filtroStatus === 'concluidas' }"
-            @click="filtroStatus = 'concluidas'"
-          >
+          </PillButton>
+          <PillButton :active="filtroStatus === 'concluidas'" @click="filtroStatus = 'concluidas'">
             <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
             <span>Concluídas ({{ totalConcluidas }})</span>
-          </button>
-          <button 
-            type="button"
-            class="status-btn"
-            :class="{ active: filtroStatus === 'sem_data' }"
-            @click="filtroStatus = 'sem_data'"
-          >
+          </PillButton>
+          <PillButton :active="filtroStatus === 'sem_data'" @click="filtroStatus = 'sem_data'">
             <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
             <span>Sem Data Fim ({{ totalSemDataFim }})</span>
-          </button>
+          </PillButton>
         </div>
-      </div>
+      </FiltersBar>
 
       <!-- Estado sem resultados nos filtros -->
-      <div v-if="itemsFiltrados.length === 0" class="empty">
+      <StateMessage v-if="itemsFiltrados.length === 0" type="empty">
         <p>Nenhuma atividade encontrada para os filtros selecionados.</p>
-        <button type="button" class="btn-ghost btn-sm" style="margin-top: 0.5rem;" @click="limparFiltros">
+        <BaseButton size="sm" class="mt-2" @click="limparFiltros">
           <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
           <span>Limpar Filtros</span>
-        </button>
-      </div>
+        </BaseButton>
+      </StateMessage>
 
-      <div v-else class="history-list-grouped">
+      <div v-else data-tour="historico-lista" class="flex flex-col gap-6 mt-4">
       <!-- Percorre os dias agrupados por data (data do commit ou envio) -->
-      <div v-for="grupo in historicoAgrupado" :key="grupo.data" class="date-group">
+      <div v-for="grupo in historicoAgrupado" :key="grupo.data" class="flex flex-col">
         
         <!-- Cabeçalho do dia: "23 Jun, 2026 - 3 atividades" -->
-        <div class="date-group-header">
-          <span class="date-text">{{ grupo.data }}</span>
-          <span class="commit-count-text">{{ grupo.items.length }} atividade{{ grupo.items.length > 1 ? 's' : '' }}</span>
+        <div data-tour="historico-grupo-cabecalho" class="flex items-baseline gap-2 px-5 py-3 bg-muted border border-border border-b-0 rounded-t-[10px] text-sm">
+          <span class="font-extrabold text-foreground text-base">{{ grupo.data }}</span>
+          <span class="text-muted-foreground text-sm font-medium">{{ grupo.items.length }} atividade{{ grupo.items.length > 1 ? 's' : '' }}</span>
         </div>
 
         <!-- Lista de atividades enviadas desse dia -->
-        <div class="date-group-items">
+        <div data-tour="historico-grupo-itens" class="border border-border border-t-0 bg-card flex flex-col rounded-b-[10px] overflow-hidden">
           <div 
             v-for="item in grupo.items" 
             :key="item.id" 
-            class="history-row"
+            class="flex items-center px-5 py-3.5 border-b border-border-strong transition-colors duration-150 last:border-b-0 hover:bg-primary-glow"
           >
             <!-- Lado Esquerdo: Avatar do Autor do Commit -->
             <div 
-              class="history-avatar" 
-              :style="{ backgroundColor: obterCorAvatar(item.commit_autor || 'Sistema') }"
+              class="size-9 rounded-full text-white flex items-center justify-center text-xs font-extrabold mr-4 shrink-0 border border-border-strong text-shadow-[0_1px_2px] text-shadow-black/40" 
+              :class="obterClasseAvatar(item.commit_autor || 'Sistema')"
               :title="item.commit_autor || 'Autor não informado'"
             >
               {{ obterIniciais(item.commit_autor || 'SI') }}
             </div>
 
             <!-- Centro: Título da atividade, Badges e Informações do Commit -->
-            <div class="history-info">
-              <div class="history-title-container">
-                <span class="history-title" :title="item.titulo">
+            <div class="flex flex-col gap-1 flex-1 min-w-0">
+              <div class="flex items-center gap-3 flex-wrap">
+                <span class="text-base font-bold text-foreground truncate max-w-112.5" :title="item.titulo">
                   {{ item.titulo }}
                 </span>
                 
                 <!-- Badges: Código, HPA e Status -->
-                <div class="history-row-badges">
-                  <span class="badge badge-code"><code>{{ item.codigo }}</code></span>
-                  <span class="hpa-badge">{{ item.hpa }}h</span>
-                  <span class="badge" :class="item.tem_data_fim === false || item.status?.includes('Sem Data Fim') || item.status?.includes('Incompleta') ? 'badge-orange' : 'badge-green'">
-                    <i v-if="item.tem_data_fim === false" class="fa-solid fa-triangle-exclamation" aria-hidden="true" style="margin-right: 4px;"></i>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <BaseBadge variant="plain"><code class="text-xs border border-badge-code-border text-badge-code-foreground bg-badge-code px-1.25 py-px font-courier rounded">{{ item.codigo }}</code></BaseBadge>
+                  <span class="font-courier font-bold text-badge-hpa-foreground bg-badge-hpa border border-badge-hpa-border px-1.5 py-px text-xs rounded-md">{{ item.hpa }}h</span>
+                  <BaseBadge :variant="item.tem_data_fim === false || item.status?.includes('Sem Data Fim') || item.status?.includes('Incompleta') ? 'orange' : 'green'">
+                    <i v-if="item.tem_data_fim === false" class="fa-solid fa-triangle-exclamation mr-1" aria-hidden="true"></i>
                     {{ item.tem_data_fim === false ? 'Sem Data Fim' : item.status }}
-                  </span>
+                  </BaseBadge>
                 </div>
               </div>
 
-              <div class="history-sub-info">
-                <span v-if="item.commit_mensagem" class="history-commit-msg" :title="item.commit_mensagem">
+              <div class="flex items-center gap-4 text-xs text-muted-foreground">
+                <span v-if="item.commit_mensagem" class="truncate max-w-87.5 text-muted-foreground" :title="item.commit_mensagem">
                   Commit: {{ item.commit_mensagem }}
                 </span>
-                <span class="history-time-info">
+                <span class="text-xs text-muted-foreground">
                   Enviado {{ obterTempoRelativo(item.enviado_em) }} ({{ formatDate(item.enviado_em) }})
                 </span>
               </div>
             </div>
 
             <!-- Lado Direito: Link para o Commit e Ações -->
-            <div class="history-actions" @click.stop>
+            <div data-tour="historico-acoes" class="flex items-center gap-2 shrink-0 ml-4" @click.stop>
               <!-- SHA Box Link -->
               <router-link 
                 v-if="item.commit_id" 
                 :to="`/commits/${item.commit_id}`" 
-                class="sha-box-link"
+                data-tour="historico-sha-link"
+                class="font-courier text-xs text-code-foreground bg-code border border-border-strong rounded-md px-2.5 py-1.25 tracking-wider font-bold transition-all duration-150 hover:bg-primary-glow hover:text-primary hover:border-primary"
                 :title="`Ver detalhes do commit ${item.commit_id}`"
               >
                 {{ item.commit_id.slice(0, 8) }}
               </router-link>
 
               <!-- Botão Re-enviar / Retry -->
-              <button 
-                class="btn-ghost btn-sm btn-reenviar-history" 
+              <BaseButton
+                variant="plain"
+                data-tour="historico-reenviar"
+                class="rounded-md border border-border-strong bg-card px-2.5 py-1 text-xs text-primary hover:-translate-y-px hover:border-primary hover:bg-primary-glow"
                 @click="reenviarItemHistorico(item)"
                 title="Re-enviar esta atividade ao portal Munka"
               >
                 ↻ Re-enviar
-              </button>
+              </BaseButton>
 
               <!-- Botão Excluir -->
               <button 
-                class="action-btn delete-btn" 
+                type="button"
+                class="flex items-center justify-center cursor-pointer bg-transparent border-0 p-1 text-canvas-danger opacity-85 transition-[opacity,scale] duration-100 hover:opacity-100 hover:scale-110 hover:text-canvas-danger-hover" 
                 @click="abrirModalConfirmacao(item.id)"
                 title="Remover do histórico"
               >
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10" stroke="#f85149" fill="none" />
-                  <line x1="15" y1="9" x2="9" y2="15" stroke="#f85149" />
-                  <line x1="9" y1="9" x2="15" y2="15" stroke="#f85149" />
+                  <circle cx="12" cy="12" r="10" class="stroke-canvas-danger" fill="none" />
+                  <line x1="15" y1="9" x2="9" y2="15" class="stroke-canvas-danger" />
+                  <line x1="9" y1="9" x2="15" y2="15" class="stroke-canvas-danger" />
                 </svg>
               </button>
             </div>
@@ -180,16 +155,14 @@
   </div>
 
     <!-- Modal de Confirmação de Exclusão -->
-    <div v-if="exibindoModalConfirmacao" class="modal-overlay" @click.self="fecharModalConfirmacao">
-      <div ref="confirmModalRef" class="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
-        <h2 id="confirm-modal-title">Confirmar Exclusão</h2>
-        <p>Tem certeza de que deseja remover esta atividade do histórico? Esta ação não pode ser desfeita.</p>
-        <div class="modal-actions">
-          <button class="btn-ghost" @click="fecharModalConfirmacao">Cancelar</button>
-          <button class="btn-danger" @click="confirmarExclusao">Excluir</button>
-        </div>
-      </div>
-    </div>
+    <BaseModal v-if="exibindoModalConfirmacao" ref="modalRef" labelledby="confirm-modal-title" @close="fecharModalConfirmacao">
+      <h2 id="confirm-modal-title" class="mb-1 text-xl font-bold text-foreground">Confirmar Exclusão</h2>
+      <p>Tem certeza de que deseja remover esta atividade do histórico? Esta ação não pode ser desfeita.</p>
+      <template #actions>
+        <BaseButton @click="fecharModalConfirmacao">Cancelar</BaseButton>
+        <button type="button" class="inline-flex cursor-pointer items-center justify-center gap-2 border-2 border-border-strong bg-canvas-danger px-4.5 py-2 text-sm leading-none font-bold tracking-wide text-white shadow-[3px_3px_0] shadow-border-strong transition-[translate,box-shadow] duration-100 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-canvas-danger-hover hover:shadow-[5px_5px_0] hover:shadow-border-strong" @click="confirmarExclusao">Excluir</button>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
@@ -199,6 +172,15 @@ import { api, type HistoricoItem } from '../api'
 import { useToastStore } from '../stores/toast'
 import { useFilaStore } from '../stores/fila'
 import TutorialModal from '../components/TutorialModal.vue'
+import BaseBadge from '../components/ui/BaseBadge.vue'
+import BaseButton from '../components/ui/BaseButton.vue'
+import BaseModal from '../components/ui/BaseModal.vue'
+import FiltersBar from '../components/ui/FiltersBar.vue'
+import PageHeader from '../components/ui/PageHeader.vue'
+import PageTitle from '../components/ui/PageTitle.vue'
+import PillButton from '../components/ui/PillButton.vue'
+import SearchBox from '../components/ui/SearchBox.vue'
+import StateMessage from '../components/ui/StateMessage.vue'
 
 const items = ref<HistoricoItem[]>([])
 const loading = ref(true)
@@ -249,15 +231,16 @@ let timerHistorico: any = null
 const itemParaDeletar = ref<number | null>(null)
 const exibindoModalConfirmacao = ref(false)
 
-const confirmModalRef = ref<HTMLElement | null>(null)
+const modalRef = ref<InstanceType<typeof BaseModal> | null>(null)
 const previousActiveElement = ref<HTMLElement | null>(null)
 
 function handleConfirmKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
     fecharModalConfirmacao()
   }
-  if (e.key === 'Tab' && confirmModalRef.value) {
-    const focusable = confirmModalRef.value.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+  const painel = modalRef.value?.panel
+  if (e.key === 'Tab' && painel) {
+    const focusable = painel.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
     if (focusable.length === 0) return
     const first = focusable[0] as HTMLElement
     const last = focusable[focusable.length - 1] as HTMLElement
@@ -280,7 +263,7 @@ watch(exibindoModalConfirmacao, (newVal) => {
     previousActiveElement.value = document.activeElement as HTMLElement
     document.addEventListener('keydown', handleConfirmKeydown)
     nextTick(() => {
-      const btn = confirmModalRef.value?.querySelector('.modal-actions button') as HTMLElement
+      const btn = modalRef.value?.panel?.querySelector('[data-modal-actions] button') as HTMLElement
       btn?.focus()
     })
   } else {
@@ -416,20 +399,20 @@ function obterIniciais(nome?: string): string {
   return parts[0].slice(0, 2).toUpperCase()
 }
 
-function obterCorAvatar(nome?: string): string {
-  if (!nome) return '#777'
+function obterClasseAvatar(nome?: string): string {
+  if (!nome) return 'bg-avatar-default'
   let hash = 0
   for (let i = 0; i < nome.length; i++) {
     hash = nome.charCodeAt(i) + ((hash << 5) - hash)
   }
   const colors = [
-    '#007acc', // Blue
-    '#3fb950', // Green
-    '#f85149', // Red
-    '#d29922', // Orange/Yellow
-    '#bc8cff', // Purple
-    '#1f6feb', // Light Blue
-    '#30b6e6'  // Cyan
+    'bg-avatar-blue',
+    'bg-canvas-success',
+    'bg-canvas-danger',
+    'bg-avatar-amber',
+    'bg-avatar-purple',
+    'bg-avatar-indigo',
+    'bg-avatar-cyan'
   ]
   const index = Math.abs(hash) % colors.length
   return colors[index]
@@ -519,266 +502,3 @@ async function confirmarExclusao() {
   }
 }
 </script>
-
-<style scoped>
-.title-row { display: flex; align-items: center; gap: 0.5rem; }
-
-.history-count-badge {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  background: var(--header-group-bg);
-  padding: 3px 8px;
-  border: 1px solid var(--border);
-  border-radius: 99px;
-  margin-left: 0.5rem;
-  vertical-align: middle;
-}
-
-.btn-sm {
-  padding: 0.3rem 0.75rem;
-  font-size: 0.8rem;
-}
-
-/* Agrupamento por Data (idêntico a CommitsView) */
-.history-list-grouped {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  margin-top: 1rem;
-}
-
-.date-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.date-group-header {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  background: var(--header-group-bg);
-  border: 1px solid var(--card-border);
-  border-bottom: none;
-  border-radius: 10px 10px 0 0;
-  font-size: 0.88rem;
-}
-
-.date-text {
-  font-weight: 800;
-  color: var(--text);
-  font-size: 0.95rem;
-}
-
-.commit-count-text {
-  color: var(--text-muted);
-  font-size: 0.82rem;
-  font-weight: 500;
-}
-
-.date-group-items {
-  border: 1px solid var(--card-border);
-  border-top: none;
-  background: var(--card-bg);
-  display: flex;
-  flex-direction: column;
-  border-radius: 0 0 10px 10px;
-  overflow: hidden;
-}
-
-.history-row {
-  display: flex;
-  align-items: center;
-  padding: 0.875rem 1.25rem;
-  border-bottom: 1px solid var(--border);
-  transition: background 0.15s;
-}
-
-.history-row:last-child {
-  border-bottom: none;
-}
-
-.history-row:hover {
-  background: var(--accent-glow);
-}
-
-.history-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  font-weight: 800;
-  margin-right: 1rem;
-  flex-shrink: 0;
-  border: 1px solid var(--border);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-}
-
-.history-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  flex: 1;
-  min-width: 0;
-}
-
-.history-title-container {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.history-title {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 450px;
-}
-
-.history-row-badges {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  flex-wrap: wrap;
-}
-
-.badge-code code {
-  font-size: 0.75rem;
-  border: 1px solid var(--badge-code-border);
-  color: var(--badge-code-color);
-  background: var(--badge-code-bg);
-  padding: 1px 5px;
-  font-family: 'Courier New', monospace;
-  border-radius: 4px;
-}
-
-.hpa-badge {
-  font-family: 'Courier New', monospace;
-  font-weight: 700;
-  color: var(--badge-hpa-color);
-  background: var(--badge-hpa-bg);
-  border: 1px solid var(--badge-hpa-border);
-  padding: 1px 6px;
-  font-size: 0.75rem;
-  border-radius: 6px;
-}
-
-.history-sub-info {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-.history-commit-msg {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 350px;
-  color: var(--text-muted);
-}
-
-.history-time-info {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-
-.history-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-shrink: 0;
-  margin-left: 1rem;
-}
-
-.sha-box-link {
-  font-family: 'Courier New', monospace;
-  font-size: 0.8rem;
-  color: var(--sha-box-color);
-  background: var(--sha-box-bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.3rem 0.6rem;
-  letter-spacing: 0.04em;
-  font-weight: 700;
-  text-decoration: none;
-  transition: all 0.15s;
-}
-
-.sha-box-link:hover {
-  background: var(--accent-glow);
-  color: var(--accent);
-  border-color: var(--accent);
-}
-
-.action-btn {
-  background: var(--bg);
-  border: 2px solid var(--border);
-  color: var(--text-muted);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.35rem;
-  transition: border-color 0.12s, color 0.12s, transform 0.1s;
-}
-
-.btn-reenviar-history {
-  color: var(--accent, #58a6ff);
-  font-weight: 600;
-  padding: 0.25rem 0.6rem;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  border: 1px solid var(--border);
-}
-
-.btn-reenviar-history:hover {
-  background: var(--accent-glow, rgba(88, 166, 255, 0.1));
-  border-color: var(--accent, #58a6ff);
-}
-
-.delete-btn {
-  border: none;
-  background: transparent;
-  padding: 0.25rem;
-  color: #f85149;
-  opacity: 0.85;
-  transition: opacity 0.12s, transform 0.1s;
-}
-
-.delete-btn:hover {
-  opacity: 1;
-  transform: scale(1.1);
-  color: #ff6b6b;
-}
-
-.btn-danger {
-  background: #f85149;
-  color: #ffffff;
-  border: 2px solid var(--border);
-  border-radius: 0;
-  padding: 0.5rem 1.1rem;
-  font-weight: 700;
-  cursor: pointer;
-  font-size: 0.88rem;
-  letter-spacing: 0.02em;
-  box-shadow: 3px 3px 0 var(--border);
-  transition: transform 0.1s, box-shadow 0.1s;
-}
-
-.btn-danger:hover {
-  transform: translateY(-2px) translateX(-2px);
-  box-shadow: 5px 5px 0 var(--border);
-  background: #ff6b6b;
-}
-</style>

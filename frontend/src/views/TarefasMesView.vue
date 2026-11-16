@@ -1,66 +1,66 @@
 <template>
-  <div class="page tarefas-mes-page">
+  <div class="flex flex-col gap-6">
     <!-- Cabeçalho -->
-    <header class="page-header">
-      <div class="header-main-col">
-        <div class="title-row">
-          <h1>Tarefas do Mês - Munka</h1>
+    <header class="mb-8 flex flex-wrap items-start justify-between gap-5 border-b border-border-strong pb-5 max-md:flex-col">
+      <div class="min-w-70 flex-1">
+        <div class="flex items-center gap-3">
+          <PageTitle>Tarefas do Mês - Munka</PageTitle>
           <TutorialModal screenId="tarefas-mes" />
-          <span v-if="dados.total > 0" class="counter-badge">
+          <span v-if="dados.total > 0" class="rounded-full border border-border-strong bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
             {{ dados.total }} lançada{{ dados.total > 1 ? 's' : '' }}
           </span>
         </div>
-        <p class="page-subtitle">
+        <p class="mt-1.5 max-w-180 text-sm leading-normal text-muted-foreground">
           Audite e gerencie tarefas lançadas no portal Munka. Selecione e ajuste atividades livremente quantas vezes for necessário, de forma individual ou em lote.
         </p>
       </div>
 
       <!-- Controles de Mês/Ano e Ações Principais -->
-      <div class="header-actions-col">
+      <div data-tour="tarefas-mes-acoes-periodo" class="flex flex-wrap items-center gap-3 max-md:w-full max-md:justify-between">
         <!-- Seletor de Período -->
-        <div class="periodo-selector-card" role="group" aria-label="Seletor de Mês e Ano">
-          <button 
-            type="button" 
-            class="btn-nav-mes" 
-            @click="mudarMes(-1)" 
+        <div class="flex items-center gap-1 rounded-lg border border-border bg-card px-1.5 py-1" role="group" aria-label="Seletor de Mês e Ano">
+          <button
+            type="button"
+            data-tour="tarefas-mes-nav-mes" :class="classesNavMes"
+            @click="mudarMes(-1)"
             title="Mês anterior"
             aria-label="Mês anterior"
           >
             <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
           </button>
 
-          <div class="periodo-selects">
-            <select v-model.number="mesAtual" class="select-mes" aria-label="Mês selecionado" @change="carregarTarefas">
+          <div class="flex items-center gap-1">
+            <select v-model.number="mesAtual" class="rounded-lg border-0 bg-transparent px-1.5 py-1 text-sm font-bold text-foreground shadow-field focus:ring-3 focus:ring-primary-glow focus:outline-none [&_option]:bg-card [&_option]:text-foreground" aria-label="Mês selecionado" @change="carregarTarefas">
               <option v-for="(nome, idx) in meses" :key="idx" :value="idx + 1">
                 {{ nome }}
               </option>
             </select>
-            <input 
-              v-model.number="anoAtual" 
-              type="number" 
-              class="input-ano" 
-              min="2020" 
-              max="2035" 
+            <input
+              v-model.number="anoAtual"
+              type="number"
+              class="w-15 rounded border border-transparent bg-transparent px-1 py-0.5 text-center text-sm font-semibold text-muted-foreground shadow-field focus:border-border-strong focus:bg-slate-400/10 focus:text-foreground focus:ring-3 focus:ring-primary-glow focus:outline-none"
+              min="2020"
+              max="2035"
               aria-label="Ano selecionado"
               @change="carregarTarefas"
             />
           </div>
 
-          <button 
-            type="button" 
-            class="btn-nav-mes" 
-            @click="mudarMes(1)" 
+          <button
+            type="button"
+            data-tour="tarefas-mes-nav-mes" :class="classesNavMes"
+            @click="mudarMes(1)"
             title="Próximo mês"
             aria-label="Próximo mês"
           >
             <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
           </button>
 
-          <button 
-            v-if="!isMesAtual" 
-            type="button" 
-            class="btn-mes-hoje" 
-            @click="irParaMesAtual" 
+          <button
+            v-if="!isMesAtual"
+            type="button"
+            data-tour="tarefas-mes-hoje" class="cursor-pointer rounded-md border border-primary bg-primary-glow px-2 py-1 text-xs font-bold text-primary transition-all duration-150 hover:bg-primary hover:text-white"
+            @click="irParaMesAtual"
             title="Voltar para o mês corrente"
           >
             Hoje
@@ -68,11 +68,11 @@
         </div>
 
         <!-- Botão Sincronizar Munka -->
-        <button 
-          type="button" 
-          class="btn-sync-munka" 
+        <button
+          type="button"
+          data-tour="tarefas-mes-sincronizar" class="flex cursor-pointer items-center gap-2 rounded-lg border border-primary bg-card px-4 py-2 text-sm font-bold text-primary transition-all duration-150 enabled:hover:bg-primary enabled:hover:text-white enabled:hover:shadow-[0_2px_8px] enabled:hover:shadow-accent/25 disabled:cursor-not-allowed disabled:opacity-60"
           :disabled="sincronizando || loading"
-          @click="sincronizarComMunka" 
+          @click="sincronizarComMunka"
           title="Verificar status real das tarefas navegando no portal Munka"
         >
           <i class="fa-solid fa-arrows-rotate" :class="{ 'fa-spin': sincronizando }" aria-hidden="true"></i>
@@ -80,137 +80,118 @@
         </button>
 
         <!-- Botão Recarregar Local -->
-        <button 
-          type="button" 
-          class="btn-ghost btn-sm" 
-          :disabled="loading" 
-          @click="carregarTarefas" 
+        <BaseButton
+          size="sm"
+          :disabled="loading"
+          @click="carregarTarefas"
           title="Atualizar listagem local"
         >
           <i class="fa-solid fa-rotate" :class="{ 'fa-spin': loading }" aria-hidden="true"></i>
           <span>Atualizar</span>
-        </button>
+        </BaseButton>
       </div>
     </header>
 
     <!-- Cards de Métricas e Indicadores -->
-    <section class="metricas-grid" aria-label="Métricas de Tarefas do Mês">
-      <div class="metrica-card">
-        <div class="metrica-icon icon-total">
+    <section data-tour="tarefas-mes-metricas" class="grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-4" aria-label="Métricas de Tarefas do Mês">
+      <div data-tour="tarefas-mes-metrica-card" :class="[classesMetricaCard, 'border-border bg-card hover:border-border-strong']">
+        <div :class="[classesMetricaIcone, 'bg-blue-500/15 text-blue-500']">
           <i class="fa-solid fa-list-check" aria-hidden="true"></i>
         </div>
-        <div class="metrica-info">
-          <span class="metrica-label">Total Lançadas</span>
-          <span class="metrica-valor">{{ dados.total }}</span>
+        <div class="flex flex-col">
+          <span :class="classesMetricaLabel">Total Lançadas</span>
+          <span :class="[classesMetricaValor, 'text-foreground']">{{ dados.total }}</span>
         </div>
       </div>
 
-      <div class="metrica-card highlight-editavel">
-        <div class="metrica-icon icon-editavel">
+      <div data-tour="tarefas-mes-metrica-card" :class="[classesMetricaCard, 'border-green-500/35 bg-linear-135 from-card to-green-500/5']">
+        <div :class="[classesMetricaIcone, 'bg-green-500/15 text-green-500']">
           <i class="fa-solid fa-unlock-keyhole" aria-hidden="true"></i>
         </div>
-        <div class="metrica-info">
-          <span class="metrica-label">Disponíveis p/ Ajuste</span>
-          <span class="metrica-valor text-green">{{ dados.total }}</span>
-          <span class="metrica-hint">Seleção e edição livre</span>
+        <div class="flex flex-col">
+          <span :class="classesMetricaLabel">Disponíveis p/ Ajuste</span>
+          <span :class="[classesMetricaValor, 'text-green-500']">{{ dados.total }}</span>
+          <span :class="classesMetricaHint">Seleção e edição livre</span>
         </div>
       </div>
 
-      <div class="metrica-card">
-        <div class="metrica-icon icon-concluida">
+      <div data-tour="tarefas-mes-metrica-card" :class="[classesMetricaCard, 'border-border bg-card hover:border-border-strong']">
+        <div :class="[classesMetricaIcone, 'bg-slate-400/15 text-muted-foreground']">
           <i class="fa-solid fa-check-double" aria-hidden="true"></i>
         </div>
-        <div class="metrica-info">
-          <span class="metrica-label">Concluídas no Munka</span>
-          <span class="metrica-valor text-muted">{{ dados.concluidas }}</span>
-          <span class="metrica-hint">Aprovadas no portal</span>
+        <div class="flex flex-col">
+          <span :class="classesMetricaLabel">Concluídas no Munka</span>
+          <span :class="[classesMetricaValor, 'text-foreground']">{{ dados.concluidas }}</span>
+          <span :class="classesMetricaHint">Aprovadas no portal</span>
         </div>
       </div>
 
-      <div class="metrica-card" :class="{ 'has-selected': selecionadasCount > 0 }">
-        <div class="metrica-icon icon-selecionadas">
+      <div data-tour="tarefas-mes-metrica-card" :class="[classesMetricaCard, selecionadasCount > 0 ? 'border-primary bg-linear-135 from-card to-primary-glow' : 'border-border bg-card hover:border-border-strong']">
+        <div :class="[classesMetricaIcone, 'bg-primary-glow text-primary']">
           <i class="fa-solid fa-square-check" aria-hidden="true"></i>
         </div>
-        <div class="metrica-info">
-          <span class="metrica-label">Selecionadas</span>
-          <div class="selecionadas-row">
-            <span class="metrica-valor text-accent">{{ selecionadasCount }}</span>
-            <button 
-              v-if="selecionadasCount > 0" 
-              type="button" 
-              class="btn-limpar-selecao" 
+        <div class="flex flex-col">
+          <span :class="classesMetricaLabel">Selecionadas</span>
+          <div class="flex items-center gap-2">
+            <span :class="[classesMetricaValor, 'text-primary']">{{ selecionadasCount }}</span>
+            <button
+              v-if="selecionadasCount > 0"
+              type="button"
+              class="cursor-pointer rounded border-0 bg-transparent px-1.5 py-0.5 text-xs text-muted-foreground no-underline transition-colors duration-150 hover:bg-primary-glow hover:text-foreground hover:no-underline"
               @click="limparSelecao"
             >
               Limpar
             </button>
           </div>
-          <span v-if="selecionadasCount > 0" class="metrica-hint">Prontas para ajuste em lote</span>
+          <span v-if="selecionadasCount > 0" :class="classesMetricaHint">Prontas para ajuste em lote</span>
         </div>
       </div>
     </section>
 
     <!-- Barra de Ações de Lote Flutuante / Topo quando há selecionadas -->
-    <div v-if="selecionadasCount > 0" class="bulk-action-bar" role="toolbar" aria-label="Ações para itens selecionados">
-      <div class="bulk-info">
+    <div v-if="selecionadasCount > 0" data-tour="tarefas-mes-acao-lote" class="flex animate-fade-in items-center justify-between gap-4 rounded-[10px] border border-primary bg-primary-glow px-5 py-3" role="toolbar" aria-label="Ações para itens selecionados">
+      <div class="flex items-center gap-2.5 text-sm text-foreground [&_i]:text-lg [&_i]:text-primary">
         <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
         <span><strong>{{ selecionadasCount }}</strong> tarefa{{ selecionadasCount > 1 ? 's' : '' }} selecionada{{ selecionadasCount > 1 ? 's' : '' }}</span>
       </div>
-      <div class="bulk-buttons">
-        <button type="button" class="btn-primary btn-bulk-edit" @click="abrirModalAjusteLote">
+      <div class="flex items-center gap-3">
+        <BaseButton variant="primary" @click="abrirModalAjusteLote">
           <i class="fa-solid fa-sliders" aria-hidden="true"></i>
           <span>Ajustar {{ selecionadasCount }} Selecionada{{ selecionadasCount > 1 ? 's' : '' }} em Lote</span>
-        </button>
-        <button type="button" class="btn-ghost btn-sm" @click="limparSelecao">
+        </BaseButton>
+        <BaseButton size="sm" @click="limparSelecao">
           Cancelar Seleção
-        </button>
+        </BaseButton>
       </div>
     </div>
 
     <!-- Barra de Filtros e Busca -->
-    <div class="filters-bar">
-      <div class="search-wrap">
-        <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true"></i>
-        <input 
-          v-model="filtroTexto" 
-          type="text" 
-          class="search-input" 
-          placeholder="Buscar por título, autor, SHA de commit ou código..."
-          aria-label="Buscar tarefas"
-        />
-        <button 
-          v-if="filtroTexto" 
-          type="button" 
-          class="btn-clear-search" 
-          @click="filtroTexto = ''" 
-          title="Limpar busca"
-          aria-label="Limpar busca"
-        >
-          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-        </button>
-      </div>
+    <FiltersBar data-tour="tarefas-mes-filtros">
+      <SearchBox
+        v-model="filtroTexto"
+        placeholder="Buscar por título, autor, SHA de commit ou código..."
+        aria-label="Buscar tarefas"
+      />
 
-      <div class="status-filter-pills" role="radiogroup" aria-label="Filtrar por status">
-        <button 
-          type="button" 
-          class="pill-btn" 
-          :class="{ active: filtroStatus === 'todos' }" 
+      <div class="flex h-9.5 flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card px-1 py-0.5" role="radiogroup" aria-label="Filtrar por status">
+        <button
+          type="button"
+          :class="[classesPill, filtroStatus === 'todos' ? classesPillAtiva.todos : classesPillInativa]"
           @click="filtroStatus = 'todos'"
         >
           Todas ({{ tarefasFiltradasPorTexto.length }})
         </button>
-        <button 
-          type="button" 
-          class="pill-btn pill-editavel" 
-          :class="{ active: filtroStatus === 'abertas' }" 
+        <button
+          type="button"
+          :class="[classesPill, filtroStatus === 'abertas' ? classesPillAtiva.abertas : classesPillInativa]"
           @click="filtroStatus = 'abertas'"
         >
           <i class="fa-solid fa-spinner" aria-hidden="true"></i>
           <span>Em Aberto ({{ contagemAbertas }})</span>
         </button>
-        <button 
-          type="button" 
-          class="pill-btn pill-concluida" 
-          :class="{ active: filtroStatus === 'concluidas' }" 
+        <button
+          type="button"
+          :class="[classesPill, filtroStatus === 'concluidas' ? classesPillAtiva.concluidas : classesPillInativa]"
           @click="filtroStatus = 'concluidas'"
         >
           <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
@@ -218,122 +199,121 @@
         </button>
       </div>
 
-      <div class="advanced-filters" role="group" aria-label="Filtros por coluna">
-        <label class="filter-field">
-          <span class="filter-label">Regra</span>
-          <select v-model="filtroRegra" class="filter-select" aria-label="Filtrar por regra">
+      <div class="flex w-full flex-wrap items-end gap-3 border-t border-border pt-3.5" role="group" aria-label="Filtros por coluna">
+        <label :class="[classesFiltroItem, 'min-w-40']">
+          <span :class="classesFiltroLabel">Regra</span>
+          <BaseSelect v-model="filtroRegra" aria-label="Filtrar por regra">
             <option value="">Todas</option>
             <option v-for="r in opcoesRegra" :key="r" :value="r">{{ r }}</option>
-          </select>
+          </BaseSelect>
         </label>
 
-        <label class="filter-field filter-field-grow">
-          <span class="filter-label">Nome da atividade</span>
-          <input
+        <label :class="[classesFiltroItem, 'min-w-55 flex-1']">
+          <span :class="classesFiltroLabel">Nome da atividade</span>
+          <BaseInput
             v-model="filtroAtividade"
             type="text"
-            class="filter-input"
             placeholder="Contém..."
             aria-label="Filtrar por nome da atividade"
           />
         </label>
 
-        <label class="filter-field">
-          <span class="filter-label">Status no portal</span>
-          <select v-model="filtroStatusPortal" class="filter-select" aria-label="Filtrar por status no portal">
+        <label :class="[classesFiltroItem, 'min-w-40']">
+          <span :class="classesFiltroLabel">Status no portal</span>
+          <BaseSelect v-model="filtroStatusPortal" aria-label="Filtrar por status no portal">
             <option value="">Todos</option>
             <option v-for="s in opcoesStatusPortal" :key="s.valor" :value="s.valor">{{ s.rotulo }} ({{ s.total }})</option>
-          </select>
+          </BaseSelect>
         </label>
 
-        <label class="filter-field">
-          <span class="filter-label">Condição supervisor</span>
-          <select v-model="filtroStatus" class="filter-select" aria-label="Filtrar por condição do supervisor">
+        <label :class="[classesFiltroItem, 'min-w-40']">
+          <span :class="classesFiltroLabel">Condição supervisor</span>
+          <BaseSelect v-model="filtroStatus" aria-label="Filtrar por condição do supervisor">
             <option value="todos">Todas</option>
             <option value="abertas">Em Aberto</option>
             <option value="concluidas">Concluídas</option>
-          </select>
+          </BaseSelect>
         </label>
 
-        <button
+        <BaseButton
           v-if="filtrosAtivos"
-          type="button"
-          class="btn-ghost btn-limpar-filtros"
+          class="h-9"
           @click="resetarFiltros"
         >
           <i class="fa-solid fa-filter-circle-xmark" aria-hidden="true"></i>
           <span>Limpar filtros</span>
-        </button>
+        </BaseButton>
       </div>
-    </div>
+    </FiltersBar>
 
     <!-- Estado de Carregamento -->
-    <div v-if="loading && dados.tarefas.length === 0" class="loading" role="status" aria-live="polite">
+    <StateMessage v-if="loading && dados.tarefas.length === 0" type="loading" role="status" aria-live="polite">
       <i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i>
       <span>Carregando tarefas do mês...</span>
-    </div>
+    </StateMessage>
 
     <!-- Estado Vazio -->
-    <div v-else-if="tarefasExibidas.length === 0" class="empty-state-card" role="status">
-      <div class="empty-icon-wrap">
+    <div v-else-if="tarefasExibidas.length === 0" class="flex flex-col items-center justify-center rounded-[14px] border border-dashed border-border bg-card px-6 py-12 text-center" role="status">
+      <div class="mb-4 flex size-15 items-center justify-center rounded-full bg-slate-400/10 text-[1.75rem] text-muted-foreground">
         <i class="fa-solid fa-calendar-xmark" aria-hidden="true"></i>
       </div>
-      <h3>Nenhuma tarefa encontrada</h3>
+      <h3 class="text-[1.17em] font-bold">Nenhuma tarefa encontrada</h3>
       <p v-if="filtrosAtivos">
         Nenhuma tarefa corresponde aos filtros aplicados. Tente ajustar os termos de pesquisa.
       </p>
       <p v-else>
         Não foram encontrados lançamentos no mês de <strong>{{ meses[mesAtual - 1] }} de {{ anoAtual }}</strong>.
       </p>
-      <div class="empty-actions">
-        <button v-if="filtrosAtivos" type="button" class="btn-ghost" @click="resetarFiltros">
+      <div class="mt-5 flex gap-3">
+        <BaseButton v-if="filtrosAtivos" @click="resetarFiltros">
           Limpar Filtros
-        </button>
-        <button type="button" class="btn-primary" @click="sincronizarComMunka">
+        </BaseButton>
+        <BaseButton variant="primary" @click="sincronizarComMunka">
           <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
           <span>Sincronizar com o Portal Munka</span>
-        </button>
+        </BaseButton>
       </div>
     </div>
 
     <!-- Tabela de Tarefas -->
-    <div v-else class="table-container">
-      <table class="tarefas-table" aria-label="Tabela de tarefas do mês">
+    <div v-else class="overflow-x-auto rounded-xl border border-border bg-card">
+      <table
+        class="w-full border-collapse text-left text-sm [&_td]:border-b [&_td]:border-border-strong [&_td]:px-4 [&_td]:py-3.5 [&_td]:align-middle [&_td]:text-foreground [&_th]:border-b [&_th]:border-border [&_th]:bg-muted [&_th]:px-4 [&_th]:py-3.5 [&_th]:text-xs [&_th]:font-bold [&_th]:tracking-wider [&_th]:text-muted-foreground [&_th]:uppercase [&>tbody>tr:last-child>td]:border-b-0"
+        aria-label="Tabela de tarefas do mês"
+      >
         <thead>
           <tr>
-            <th class="col-checkbox">
-              <input 
-                type="checkbox" 
-                class="custom-checkbox" 
-                :checked="todosSelecionados" 
+            <th class="w-10 text-center">
+              <input
+                type="checkbox"
+                :class="classesCheckbox"
+                :checked="todosSelecionados"
                 :disabled="tarefasExibidas.length === 0"
                 :title="todosSelecionados ? 'Desmarcar todas' : 'Selecionar todas as tarefas visíveis'"
                 aria-label="Selecionar todas as tarefas"
                 @change="toggleSelecionarTodas"
               />
             </th>
-            <th class="col-id">ID Munka</th>
-            <th class="col-titulo">Atividade & Commit</th>
-            <th class="col-codigo">Regra / HPA</th>
-            <th class="col-status-munka">Status no Portal</th>
-            <th class="col-supervisor">Condição Supervisor</th>
-            <th class="col-acoes text-right">Ações</th>
+            <th class="w-27.5">ID Munka</th>
+            <th class="min-w-65">Atividade & Commit</th>
+            <th class="w-32.5">Regra / HPA</th>
+            <th class="min-w-37.5">Status no Portal</th>
+            <th class="w-40">Condição Supervisor</th>
+            <th class="w-25 text-right">Ações</th>
           </tr>
         </thead>
         <tbody>
-          <tr 
-            v-for="t in tarefasExibidas" 
-            :key="t.id" 
-            :class="{ 
-              'row-selected': isSelecionada(t.id) 
-            }"
+          <tr
+            v-for="t in tarefasExibidas"
+            :key="t.id"
+            :class="isSelecionada(t.id) ? 'bg-primary-glow' : 'hover:bg-slate-400/4'"
           >
             <!-- Checkbox de Seleção -->
-            <td class="col-checkbox">
-              <input 
-                type="checkbox" 
-                class="custom-checkbox" 
-                :checked="isSelecionada(t.id)" 
+            <td class="text-center">
+              <input
+                type="checkbox"
+                :class="classesCheckbox"
+                :checked="isSelecionada(t.id)"
                 :title="isSelecionada(t.id) ? 'Desmarcar tarefa' : 'Selecionar tarefa para ajuste'"
                 :aria-label="`Selecionar tarefa ${t.titulo}`"
                 @change="toggleSelecao(t.id)"
@@ -341,44 +321,44 @@
             </td>
 
             <!-- ID Munka com Link -->
-            <td class="col-id">
-              <a 
-                v-if="t.task_id" 
-                :href="t.task_url || '#'" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                class="munka-id-link" 
+            <td>
+              <a
+                v-if="t.task_id"
+                :href="t.task_url || '#'"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-1.5 rounded bg-primary-glow px-1.5 py-0.5 text-sm font-bold text-primary no-underline hover:bg-primary hover:text-white hover:no-underline"
                 title="Abrir tarefa no portal Munka"
               >
                 <span>#{{ t.task_id }}</span>
-                <i class="fa-solid fa-arrow-up-right-from-square external-icon" aria-hidden="true"></i>
+                <i class="fa-solid fa-arrow-up-right-from-square text-[0.65rem] opacity-80" aria-hidden="true"></i>
               </a>
-              <span v-else class="badge-pending-id" title="ID não registrado no lançamento">
+              <span v-else class="text-sm text-muted-foreground" title="ID não registrado no lançamento">
                 —
               </span>
             </td>
 
             <!-- Título & Commit -->
-            <td class="col-titulo">
-              <div class="titulo-wrapper">
-                <span class="tarefa-nome" :title="t.titulo">
+            <td>
+              <div class="flex flex-col gap-1">
+                <span class="leading-snug font-semibold text-foreground" :title="t.titulo">
                   {{ t.titulo }}
                 </span>
-                <div class="tarefa-meta">
-                  <router-link 
-                    v-if="t.commit_id" 
-                    :to="`/commits/${t.commit_id}`" 
-                    class="commit-sha-badge"
+                <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <router-link
+                    v-if="t.commit_id"
+                    :to="`/commits/${t.commit_id}`"
+                    class="inline-flex items-center gap-1 rounded border border-border-strong bg-muted px-1.5 py-px font-mono text-xs text-primary no-underline hover:border-primary"
                     :title="`Ver commit ${t.commit_id}`"
                   >
                     <i class="fa-solid fa-code-commit" aria-hidden="true"></i>
                     <span>{{ t.commit_id.slice(0, 8) }}</span>
                   </router-link>
-                  <span v-if="t.commit_autor" class="commit-autor" :title="t.commit_autor">
+                  <span v-if="t.commit_autor" :class="classesMetaCommit" :title="t.commit_autor">
                     <i class="fa-regular fa-user" aria-hidden="true"></i>
                     <span>{{ t.commit_autor }}</span>
                   </span>
-                  <span v-if="t.commit_mensagem" class="commit-msg" :title="t.commit_mensagem">
+                  <span v-if="t.commit_mensagem" :class="classesMetaCommit" :title="t.commit_mensagem">
                     "{{ t.commit_mensagem }}"
                   </span>
                 </div>
@@ -386,21 +366,21 @@
             </td>
 
             <!-- Regra / HPA -->
-            <td class="col-codigo">
-              <div class="codigo-wrapper">
-                <span class="badge badge-code"><code>{{ t.codigo || '—' }}</code></span>
-                <span class="hpa-badge">{{ t.hpa }}h</span>
+            <td>
+              <div class="flex items-center gap-1.5">
+                <span class="inline-block rounded-md px-1.5 py-0.5 text-xs leading-none font-bold tracking-[0.03em] uppercase"><code>{{ t.codigo || '—' }}</code></span>
+                <span class="rounded border border-border-strong bg-slate-400/15 px-1.5 py-0.5 text-xs font-bold text-foreground">{{ t.hpa }}h</span>
               </div>
             </td>
 
             <!-- Status no Munka -->
-            <td class="col-status-munka">
-              <div class="status-portal-cell">
-                <span class="badge" :class="obterClasseBadgeStatus(t.status_munka || t.status)">
-                  <span class="status-dot"></span>
+            <td>
+              <div class="flex flex-col items-start gap-1">
+                <BaseBadge :variant="obterClasseBadgeStatus(t.status_munka || t.status)">
+                  <span class="mr-1 inline-block size-1.5 rounded-full bg-current"></span>
                   <span>{{ t.status_munka || t.status }}</span>
-                </span>
-                <span v-if="t.munka_atualizado_em" class="sync-time-hint" :title="`Última checagem no Munka: ${formatarDataHora(t.munka_atualizado_em)}`">
+                </BaseBadge>
+                <span v-if="t.munka_atualizado_em" class="flex items-center gap-1 text-xs text-muted-foreground" :title="`Última checagem no Munka: ${formatarDataHora(t.munka_atualizado_em)}`">
                   <i class="fa-regular fa-clock" aria-hidden="true"></i>
                   <span>{{ obterTempoRelativo(t.munka_atualizado_em) }}</span>
                 </span>
@@ -408,18 +388,18 @@
             </td>
 
             <!-- Condição do Supervisor / Status -->
-            <td class="col-supervisor">
-              <span 
-                v-if="isTarefaConcluida(t)" 
-                class="badge-condicao badge-concluida" 
+            <td>
+              <span
+                v-if="isTarefaConcluida(t)"
+                :class="[classesCondicao, 'border-border-strong bg-slate-400/12 text-muted-foreground']"
                 title="Tarefa concluída no Munka. Seleção e edições continuam liberadas a qualquer momento."
               >
                 <i class="fa-solid fa-check-double" aria-hidden="true"></i>
                 <span>Concluída</span>
               </span>
-              <span 
-                v-else 
-                class="badge-condicao badge-editavel" 
+              <span
+                v-else
+                :class="[classesCondicao, 'border-green-500/30 bg-green-500/15 text-green-500']"
                 title="Tarefa em andamento no Munka. Disponível para ajuste."
               >
                 <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
@@ -428,10 +408,10 @@
             </td>
 
             <!-- Ações -->
-            <td class="col-acoes text-right">
-              <button 
-                type="button" 
-                class="btn-ajustar-single" 
+            <td class="text-right">
+              <button
+                type="button"
+                class="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border-strong bg-muted px-3 py-1.5 text-xs font-semibold text-foreground transition-all duration-150 enabled:hover:border-primary enabled:hover:bg-primary-glow enabled:hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
                 title="Ajustar campos desta tarefa no Munka"
                 @click="abrirModalAjusteSingle(t)"
               >
@@ -445,121 +425,117 @@
     </div>
 
     <!-- Modal de Ajuste Individual -->
-    <div v-if="modalAjusteSingleAberto" class="modal-overlay" @click.self="fecharModalSingle">
-      <div class="modal modal-lg modal-tarefas-mes" role="dialog" aria-modal="true" aria-labelledby="modal-single-title">
-        <header class="modal-header">
-          <div class="modal-title-wrap">
-            <div class="modal-title-row">
-              <i class="fa-solid fa-pen-to-square modal-header-icon" aria-hidden="true"></i>
-              <h2 id="modal-single-title">Ajustar Tarefa no Munka</h2>
-              <span class="modal-count-badge">{{ tarefaAlvoSingle?.task_id ? `#${tarefaAlvoSingle.task_id}` : '(Busca pelo título)' }}</span>
+    <div v-if="modalAjusteSingleAberto" :class="classesOverlay" @click.self="fecharModalSingle">
+      <div :class="classesModal" role="dialog" aria-modal="true" aria-labelledby="modal-single-title">
+        <header :class="classesModalHeader">
+          <div class="flex flex-col gap-1">
+            <div class="flex items-center gap-3">
+              <i class="fa-solid fa-pen-to-square text-xl text-primary" aria-hidden="true"></i>
+              <h2 id="modal-single-title" :class="classesModalTitulo">Ajustar Tarefa no Munka</h2>
+              <span :class="classesModalContador">{{ tarefaAlvoSingle?.task_id ? `#${tarefaAlvoSingle.task_id}` : '(Busca pelo título)' }}</span>
             </div>
-            <span class="modal-sub">
+            <span class="text-sm text-muted-foreground">
               Modifique os campos desejados desta tarefa individualmente.
             </span>
           </div>
-          <button type="button" class="btn-close-modal" @click="fecharModalSingle" aria-label="Fechar modal">×</button>
+          <button type="button" :class="classesModalFechar" @click="fecharModalSingle" aria-label="Fechar modal">×</button>
         </header>
 
-        <form @submit.prevent="salvarAjusteSingle" class="form-ajuste">
-          <div class="modal-body">
-            <div class="target-task-preview">
-              <span class="preview-title">{{ tarefaAlvoSingle?.titulo }}</span>
-              <span class="badge" :class="obterClasseBadgeStatus(tarefaAlvoSingle?.status_munka || tarefaAlvoSingle?.status)">
+        <form @submit.prevent="salvarAjusteSingle">
+          <div :class="classesModalCorpo">
+            <div class="mb-6 flex items-center justify-between gap-4 rounded-[10px] border border-border-strong bg-muted px-5 py-3.5">
+              <span class="text-base font-bold text-foreground">{{ tarefaAlvoSingle?.titulo }}</span>
+              <BaseBadge :variant="obterClasseBadgeStatus(tarefaAlvoSingle?.status_munka || tarefaAlvoSingle?.status)">
                 {{ tarefaAlvoSingle?.status_munka || tarefaAlvoSingle?.status }}
-              </span>
+              </BaseBadge>
             </div>
 
-            <div class="form-grid">
+            <div class="grid grid-cols-2 gap-5 max-md:grid-cols-1">
               <!-- Status -->
-              <div class="form-group">
-                <label for="single_status"><i class="fa-solid fa-tag"></i> Status</label>
-                <select id="single_status" v-model="formSingle.status_id" class="field-select">
+              <div :class="classesFormGrupo">
+                <label for="single_status" :class="classesFormLabel"><i class="fa-solid fa-tag"></i> Status</label>
+                <BaseSelect id="single_status" v-model="formSingle.status_id" :class="classesCampo">
                   <option v-for="st in CATALOGO_STATUS" :key="st.id" :value="st.id">{{ st.rotulo }} ({{ st.id }})</option>
-                </select>
+                </BaseSelect>
               </div>
 
               <!-- Perfil do Profissional (Cargo) -->
-              <div class="form-group">
-                <label for="single_cargo"><i class="fa-solid fa-user-tie"></i> Perfil do Profissional (Cargo)</label>
-                <select id="single_cargo" v-model="formSingle.cargo" class="field-select">
+              <div :class="classesFormGrupo">
+                <label for="single_cargo" :class="classesFormLabel"><i class="fa-solid fa-user-tie"></i> Perfil do Profissional (Cargo)</label>
+                <BaseSelect id="single_cargo" v-model="formSingle.cargo" :class="classesCampo">
                   <option value="9">Desenvolvedor (9)</option>
                   <option value="11">Analista de Sistemas (11)</option>
                   <option value="12">Arquiteto de Software (12)</option>
                   <option value="16">Analista de Testes (16)</option>
-                </select>
+                </BaseSelect>
               </div>
 
               <!-- Nível -->
-              <div class="form-group">
-                <label for="single_nivel"><i class="fa-solid fa-layer-group"></i> Nível</label>
-                <select id="single_nivel" v-model="formSingle.nivel" class="field-select">
+              <div :class="classesFormGrupo">
+                <label for="single_nivel" :class="classesFormLabel"><i class="fa-solid fa-layer-group"></i> Nível</label>
+                <BaseSelect id="single_nivel" v-model="formSingle.nivel" :class="classesCampo">
                   <option value="1">Júnior (1)</option>
                   <option value="2">Pleno (2)</option>
                   <option value="3">Sênior (3)</option>
                   <option value="4">Único (4)</option>
-                </select>
+                </BaseSelect>
               </div>
 
               <!-- Tipo -->
-              <div class="form-group">
-                <label for="single_tipo"><i class="fa-solid fa-shapes"></i> Tipo</label>
-                <input 
-                  id="single_tipo" 
-                  v-model="formSingle.tipo" 
-                  placeholder="projeto" 
-                  class="field-input"
-                />
+              <div :class="classesFormGrupo">
+                <label for="single_tipo" :class="classesFormLabel"><i class="fa-solid fa-shapes"></i> Tipo</label>
+                <BaseInput
+                  id="single_tipo"
+                  v-model="formSingle.tipo"
+                  placeholder="projeto"
+                  :class="classesCampo" />
               </div>
 
               <!-- Responsável -->
-              <div class="form-group form-col-full">
-                <label for="single_responsavel"><i class="fa-solid fa-id-card-clip"></i> Responsável</label>
-                <input 
-                  id="single_responsavel" 
-                  v-model="formSingle.responsavel" 
-                  placeholder="Nome do responsável no Munka (busca Select2)" 
-                  class="field-input"
-                />
+              <div :class="[classesFormGrupo, 'col-span-2 max-md:col-span-1']">
+                <label for="single_responsavel" :class="classesFormLabel"><i class="fa-solid fa-id-card-clip"></i> Responsável</label>
+                <BaseInput
+                  id="single_responsavel"
+                  v-model="formSingle.responsavel"
+                  placeholder="Nome do responsável no Munka (busca Select2)"
+                  :class="classesCampo" />
               </div>
 
               <!-- Produto -->
-              <div class="form-group">
-                <label for="single_produto"><i class="fa-solid fa-box-archive"></i> Produto</label>
-                <input 
-                  id="single_produto" 
-                  v-model="formSingle.produto" 
-                  placeholder="Ex: [DESENV] MUNKA" 
-                  class="field-input"
-                />
+              <div :class="classesFormGrupo">
+                <label for="single_produto" :class="classesFormLabel"><i class="fa-solid fa-box-archive"></i> Produto</label>
+                <BaseInput
+                  id="single_produto"
+                  v-model="formSingle.produto"
+                  placeholder="Ex: [DESENV] MUNKA"
+                  :class="classesCampo" />
               </div>
 
               <!-- Projeto -->
-              <div class="form-group">
-                <label for="single_projeto"><i class="fa-solid fa-diagram-project"></i> Projeto</label>
-                <input 
-                  id="single_projeto" 
-                  v-model="formSingle.projeto" 
-                  placeholder="Ex: MUNKA Multicontrato" 
-                  class="field-input"
-                />
+              <div :class="classesFormGrupo">
+                <label for="single_projeto" :class="classesFormLabel"><i class="fa-solid fa-diagram-project"></i> Projeto</label>
+                <BaseInput
+                  id="single_projeto"
+                  v-model="formSingle.projeto"
+                  placeholder="Ex: MUNKA Multicontrato"
+                  :class="classesCampo" />
               </div>
             </div>
           </div>
 
-          <footer class="modal-actions-sticky">
-            <div class="footer-summary">
+          <footer :class="classesModalRodape">
+            <div class="text-sm font-semibold">
               <span>Campos aplicados apenas nesta tarefa</span>
             </div>
-            <div class="footer-buttons">
-              <button type="button" class="btn-ghost" @click="fecharModalSingle" :disabled="salvando">
+            <div class="flex items-center gap-3">
+              <BaseButton @click="fecharModalSingle" :disabled="salvando">
                 Cancelar
-              </button>
-              <button type="submit" class="btn-primary" :disabled="salvando">
+              </BaseButton>
+              <BaseButton type="submit" variant="primary" :disabled="salvando">
                 <i v-if="salvando" class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i>
                 <i v-else class="fa-solid fa-check" aria-hidden="true"></i>
                 <span>{{ salvando ? 'Enfileirando...' : 'Salvar Alterações' }}</span>
-              </button>
+              </BaseButton>
             </div>
           </footer>
         </form>
@@ -567,25 +543,25 @@
     </div>
 
     <!-- Modal de Ajuste em Lote (Múltiplas Selecionadas) -->
-    <div v-if="modalAjusteLoteAberto" class="modal-overlay" @click.self="fecharModalLote">
-      <div class="modal modal-lg modal-tarefas-mes" role="dialog" aria-modal="true" aria-labelledby="modal-lote-title">
-        <header class="modal-header">
-          <div class="modal-title-wrap">
-            <div class="modal-title-row">
-              <i class="fa-solid fa-sliders modal-header-icon" aria-hidden="true"></i>
-              <h2 id="modal-lote-title">Ajuste em Lote de Tarefas</h2>
-              <span class="modal-count-badge">{{ selecionadasCount }} selecionadas</span>
+    <div v-if="modalAjusteLoteAberto" :class="classesOverlay" @click.self="fecharModalLote">
+      <div :class="classesModal" role="dialog" aria-modal="true" aria-labelledby="modal-lote-title">
+        <header :class="classesModalHeader">
+          <div class="flex flex-col gap-1">
+            <div class="flex items-center gap-3">
+              <i class="fa-solid fa-sliders text-xl text-primary" aria-hidden="true"></i>
+              <h2 id="modal-lote-title" :class="classesModalTitulo">Ajuste em Lote de Tarefas</h2>
+              <span :class="classesModalContador">{{ selecionadasCount }} selecionadas</span>
             </div>
-            <span class="modal-sub">
+            <span class="text-sm text-muted-foreground">
               Escolha quais campos deseja sobrescrever em lote nas tarefas selecionadas.
             </span>
           </div>
-          <button type="button" class="btn-close-modal" @click="fecharModalLote" aria-label="Fechar modal">×</button>
+          <button type="button" :class="classesModalFechar" @click="fecharModalLote" aria-label="Fechar modal">×</button>
         </header>
 
-        <form @submit.prevent="salvarAjusteLote" class="form-ajuste-lote">
-          <div class="modal-body">
-            <div class="lote-notice-card">
+        <form @submit.prevent="salvarAjusteLote">
+          <div :class="classesModalCorpo">
+            <div class="mb-5 flex items-center gap-3 rounded-[10px] border border-blue-500/25 bg-blue-500/10 px-5 py-3 text-sm text-foreground [&_i]:shrink-0 [&_i]:text-lg [&_i]:text-primary [&_span]:ml-1 [&_span]:text-sm [&_span]:text-muted-foreground">
               <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
               <div>
                 <strong>Instrução de edição em lote:</strong>
@@ -593,183 +569,179 @@
               </div>
             </div>
 
-            <div class="lote-fields-grid">
+            <div class="grid grid-cols-2 gap-4.5 max-[720px]:grid-cols-1">
               <!-- Status -->
-              <div class="lote-field-card" :class="{ 'is-enabled': habilitarCampo.status }">
-                <div class="field-card-header" @click="habilitarCampo.status = !habilitarCampo.status">
-                  <label class="lote-field-toggle" @click.stop>
-                    <input type="checkbox" v-model="habilitarCampo.status" class="custom-checkbox" />
-                    <span class="field-name"><i class="fa-solid fa-tag"></i> Status</span>
+              <div :class="classeLoteCard(habilitarCampo.status)">
+                <div :class="classesLoteCabecalho" @click="habilitarCampo.status = !habilitarCampo.status">
+                  <label :class="classesLoteToggle" @click.stop>
+                    <input type="checkbox" v-model="habilitarCampo.status" :class="classesCheckbox" />
+                    <span :class="classesLoteNome"><i class="fa-solid fa-tag"></i> Status</span>
                   </label>
-                  <span class="field-active-indicator" :class="{ 'tag-active': habilitarCampo.status }">
-                    <i v-if="habilitarCampo.status" class="fa-solid fa-check" aria-hidden="true" style="margin-right: 3px;"></i>
+                  <span :class="classeLoteIndicador(habilitarCampo.status)">
+                    <i v-if="habilitarCampo.status" class="fa-solid fa-check mr-1" aria-hidden="true"></i>
                     <span>{{ habilitarCampo.status ? 'Sobrescrever' : 'Manter original' }}</span>
                   </span>
                 </div>
-                <div class="field-input-wrap">
-                  <select v-model="formLote.status_id" :disabled="!habilitarCampo.status" class="field-select">
+                <div class="w-full">
+                  <BaseSelect v-model="formLote.status_id" :disabled="!habilitarCampo.status" :class="classesCampo">
                     <option v-for="st in CATALOGO_STATUS" :key="st.id" :value="st.id">{{ st.rotulo }} ({{ st.id }})</option>
-                  </select>
+                  </BaseSelect>
                 </div>
               </div>
 
               <!-- Cargo (Perfil do Profissional) -->
-              <div class="lote-field-card" :class="{ 'is-enabled': habilitarCampo.cargo }">
-                <div class="field-card-header" @click="habilitarCampo.cargo = !habilitarCampo.cargo">
-                  <label class="lote-field-toggle" @click.stop>
-                    <input type="checkbox" v-model="habilitarCampo.cargo" class="custom-checkbox" />
-                    <span class="field-name"><i class="fa-solid fa-user-tie"></i> Perfil / Cargo</span>
+              <div :class="classeLoteCard(habilitarCampo.cargo)">
+                <div :class="classesLoteCabecalho" @click="habilitarCampo.cargo = !habilitarCampo.cargo">
+                  <label :class="classesLoteToggle" @click.stop>
+                    <input type="checkbox" v-model="habilitarCampo.cargo" :class="classesCheckbox" />
+                    <span :class="classesLoteNome"><i class="fa-solid fa-user-tie"></i> Perfil / Cargo</span>
                   </label>
-                  <span class="field-active-indicator" :class="{ 'tag-active': habilitarCampo.cargo }">
-                    <i v-if="habilitarCampo.cargo" class="fa-solid fa-check" aria-hidden="true" style="margin-right: 3px;"></i>
+                  <span :class="classeLoteIndicador(habilitarCampo.cargo)">
+                    <i v-if="habilitarCampo.cargo" class="fa-solid fa-check mr-1" aria-hidden="true"></i>
                     <span>{{ habilitarCampo.cargo ? 'Sobrescrever' : 'Manter original' }}</span>
                   </span>
                 </div>
-                <div class="field-input-wrap">
-                  <select v-model="formLote.cargo" :disabled="!habilitarCampo.cargo" class="field-select">
+                <div class="w-full">
+                  <BaseSelect v-model="formLote.cargo" :disabled="!habilitarCampo.cargo" :class="classesCampo">
                     <option value="9">Desenvolvedor (9)</option>
                     <option value="11">Analista de Sistemas (11)</option>
                     <option value="12">Arquiteto de Software (12)</option>
                     <option value="16">Analista de Testes (16)</option>
-                  </select>
+                  </BaseSelect>
                 </div>
               </div>
 
               <!-- Nível -->
-              <div class="lote-field-card" :class="{ 'is-enabled': habilitarCampo.nivel }">
-                <div class="field-card-header" @click="habilitarCampo.nivel = !habilitarCampo.nivel">
-                  <label class="lote-field-toggle" @click.stop>
-                    <input type="checkbox" v-model="habilitarCampo.nivel" class="custom-checkbox" />
-                    <span class="field-name"><i class="fa-solid fa-layer-group"></i> Nível</span>
+              <div :class="classeLoteCard(habilitarCampo.nivel)">
+                <div :class="classesLoteCabecalho" @click="habilitarCampo.nivel = !habilitarCampo.nivel">
+                  <label :class="classesLoteToggle" @click.stop>
+                    <input type="checkbox" v-model="habilitarCampo.nivel" :class="classesCheckbox" />
+                    <span :class="classesLoteNome"><i class="fa-solid fa-layer-group"></i> Nível</span>
                   </label>
-                  <span class="field-active-indicator" :class="{ 'tag-active': habilitarCampo.nivel }">
-                    <i v-if="habilitarCampo.nivel" class="fa-solid fa-check" aria-hidden="true" style="margin-right: 3px;"></i>
+                  <span :class="classeLoteIndicador(habilitarCampo.nivel)">
+                    <i v-if="habilitarCampo.nivel" class="fa-solid fa-check mr-1" aria-hidden="true"></i>
                     <span>{{ habilitarCampo.nivel ? 'Sobrescrever' : 'Manter original' }}</span>
                   </span>
                 </div>
-                <div class="field-input-wrap">
-                  <select v-model="formLote.nivel" :disabled="!habilitarCampo.nivel" class="field-select">
+                <div class="w-full">
+                  <BaseSelect v-model="formLote.nivel" :disabled="!habilitarCampo.nivel" :class="classesCampo">
                     <option value="1">Júnior (1)</option>
                     <option value="2">Pleno (2)</option>
                     <option value="3">Sênior (3)</option>
                     <option value="4">Único (4)</option>
-                  </select>
+                  </BaseSelect>
                 </div>
               </div>
 
               <!-- Responsável -->
-              <div class="lote-field-card" :class="{ 'is-enabled': habilitarCampo.responsavel }">
-                <div class="field-card-header" @click="habilitarCampo.responsavel = !habilitarCampo.responsavel">
-                  <label class="lote-field-toggle" @click.stop>
-                    <input type="checkbox" v-model="habilitarCampo.responsavel" class="custom-checkbox" />
-                    <span class="field-name"><i class="fa-solid fa-id-card-clip"></i> Responsável</span>
+              <div :class="classeLoteCard(habilitarCampo.responsavel)">
+                <div :class="classesLoteCabecalho" @click="habilitarCampo.responsavel = !habilitarCampo.responsavel">
+                  <label :class="classesLoteToggle" @click.stop>
+                    <input type="checkbox" v-model="habilitarCampo.responsavel" :class="classesCheckbox" />
+                    <span :class="classesLoteNome"><i class="fa-solid fa-id-card-clip"></i> Responsável</span>
                   </label>
-                  <span class="field-active-indicator" :class="{ 'tag-active': habilitarCampo.responsavel }">
-                    <i v-if="habilitarCampo.responsavel" class="fa-solid fa-check" aria-hidden="true" style="margin-right: 3px;"></i>
+                  <span :class="classeLoteIndicador(habilitarCampo.responsavel)">
+                    <i v-if="habilitarCampo.responsavel" class="fa-solid fa-check mr-1" aria-hidden="true"></i>
                     <span>{{ habilitarCampo.responsavel ? 'Sobrescrever' : 'Manter original' }}</span>
                   </span>
                 </div>
-                <div class="field-input-wrap">
-                  <input 
-                    v-model="formLote.responsavel" 
-                    :disabled="!habilitarCampo.responsavel" 
-                    placeholder="Nome do responsável no Munka" 
-                    class="field-input"
-                  />
+                <div class="w-full">
+                  <BaseInput
+                    v-model="formLote.responsavel"
+                    :disabled="!habilitarCampo.responsavel"
+                    placeholder="Nome do responsável no Munka"
+                    :class="classesCampo" />
                 </div>
               </div>
 
               <!-- Tipo -->
-              <div class="lote-field-card" :class="{ 'is-enabled': habilitarCampo.tipo }">
-                <div class="field-card-header" @click="habilitarCampo.tipo = !habilitarCampo.tipo">
-                  <label class="lote-field-toggle" @click.stop>
-                    <input type="checkbox" v-model="habilitarCampo.tipo" class="custom-checkbox" />
-                    <span class="field-name"><i class="fa-solid fa-shapes"></i> Tipo</span>
+              <div :class="classeLoteCard(habilitarCampo.tipo)">
+                <div :class="classesLoteCabecalho" @click="habilitarCampo.tipo = !habilitarCampo.tipo">
+                  <label :class="classesLoteToggle" @click.stop>
+                    <input type="checkbox" v-model="habilitarCampo.tipo" :class="classesCheckbox" />
+                    <span :class="classesLoteNome"><i class="fa-solid fa-shapes"></i> Tipo</span>
                   </label>
-                  <span class="field-active-indicator" :class="{ 'tag-active': habilitarCampo.tipo }">
-                    <i v-if="habilitarCampo.tipo" class="fa-solid fa-check" aria-hidden="true" style="margin-right: 3px;"></i>
+                  <span :class="classeLoteIndicador(habilitarCampo.tipo)">
+                    <i v-if="habilitarCampo.tipo" class="fa-solid fa-check mr-1" aria-hidden="true"></i>
                     <span>{{ habilitarCampo.tipo ? 'Sobrescrever' : 'Manter original' }}</span>
                   </span>
                 </div>
-                <div class="field-input-wrap">
-                  <input 
-                    v-model="formLote.tipo" 
-                    :disabled="!habilitarCampo.tipo" 
-                    placeholder="projeto" 
-                    class="field-input"
-                  />
+                <div class="w-full">
+                  <BaseInput
+                    v-model="formLote.tipo"
+                    :disabled="!habilitarCampo.tipo"
+                    placeholder="projeto"
+                    :class="classesCampo" />
                 </div>
               </div>
 
               <!-- Produto -->
-              <div class="lote-field-card" :class="{ 'is-enabled': habilitarCampo.produto }">
-                <div class="field-card-header" @click="habilitarCampo.produto = !habilitarCampo.produto">
-                  <label class="lote-field-toggle" @click.stop>
-                    <input type="checkbox" v-model="habilitarCampo.produto" class="custom-checkbox" />
-                    <span class="field-name"><i class="fa-solid fa-box-archive"></i> Produto</span>
+              <div :class="classeLoteCard(habilitarCampo.produto)">
+                <div :class="classesLoteCabecalho" @click="habilitarCampo.produto = !habilitarCampo.produto">
+                  <label :class="classesLoteToggle" @click.stop>
+                    <input type="checkbox" v-model="habilitarCampo.produto" :class="classesCheckbox" />
+                    <span :class="classesLoteNome"><i class="fa-solid fa-box-archive"></i> Produto</span>
                   </label>
-                  <span class="field-active-indicator" :class="{ 'tag-active': habilitarCampo.produto }">
-                    <i v-if="habilitarCampo.produto" class="fa-solid fa-check" aria-hidden="true" style="margin-right: 3px;"></i>
+                  <span :class="classeLoteIndicador(habilitarCampo.produto)">
+                    <i v-if="habilitarCampo.produto" class="fa-solid fa-check mr-1" aria-hidden="true"></i>
                     <span>{{ habilitarCampo.produto ? 'Sobrescrever' : 'Manter original' }}</span>
                   </span>
                 </div>
-                <div class="field-input-wrap">
-                  <input 
-                    v-model="formLote.produto" 
-                    :disabled="!habilitarCampo.produto" 
-                    placeholder="Ex: [DESENV] MUNKA" 
-                    class="field-input"
-                  />
+                <div class="w-full">
+                  <BaseInput
+                    v-model="formLote.produto"
+                    :disabled="!habilitarCampo.produto"
+                    placeholder="Ex: [DESENV] MUNKA"
+                    :class="classesCampo" />
                 </div>
               </div>
 
               <!-- Projeto -->
-              <div class="lote-field-card field-card-full" :class="{ 'is-enabled': habilitarCampo.projeto }">
-                <div class="field-card-header" @click="habilitarCampo.projeto = !habilitarCampo.projeto">
-                  <label class="lote-field-toggle" @click.stop>
-                    <input type="checkbox" v-model="habilitarCampo.projeto" class="custom-checkbox" />
-                    <span class="field-name"><i class="fa-solid fa-diagram-project"></i> Projeto</span>
+              <div :class="[classeLoteCard(habilitarCampo.projeto), 'col-span-2 max-[720px]:col-span-1']">
+                <div :class="classesLoteCabecalho" @click="habilitarCampo.projeto = !habilitarCampo.projeto">
+                  <label :class="classesLoteToggle" @click.stop>
+                    <input type="checkbox" v-model="habilitarCampo.projeto" :class="classesCheckbox" />
+                    <span :class="classesLoteNome"><i class="fa-solid fa-diagram-project"></i> Projeto</span>
                   </label>
-                  <span class="field-active-indicator" :class="{ 'tag-active': habilitarCampo.projeto }">
-                    <i v-if="habilitarCampo.projeto" class="fa-solid fa-check" aria-hidden="true" style="margin-right: 3px;"></i>
+                  <span :class="classeLoteIndicador(habilitarCampo.projeto)">
+                    <i v-if="habilitarCampo.projeto" class="fa-solid fa-check mr-1" aria-hidden="true"></i>
                     <span>{{ habilitarCampo.projeto ? 'Sobrescrever' : 'Manter original' }}</span>
                   </span>
                 </div>
-                <div class="field-input-wrap">
-                  <input 
-                    v-model="formLote.projeto" 
-                    :disabled="!habilitarCampo.projeto" 
-                    placeholder="Ex: MUNKA Multicontrato" 
-                    class="field-input"
-                  />
+                <div class="w-full">
+                  <BaseInput
+                    v-model="formLote.projeto"
+                    :disabled="!habilitarCampo.projeto"
+                    placeholder="Ex: MUNKA Multicontrato"
+                    :class="classesCampo" />
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Sticky Footer -->
-          <footer class="modal-actions-sticky">
-            <div class="footer-summary">
-              <span v-if="totalCamposHabilitados === 0" class="summary-zero">
+          <footer :class="classesModalRodape">
+            <div class="text-sm font-semibold">
+              <span v-if="totalCamposHabilitados === 0" class="flex items-center gap-1.5 text-warning">
                 <i class="fa-solid fa-triangle-exclamation"></i> Marque ao menos um campo acima
               </span>
-              <span v-else class="summary-active">
+              <span v-else class="flex items-center gap-1.5 text-success">
                 <i class="fa-solid fa-check"></i> {{ totalCamposHabilitados }} campo(s) serão aplicados em {{ selecionadasCount }} tarefa(s)
               </span>
             </div>
-            <div class="footer-buttons">
-              <button type="button" class="btn-ghost" @click="fecharModalLote" :disabled="salvando">
+            <div class="flex items-center gap-3">
+              <BaseButton @click="fecharModalLote" :disabled="salvando">
                 Cancelar
-              </button>
-              <button 
-                type="submit" 
-                class="btn-primary" 
+              </BaseButton>
+              <BaseButton
+                type="submit"
+                variant="primary"
                 :disabled="salvando || totalCamposHabilitados === 0"
               >
                 <i v-if="salvando" class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i>
                 <i v-else class="fa-solid fa-check-double" aria-hidden="true"></i>
                 <span>{{ salvando ? 'Enfileirando...' : `Aplicar em ${selecionadasCount} Tarefas` }}</span>
-              </button>
+              </BaseButton>
             </div>
           </footer>
         </form>
@@ -786,7 +758,67 @@ import { useFilaStore } from '../stores/fila'
 import { useTarefasMesStore } from '../stores/tarefasMes'
 import { storeToRefs } from 'pinia'
 import TutorialModal from '../components/TutorialModal.vue'
-import { CATALOGO_STATUS, resolverStatus, rotuloStatus, isStatusConcluido, classeBadgeStatus } from '../config/statusMunka'
+import BaseBadge from '../components/ui/BaseBadge.vue'
+import BaseButton from '../components/ui/BaseButton.vue'
+import BaseInput from '../components/ui/BaseInput.vue'
+import BaseSelect from '../components/ui/BaseSelect.vue'
+import FiltersBar from '../components/ui/FiltersBar.vue'
+import PageTitle from '../components/ui/PageTitle.vue'
+import SearchBox from '../components/ui/SearchBox.vue'
+import StateMessage from '../components/ui/StateMessage.vue'
+import { CATALOGO_STATUS, resolverStatus, rotuloStatus, isStatusConcluido, classeBadgeStatus, type VarianteBadgeStatus } from '../config/statusMunka'
+
+// Classes Tailwind reutilizadas no template (strings completas para o Tailwind detectar).
+const classesNavMes = 'cursor-pointer rounded-md border-0 bg-transparent px-2.5 py-1.5 text-muted-foreground transition-all duration-150 hover:bg-slate-400/15 hover:text-foreground'
+const classesMetricaCard = 'flex items-center gap-4 rounded-xl border px-5 py-4 transition-all duration-150 hover:-translate-y-0.5'
+const classesMetricaIcone = 'flex size-11 shrink-0 items-center justify-center rounded-[10px] text-lg'
+const classesMetricaLabel = 'text-xs font-bold tracking-wider text-muted-foreground uppercase'
+const classesMetricaValor = 'text-2xl leading-tight font-extrabold'
+const classesMetricaHint = 'mt-0.5 text-xs text-muted-foreground'
+
+const classesPill = 'inline-flex h-8 cursor-pointer items-center gap-[0.45rem] rounded-md px-3 text-sm transition-all duration-200 select-none'
+const classesPillInativa = 'border-0 bg-transparent font-semibold text-muted-foreground hover:bg-slate-400/10 hover:text-foreground'
+const classesPillAtiva = {
+  todos: 'border border-border-strong bg-muted font-bold text-foreground',
+  abertas: 'border border-green-500 bg-green-500/15 font-bold text-green-500',
+  concluidas: 'border border-border-strong bg-slate-400/20 font-bold text-foreground'
+}
+
+const classesFiltroLabel = 'text-xs font-bold tracking-wider text-muted-foreground uppercase'
+const classesFiltroItem = 'mb-[0.35rem] flex flex-col gap-1'
+const classesCheckbox = 'size-4 cursor-pointer accent-primary disabled:cursor-not-allowed'
+const classesMetaCommit = 'inline-flex max-w-80 items-center gap-1 overflow-hidden text-ellipsis whitespace-nowrap'
+const classesCondicao = 'inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-bold'
+
+const classesOverlay = 'fixed inset-0 z-1000 flex animate-fade-in items-center justify-center bg-black/70 p-4 backdrop-blur-[6px]'
+const classesModal = 'flex max-h-[90vh] w-215 max-w-[95vw] animate-scale-in flex-col overflow-hidden rounded-2xl border border-border-strong bg-card text-foreground shadow-[0_20px_60px] shadow-black/50'
+const classesModalHeader = 'flex shrink-0 items-center justify-between border-b border-border-strong bg-card px-7 py-5'
+const classesModalTitulo = 'mb-1 text-xl leading-tight font-extrabold text-foreground'
+const classesModalContador = 'rounded-full border border-primary bg-primary-glow px-2 py-0.5 text-xs font-bold text-primary'
+const classesModalFechar = 'cursor-pointer rounded border-0 bg-transparent px-1 py-0 text-[1.6rem] leading-none text-muted-foreground transition-colors duration-150 hover:text-foreground'
+const classesModalCorpo = 'max-h-[calc(90vh-145px)] flex-1 overflow-y-auto px-7 py-6'
+const classesModalRodape = 'flex shrink-0 items-center justify-between gap-4 border-t border-border-strong bg-card px-7 py-4.5'
+
+const classesFormGrupo = 'flex flex-col gap-2'
+const classesFormLabel = 'mb-[0.35rem] flex items-center gap-1.5 text-xs leading-[1.4] font-bold tracking-wide text-muted-foreground uppercase [&_i]:text-primary'
+const classesCampo = 'font-medium disabled:cursor-not-allowed disabled:border-slate-400/15 disabled:bg-slate-400/5 disabled:opacity-45'
+
+const classesLoteCardBase = 'flex flex-col gap-2.5 rounded-xl border px-4.5 py-4 transition-all duration-150'
+const classesLoteCabecalho = 'flex cursor-pointer items-center justify-between select-none'
+const classesLoteToggle = 'mb-[0.35rem] flex cursor-pointer items-center gap-2.5 text-sm leading-[1.4] font-bold tracking-[0.05em] text-foreground uppercase'
+const classesLoteNome = 'inline-flex items-center gap-1.5 [&_i]:text-sm [&_i]:text-primary'
+
+function classeLoteCard(ativo: boolean): string {
+  return `${classesLoteCardBase} ${ativo
+    ? 'border-primary bg-primary-glow shadow-[0_0_12px] shadow-blue-500/15'
+    : 'border-border-strong bg-muted hover:border-primary-light'}`
+}
+
+function classeLoteIndicador(ativo: boolean): string {
+  return `rounded-full border px-2 py-0.5 text-xs font-semibold transition-all duration-150 ${ativo
+    ? 'border-primary bg-blue-500/15 text-primary'
+    : 'border-border-strong bg-card text-muted-foreground'}`
+}
 
 const meses = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -1166,7 +1198,7 @@ async function salvarAjusteLote() {
   }
 }
 
-function obterClasseBadgeStatus(status?: string): string {
+function obterClasseBadgeStatus(status?: string): VarianteBadgeStatus {
   return classeBadgeStatus(status)
 }
 
@@ -1205,1142 +1237,3 @@ onMounted(async () => {
   await carregarTarefas()
 })
 </script>
-
-<style scoped>
-.tarefas-mes-page {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 1.25rem;
-}
-
-.header-main-col {
-  flex: 1;
-  min-width: 280px;
-}
-
-.title-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.counter-badge {
-  background: var(--header-group-bg);
-  border: 1px solid var(--border);
-  padding: 3px 10px;
-  border-radius: 99px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.page-subtitle {
-  color: var(--text-muted);
-  font-size: 0.88rem;
-  margin-top: 0.35rem;
-  line-height: 1.45;
-  max-width: 720px;
-}
-
-.header-actions-col {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-/* Seletor de Período */
-.periodo-selector-card {
-  display: flex;
-  align-items: center;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
-  padding: 3px 6px;
-  gap: 4px;
-}
-
-.btn-nav-mes {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 6px;
-  transition: all 0.15s ease;
-}
-
-.btn-nav-mes:hover {
-  background: rgba(148, 163, 184, 0.15);
-  color: var(--text);
-}
-
-.periodo-selects {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.select-mes {
-  background: transparent;
-  border: none;
-  color: var(--text);
-  font-size: 0.88rem;
-  font-weight: 700;
-  cursor: pointer;
-  padding: 4px 6px;
-  outline: none;
-}
-
-.select-mes option {
-  background: var(--card-bg);
-  color: var(--text);
-}
-
-.input-ano {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  font-weight: 600;
-  width: 60px;
-  text-align: center;
-  padding: 2px 4px;
-  border-radius: 4px;
-  outline: none;
-}
-
-.input-ano:focus {
-  border-color: var(--border);
-  background: rgba(148, 163, 184, 0.1);
-  color: var(--text);
-}
-
-.btn-mes-hoje {
-  background: var(--accent-glow);
-  color: var(--accent);
-  border: 1px solid var(--accent);
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.btn-mes-hoje:hover {
-  background: var(--accent);
-  color: #fff;
-}
-
-.btn-sync-munka {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: var(--card-bg);
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  padding: 0.45rem 0.95rem;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.btn-sync-munka:hover:not(:disabled) {
-  background: var(--accent);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(0, 168, 204, 0.25);
-}
-
-.btn-sync-munka:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Métricas Grid */
-.metricas-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 1rem;
-}
-
-.metrica-card {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 12px;
-  padding: 1rem 1.25rem;
-  transition: transform 0.15s, border-color 0.15s;
-}
-
-.metrica-card:hover {
-  border-color: var(--border);
-  transform: translateY(-2px);
-}
-
-.metrica-card.highlight-editavel {
-  border-color: rgba(34, 197, 94, 0.35);
-  background: linear-gradient(135deg, var(--card-bg) 0%, rgba(34, 197, 94, 0.05) 100%);
-}
-
-.metrica-card.has-selected {
-  border-color: var(--accent);
-  background: linear-gradient(135deg, var(--card-bg) 0%, var(--accent-glow) 100%);
-}
-
-.metrica-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.15rem;
-  flex-shrink: 0;
-}
-
-.icon-total { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
-.icon-editavel { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
-.icon-concluida { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); }
-.icon-selecionadas { background: var(--accent-glow); color: var(--accent); }
-
-.metrica-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.metrica-label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-  font-weight: 700;
-}
-
-.metrica-valor {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--text);
-  line-height: 1.2;
-}
-
-.metrica-hint {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  margin-top: 2px;
-}
-
-.text-green { color: #22c55e !important; }
-.text-accent { color: var(--accent) !important; }
-
-.selecionadas-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.btn-limpar-selecao {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-size: 0.72rem;
-  text-decoration: none;
-  cursor: pointer;
-  padding: 0.15rem 0.35rem;
-  border-radius: 4px;
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.btn-limpar-selecao:hover {
-  color: var(--text);
-  background: var(--accent-glow);
-  text-decoration: none;
-}
-
-/* Barra de Ações em Lote */
-.bulk-action-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem 1.25rem;
-  background: var(--accent-glow);
-  border: 1px solid var(--accent);
-  border-radius: 10px;
-  animation: fadeIn 0.2s ease;
-}
-
-.bulk-info {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 0.9rem;
-  color: var(--text);
-}
-
-.bulk-info i {
-  color: var(--accent);
-  font-size: 1.1rem;
-}
-
-.bulk-buttons {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.btn-bulk-edit {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 700;
-}
-
-/* Filtros */
-.filters-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.advanced-filters {
-  display: flex;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  width: 100%;
-  padding-top: 0.85rem;
-  border-top: 1px solid var(--card-border);
-}
-
-.filter-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  min-width: 160px;
-}
-
-.filter-field-grow {
-  flex: 1;
-  min-width: 220px;
-}
-
-.filter-label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-}
-
-.filter-select,
-.filter-input {
-  height: 36px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  color: var(--text);
-  padding: 0 0.75rem;
-  border-radius: 8px;
-  font-size: 0.83rem;
-  outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.filter-select:focus,
-.filter-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
-}
-
-.btn-limpar-filtros {
-  height: 36px;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-.search-wrap {
-  position: relative;
-  flex: 1;
-  max-width: 480px;
-  min-width: 260px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
-  font-size: 0.85rem;
-}
-
-.search-input {
-  width: 100%;
-  height: 38px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  color: var(--text);
-  padding: 0 2.35rem;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  outline: none;
-  transition: all 0.2s ease;
-}
-
-.search-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
-}
-
-.btn-clear-search {
-  position: absolute;
-  right: 0.5rem;
-  top: 50%;
-  transform: translateY(-50%);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-size: 0.78rem;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.15s ease;
-}
-
-.btn-clear-search:hover {
-  background: var(--card-border);
-  color: var(--text);
-}
-
-.status-filter-pills {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  padding: 2px 4px;
-  border-radius: 8px;
-  height: 38px;
-}
-
-.pill-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  height: 32px;
-  padding: 0 0.75rem;
-  border-radius: 6px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  transition: all 0.15s ease;
-}
-
-.pill-btn:hover {
-  color: var(--text);
-  background: rgba(148, 163, 184, 0.1);
-}
-
-.pill-btn.active {
-  background: var(--header-group-bg);
-  color: var(--text);
-  font-weight: 700;
-  border: 1px solid var(--border);
-}
-
-.pill-btn.pill-editavel.active {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
-  border-color: #22c55e;
-}
-
-.pill-btn.pill-concluida.active {
-  background: rgba(148, 163, 184, 0.2);
-  color: var(--text);
-  border-color: var(--border);
-}
-
-/* Tabela */
-.table-container {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 12px;
-  overflow-x: auto;
-}
-
-.tarefas-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-  font-size: 0.88rem;
-}
-
-.tarefas-table th {
-  padding: 0.85rem 1rem;
-  background: var(--header-group-bg);
-  border-bottom: 1px solid var(--card-border);
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-weight: 700;
-}
-
-.tarefas-table td {
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid var(--border);
-  vertical-align: middle;
-}
-
-.tarefas-table tr:last-child td {
-  border-bottom: none;
-}
-
-.tarefas-table tr:hover {
-  background: rgba(148, 163, 184, 0.04);
-}
-
-.row-selected {
-  background: var(--accent-glow) !important;
-}
-
-.row-concluida {
-  opacity: 0.78;
-}
-
-.col-checkbox {
-  width: 40px;
-  text-align: center;
-}
-
-.col-id {
-  width: 110px;
-}
-
-.col-titulo {
-  min-width: 260px;
-}
-
-.col-codigo {
-  width: 130px;
-}
-
-.col-status-munka {
-  min-width: 150px;
-}
-
-.col-supervisor {
-  width: 160px;
-}
-
-.col-acoes {
-  width: 100px;
-}
-
-.text-right {
-  text-align: right;
-}
-
-/* Custom Checkbox */
-.custom-checkbox {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: var(--accent);
-}
-
-/* ID Munka Link */
-.munka-id-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  color: var(--accent);
-  font-weight: 700;
-  text-decoration: none;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: var(--accent-glow);
-  font-size: 0.82rem;
-}
-
-.munka-id-link:hover {
-  text-decoration: none;
-  background: var(--accent);
-  color: #ffffff;
-}
-
-.external-icon {
-  font-size: 0.65rem;
-  opacity: 0.8;
-}
-
-.badge-pending-id {
-  color: var(--text-muted);
-  font-size: 0.85rem;
-}
-
-/* Titulo & Commit */
-.titulo-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.tarefa-nome {
-  font-weight: 600;
-  color: var(--text);
-  line-height: 1.35;
-}
-
-.tarefa-meta {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-
-.commit-sha-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-family: monospace;
-  background: var(--header-group-bg);
-  border: 1px solid var(--border);
-  padding: 1px 6px;
-  border-radius: 4px;
-  color: var(--accent);
-  text-decoration: none;
-  font-size: 0.75rem;
-}
-
-.commit-sha-badge:hover {
-  border-color: var(--accent);
-}
-
-.commit-autor, .commit-msg {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 320px;
-}
-
-/* Regra & HPA */
-.codigo-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.badge-code {
-  font-size: 0.8rem;
-  padding: 2px 6px;
-}
-
-.hpa-badge {
-  background: rgba(148, 163, 184, 0.15);
-  border: 1px solid var(--border);
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: var(--text);
-}
-
-/* Status Munka Cell */
-.status-portal-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  align-items: flex-start;
-}
-
-.status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  display: inline-block;
-  margin-right: 4px;
-}
-
-.sync-time-hint {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-/* Condição do Supervisor */
-.badge-condicao {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 6px;
-}
-
-.badge-editavel {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
-  border: 1px solid rgba(34, 197, 94, 0.3);
-}
-
-.badge-bloqueada,
-.badge-concluida {
-  background: rgba(148, 163, 184, 0.12);
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-}
-
-/* Botão Ajustar Single */
-.btn-ajustar-single {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: var(--header-group-bg);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 0.35rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.btn-ajustar-single:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-glow);
-}
-
-.btn-ajustar-single:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-/* Modais */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(6px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-  animation: fadeIn 0.2s ease-out;
-}
-
-.modal-tarefas-mes {
-  background: var(--card-bg) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 16px !important;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
-  width: 860px !important;
-  max-width: 95vw !important;
-  max-height: 90vh !important;
-  display: flex !important;
-  flex-direction: column !important;
-  padding: 0 !important;
-  gap: 0 !important;
-  overflow: hidden !important;
-  animation: modalScale 0.2s ease;
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.25rem 1.75rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--card-bg);
-  flex-shrink: 0;
-}
-
-.modal-title-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.modal-title-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.modal-header-icon {
-  font-size: 1.25rem;
-  color: var(--accent);
-}
-
-.modal-title-wrap h2 {
-  font-size: 1.3rem;
-  font-weight: 800;
-  color: var(--text);
-  line-height: 1.2;
-}
-
-.modal-count-badge {
-  background: var(--accent-glow);
-  color: var(--accent);
-  border: 1px solid var(--accent);
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 99px;
-}
-
-.modal-sub {
-  font-size: 0.82rem;
-  color: var(--text-muted);
-}
-
-.btn-close-modal {
-  background: transparent;
-  border: none;
-  font-size: 1.6rem;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0 4px;
-  line-height: 1;
-  border-radius: 4px;
-  transition: color 0.15s;
-}
-
-.btn-close-modal:hover {
-  color: var(--text);
-}
-
-.modal-body {
-  padding: 1.5rem 1.75rem;
-  overflow-y: auto;
-  flex: 1;
-  max-height: calc(90vh - 145px);
-}
-
-.target-task-preview {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.85rem 1.25rem;
-  background: var(--header-group-bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  margin-bottom: 1.5rem;
-}
-
-.preview-title {
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: var(--text);
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1.25rem;
-}
-
-.form-col-full {
-  grid-column: span 2;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
-.form-group label {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.form-group label i {
-  color: var(--accent);
-}
-
-/* Lote Modal Styles */
-.lote-notice-card {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.25);
-  border-radius: 10px;
-  padding: 0.75rem 1.25rem;
-  margin-bottom: 1.25rem;
-  font-size: 0.85rem;
-  color: var(--text);
-}
-
-.lote-notice-card i {
-  color: var(--accent);
-  font-size: 1.15rem;
-  flex-shrink: 0;
-}
-
-.lote-notice-card span {
-  color: var(--text-muted);
-  font-size: 0.82rem;
-  margin-left: 0.25rem;
-}
-
-.lote-fields-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.15rem;
-}
-
-@media (max-width: 720px) {
-  .lote-fields-grid, .form-grid {
-    grid-template-columns: 1fr;
-  }
-  .form-col-full, .field-card-full {
-    grid-column: span 1 !important;
-  }
-}
-
-.lote-field-card {
-  background: var(--header-group-bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 0.95rem 1.15rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
-}
-
-.lote-field-card:hover {
-  border-color: var(--accent-light);
-}
-
-.lote-field-card.is-enabled {
-  border-color: var(--accent) !important;
-  background: var(--accent-glow) !important;
-  box-shadow: 0 0 12px rgba(59, 130, 246, 0.15);
-}
-
-.field-card-full {
-  grid-column: span 2;
-}
-
-.field-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  user-select: none;
-}
-
-.lote-field-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-weight: 700;
-  font-size: 0.88rem;
-  color: var(--text);
-  cursor: pointer;
-}
-
-.field-name {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.field-name i {
-  color: var(--accent);
-  font-size: 0.85rem;
-}
-
-.field-active-indicator {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  background: var(--card-bg);
-  padding: 2px 8px;
-  border-radius: 99px;
-  border: 1px solid var(--border);
-  transition: all 0.15s;
-}
-
-.field-active-indicator.tag-active {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: rgba(59, 130, 246, 0.15);
-}
-
-.field-input-wrap {
-  width: 100%;
-}
-
-.field-select,
-.field-input {
-  width: 100% !important;
-  background: var(--card-bg) !important;
-  border: 1px solid var(--border) !important;
-  color: var(--text) !important;
-  padding: 0.6rem 0.85rem !important;
-  border-radius: 8px !important;
-  font-size: 0.88rem !important;
-  font-weight: 500 !important;
-  outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-
-.field-select:focus,
-.field-input:focus {
-  border-color: var(--accent) !important;
-  box-shadow: 0 0 0 3px var(--accent-glow) !important;
-}
-
-.field-select:disabled,
-.field-input:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  background: rgba(148, 163, 184, 0.05) !important;
-  border-color: rgba(148, 163, 184, 0.15) !important;
-}
-
-/* Sticky Footer */
-.modal-actions-sticky {
-  padding: 1.15rem 1.75rem;
-  border-top: 1px solid var(--border);
-  background: var(--card-bg);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-  gap: 1rem;
-}
-
-.footer-summary {
-  font-size: 0.84rem;
-  font-weight: 600;
-}
-
-.summary-zero {
-  color: var(--warning);
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.summary-active {
-  color: var(--success);
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.footer-buttons {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-/* Empty State */
-.empty-state-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 3rem 1.5rem;
-  background: var(--card-bg);
-  border: 1px dashed var(--card-border);
-  border-radius: 14px;
-}
-
-.empty-icon-wrap {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: rgba(148, 163, 184, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.75rem;
-  color: var(--text-muted);
-  margin-bottom: 1rem;
-}
-
-.empty-actions {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 1.25rem;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes modalScale {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-@media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-  }
-  .header-actions-col {
-    width: 100%;
-    justify-content: space-between;
-  }
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-  .form-col-full {
-    grid-column: span 1;
-  }
-  .lote-field-item {
-    flex-direction: column;
-    align-items: stretch;
-  }
-}
-</style>
-

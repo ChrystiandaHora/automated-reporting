@@ -1,157 +1,136 @@
 <template>
-  <div class="page">
-    <div class="page-header">
-      <div class="title-row">
-        <h1>Commits</h1>
+  <div>
+    <PageHeader>
+      <div data-tour="commits-titulo" class="flex items-center gap-2">
+        <PageTitle>Commits</PageTitle>
         <TutorialModal screenId="commits" />
       </div>
-      <button class="btn-primary" @click="$router.push('/importar')">
+      <BaseButton variant="primary" data-tour="commits-importar" @click="$router.push('/importar')">
         <i class="fa-solid fa-file-import" aria-hidden="true"></i>
         <span>+ Importar Commit</span>
-      </button>
-    </div>
+      </BaseButton>
+    </PageHeader>
 
     <!-- Modal de importação -->
-    <div v-if="showImport" class="modal-overlay" @click.self="showImport = false">
-      <div ref="importModalRef" class="modal" role="dialog" aria-modal="true" aria-labelledby="import-modal-title">
-        <h2 id="import-modal-title">Importar Commits do GitLab (Lote)</h2>
-        <label for="import-commit-hashes">URLs Completas dos Commits do GitLab (uma por linha)</label>
-        <textarea 
-          id="import-commit-hashes"
-          v-model="form.commit_hashes" 
-          placeholder="Ex:&#10;https://gitlab.suaorganizacao.com/grupo/projeto/-/commit/abc123hash" 
-          rows="6"
-        ></textarea>
-        <div class="modal-actions">
-          <button class="btn-ghost" @click="showImport = false">Cancelar</button>
-          <button class="btn-primary" :disabled="importing || !form.commit_hashes.trim()" @click="importar">
-            {{ importing ? 'Importando...' : 'Importar' }}
-          </button>
-        </div>
-        <p v-if="importError" class="error">{{ importError }}</p>
+    <BaseModal v-if="showImport" ref="importModalRef" labelledby="import-modal-title" @close="showImport = false">
+      <h2 id="import-modal-title" class="mb-1 text-xl font-bold text-foreground">Importar Commits do GitLab (Lote)</h2>
+      <BaseLabel for="import-commit-hashes">URLs Completas dos Commits do GitLab (uma por linha)</BaseLabel>
+      <BaseTextarea
+        id="import-commit-hashes"
+        v-model="form.commit_hashes"
+        placeholder="Ex:&#10;https://gitlab.suaorganizacao.com/grupo/projeto/-/commit/abc123hash"
+        rows="6"
+      />
+      <div data-modal-actions class="mt-4 flex justify-end gap-3">
+        <BaseButton variant="ghost" @click="showImport = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" :disabled="importing || !form.commit_hashes.trim()" @click="importar">
+          {{ importing ? 'Importando...' : 'Importar' }}
+        </BaseButton>
       </div>
-    </div>
+      <StateMessage v-if="importError" type="error" tag="p">{{ importError }}</StateMessage>
+    </BaseModal>
 
     <!-- Estado de Carregamento -->
-    <div v-if="store.loading" class="loading" role="status" aria-live="polite">Carregando commits...</div>
+    <StateMessage v-if="store.loading" type="loading" role="status" aria-live="polite">Carregando commits...</StateMessage>
 
     <!-- Estado Vazio -->
-    <div v-else-if="store.commits.length === 0" class="empty">
+    <StateMessage v-else-if="store.commits.length === 0" type="empty">
       Nenhum commit importado. Clique em "+ Importar Commit" para começar.
-    </div>
+    </StateMessage>
 
     <!-- Área Principal de Commits & Repositórios -->
-    <div v-else class="commits-content-area">
-      
+    <div v-else class="flex flex-col gap-6">
+
       <!-- Barra de Controle: Alternador de Visualização, Busca e Filtros Rápidos -->
-      <section class="repo-control-bar" aria-label="Controles de exibição e filtros por repositório">
-        <div class="control-top-row">
-          
+      <section :class="cls.controlBar" aria-label="Controles de exibição e filtros por repositório">
+        <div class="flex items-center justify-between gap-4 flex-wrap">
+
           <!-- Alternador de Modos (Tabs Acessíveis) -->
-          <div class="view-mode-tabs" role="tablist" aria-label="Modo de visualização dos commits">
-            <button 
+          <div data-tour="commits-modos" class="inline-flex bg-background border border-border-strong rounded-lg p-0.75 gap-0.75 light:bg-slate-100 light:border-slate-300" role="tablist" aria-label="Modo de visualização dos commits">
+            <button
               id="tab-modo-repo"
               type="button"
               role="tab"
-              class="mode-tab-btn" 
-              :class="{ active: visaoModo === 'repositorio' }"
+              :class="[cls.abaModo, visaoModo === 'repositorio' ? cls.abaModoAtiva : cls.abaModoInativa]"
               :aria-selected="visaoModo === 'repositorio'"
               aria-controls="panel-commits-view"
               @click="setVisaoModo('repositorio')"
             >
-              <i class="fa-solid fa-folder-tree" aria-hidden="true" style="font-size: 0.95rem;"></i>
+              <i class="fa-solid fa-folder-tree text-[0.95rem]" aria-hidden="true"></i>
               <span>Por Repositório</span>
-              <span class="mode-count-badge" :title="`${repositoriosResumo.length} repositórios ativos`">
+              <span :class="cls.modoContagem" :title="`${repositoriosResumo.length} repositórios ativos`">
                 {{ repositoriosResumo.length }}
               </span>
             </button>
 
-            <button 
+            <button
               id="tab-modo-data"
               type="button"
               role="tab"
-              class="mode-tab-btn" 
-              :class="{ active: visaoModo === 'data' }"
+              :class="[cls.abaModo, visaoModo === 'data' ? cls.abaModoAtiva : cls.abaModoInativa]"
               :aria-selected="visaoModo === 'data'"
               aria-controls="panel-commits-view"
               @click="setVisaoModo('data')"
             >
-              <i class="fa-solid fa-calendar-days" aria-hidden="true" style="font-size: 0.95rem;"></i>
+              <i class="fa-solid fa-calendar-days text-[0.95rem]" aria-hidden="true"></i>
               <span>Linha do Tempo (Data)</span>
-              <span class="mode-count-badge" :title="`${commitsFiltrados.length} commits`">
+              <span :class="cls.modoContagem" :title="`${commitsFiltrados.length} commits`">
                 {{ commitsFiltrados.length }}
               </span>
             </button>
           </div>
 
           <!-- Busca de Commits / Repositórios -->
-          <div class="search-box">
-            <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true" style="color: var(--text-muted); font-size: 0.85rem;"></i>
-            <input 
-              type="search"
-              v-model="termoBusca"
-              placeholder="Buscar por mensagem, SHA ou repositório..."
-              class="search-input"
-              aria-label="Buscar commits por mensagem, hash ou repositório"
-            />
-            <button 
-              v-if="termoBusca" 
-              type="button" 
-              class="clear-search-btn" 
-              @click="termoBusca = ''" 
-              aria-label="Limpar texto da busca"
-              title="Limpar busca"
-            >
-              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-            </button>
-          </div>
+          <SearchBox
+            v-model="termoBusca"
+            data-tour="commits-busca"
+            placeholder="Buscar por mensagem, SHA ou repositório..."
+            aria-label="Buscar commits por mensagem, hash ou repositório"
+          />
         </div>
 
         <!-- Chips de Seleção Rápida por Repositório e Status de Fila -->
-        <div class="repo-chips-wrapper" role="region" aria-label="Filtrar por repositório específico ou fila">
-          <span class="chips-label">Filtros:</span>
-          <div class="chips-list">
-            <button 
-              type="button" 
-              class="repo-chip" 
-              :class="{ active: repositorioFiltro === 'todos' && !apenasNaFila }"
-              :aria-pressed="repositorioFiltro === 'todos' && !apenasNaFila"
+        <div data-tour="commits-chips" class="flex items-center gap-3 flex-wrap pt-1 border-t border-dashed border-border-strong" role="region" aria-label="Filtrar por repositório específico ou fila">
+          <span class="text-[0.82rem] font-bold text-muted-foreground uppercase tracking-wider shrink-0">Filtros:</span>
+          <div data-tour="commits-chips-lista" class="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              :class="[cls.chip, chipTodosAtivo ? cls.chipAtivo : [cls.chipInativo, cls.chipCorTodos]]"
+              :aria-pressed="chipTodosAtivo"
               @click="limparFiltroFila"
             >
               <span>Todos</span>
-              <span class="chip-count">{{ store.commits.length }}</span>
+              <span :class="classeChipContagem(chipTodosAtivo)">{{ store.commits.length }}</span>
             </button>
 
             <!-- Chip Especial: Apenas na Fila -->
-            <button 
+            <button
               v-if="totalTarefasAtivasNaFila > 0"
-              type="button" 
-              class="repo-chip chip-na-fila" 
-              :class="{ active: apenasNaFila }"
+              type="button"
+              :class="[cls.chip, apenasNaFila ? cls.chipAtivoFila : [cls.chipInativo, cls.chipCorFila]]"
               :aria-pressed="apenasNaFila"
               @click="apenasNaFila = !apenasNaFila"
               :title="`Filtrar commits com tarefas ativas na fila (${totalTarefasAtivasNaFila} tarefas ativas)`"
             >
-              <span class="chip-dot pulse" aria-hidden="true"></span>
+              <span class="size-2 rounded-full bg-current shrink-0 animate-pulse-chip" aria-hidden="true"></span>
               <span>Na Fila</span>
-              <span class="chip-count">{{ totalTarefasAtivasNaFila }}</span>
+              <span :class="classeChipContagem(apenasNaFila)">{{ totalTarefasAtivasNaFila }}</span>
             </button>
 
             <!-- Chips de Repositórios -->
-            <button 
-              v-for="repo in repositoriosResumo" 
+            <button
+              v-for="repo in repositoriosResumo"
               :key="repo.nome"
-              type="button" 
-              class="repo-chip" 
-              :class="[repo.colorClass, { active: repositorioFiltro === repo.nome }]"
+              type="button"
+              :class="[cls.chip, repositorioFiltro === repo.nome ? cls.chipAtivo : [cls.chipInativo, CORES_REPO[repo.colorClass].chip]]"
               :aria-pressed="repositorioFiltro === repo.nome"
               @click="toggleFiltroRepo(repo.nome)"
               :title="`Filtrar commits do repositório ${repo.nome} (${repo.totalCommits} commits)`"
             >
-              <span class="chip-dot" aria-hidden="true"></span>
-              <span class="chip-name">{{ repo.nome }}</span>
-              <span class="chip-count">{{ repo.totalCommits }}</span>
-              <span v-if="repo.totalNaFila > 0" class="chip-fila-badge" title="Tarefas na fila">
+              <span class="size-2 rounded-full bg-current shrink-0" aria-hidden="true"></span>
+              <span class="max-w-55 overflow-hidden text-ellipsis">{{ repo.nome }}</span>
+              <span :class="classeChipContagem(repositorioFiltro === repo.nome)">{{ repo.totalCommits }}</span>
+              <span v-if="repo.totalNaFila > 0" class="text-[0.68rem] font-extrabold px-1.25 py-px rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30" title="Tarefas na fila">
                 {{ repo.totalNaFila }} fila
               </span>
             </button>
@@ -159,69 +138,69 @@
         </div>
 
         <!-- Barra de Status com Filtros Ativos -->
-        <div v-if="repositorioFiltro !== 'todos' || termoBusca || apenasNaFila" class="active-filter-bar" role="status" aria-live="polite">
-          <div class="filter-bar-items">
-            <span class="filter-bar-label">Filtros ativos:</span>
-            <span v-if="apenasNaFila" class="filter-tag filter-tag-amber">
-              <span class="spinner-dot-xs"></span>
+        <div v-if="repositorioFiltro !== 'todos' || termoBusca || apenasNaFila" class="flex items-center justify-between gap-3 bg-sky-400/8 border border-sky-400/25 rounded-lg px-3.5 py-2 flex-wrap" role="status" aria-live="polite">
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <span class="text-[0.82rem] font-semibold text-muted-foreground">Filtros ativos:</span>
+            <span v-if="apenasNaFila" :class="[cls.filtroTag, cls.filtroTagAmbar]">
+              <span :class="cls.spinnerXs"></span>
               <span>Apenas na Fila ({{ totalTarefasAtivasNaFila }} tarefas)</span>
-              <button type="button" class="tag-remove-btn" @click="apenasNaFila = false" aria-label="Remover filtro de fila">
+              <button type="button" :class="cls.tagRemover" @click="apenasNaFila = false" aria-label="Remover filtro de fila">
                 <i class="fa-solid fa-xmark" aria-hidden="true"></i>
               </button>
             </span>
-            <span v-if="repositorioFiltro !== 'todos'" class="filter-tag">
+            <span v-if="repositorioFiltro !== 'todos'" :class="[cls.filtroTag, cls.filtroTagNeutra]">
               <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true" focusable="false">
                 <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.6-1.2-1.6 1.2a.25.25 0 0 1-.4-.2Z"/>
               </svg>
               <span>{{ repositorioFiltro }}</span>
-              <button type="button" class="tag-remove-btn" @click="repositorioFiltro = 'todos'" aria-label="Remover filtro deste repositório">
+              <button type="button" :class="cls.tagRemover" @click="repositorioFiltro = 'todos'" aria-label="Remover filtro deste repositório">
                 <i class="fa-solid fa-xmark" aria-hidden="true"></i>
               </button>
             </span>
-            <span v-if="termoBusca" class="filter-tag">
+            <span v-if="termoBusca" :class="[cls.filtroTag, cls.filtroTagNeutra]">
               <span>"{{ termoBusca }}"</span>
-              <button type="button" class="tag-remove-btn" @click="termoBusca = ''" aria-label="Remover filtro de texto">
+              <button type="button" :class="cls.tagRemover" @click="termoBusca = ''" aria-label="Remover filtro de texto">
                 <i class="fa-solid fa-xmark" aria-hidden="true"></i>
               </button>
             </span>
-            <span class="filter-match-count">
+            <span class="text-xs text-muted-foreground">
               ({{ commitsFiltrados.length }} commit{{ commitsFiltrados.length !== 1 ? 's' : '' }} encontrado{{ commitsFiltrados.length !== 1 ? 's' : '' }})
             </span>
           </div>
-          <button type="button" class="btn-clear-all" @click="limparTodosFiltros">
+          <button type="button" class="bg-transparent border-0 text-[0.82rem] font-semibold text-primary cursor-pointer px-2 py-0.75 rounded transition-colors duration-150 hover:bg-primary-glow" @click="limparTodosFiltros">
             Limpar Filtros
           </button>
         </div>
 
         <!-- Barra de Ações Rápidas de Seleção em Lote -->
-        <div class="selection-quick-bar" role="toolbar" aria-label="Ações de seleção rápida de commits">
-          <div class="selection-quick-left">
-            <span class="selection-quick-label">
+        <div class="flex items-center justify-between flex-wrap gap-3 px-3.5 py-2.5 bg-muted rounded-lg border border-border light:bg-slate-50 light:border-slate-200" role="toolbar" aria-label="Ações de seleção rápida de commits">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="flex items-center gap-1.5 text-[0.82rem] font-semibold text-muted-foreground mr-1 light:text-slate-600">
               <i class="fa-solid fa-list-check" aria-hidden="true"></i>
               <span>Seleção em lote:</span>
             </span>
-            <button 
-              type="button" 
-              class="btn-quick-select"
+            <button
+              type="button"
+              :class="[cls.btnSelecao, cls.btnSelecaoNeutro]"
               @click="selecionarTodosExibidos"
               :title="`Selecionar todos os ${commitsFiltrados.length} commits exibidos`"
             >
               Selecionar Todos ({{ commitsFiltrados.length }})
             </button>
-            <button 
+            <button
               v-if="totalCommitsAnalisadosExibidos > 0"
-              type="button" 
-              class="btn-quick-select btn-quick-analisados"
+              type="button"
+              :class="[cls.btnSelecao, cls.btnSelecaoAnalisados]"
               @click="selecionarApenasAnalisados"
               :title="`Selecionar apenas os ${totalCommitsAnalisadosExibidos} commits analisados (com tarefas)`"
             >
               <i class="fa-solid fa-bolt" aria-hidden="true"></i>
               Apenas Analisados ({{ totalCommitsAnalisadosExibidos }})
             </button>
-            <button 
+            <button
               v-if="totalCommitsPendentesExibidos > 0"
-              type="button" 
-              class="btn-quick-select btn-quick-pendentes"
+              type="button"
+              :class="[cls.btnSelecao, cls.btnSelecaoPendentes]"
               @click="selecionarApenasPendentes"
               :title="`Selecionar apenas os ${totalCommitsPendentesExibidos} commits pendentes de análise`"
             >
@@ -230,13 +209,13 @@
             </button>
           </div>
 
-          <div class="selection-quick-right" v-if="selecionados.length > 0">
-            <span class="selected-pill">
+          <div class="flex items-center gap-2.5" v-if="selecionados.length > 0">
+            <span class="text-xs px-2.5 py-0.75 rounded-xl bg-blue-500/15 text-primary-light border border-blue-500/35 font-semibold light:bg-blue-50 light:text-blue-700 light:border-blue-200">
               <strong>{{ selecionados.length }}</strong> selecionado{{ selecionados.length > 1 ? 's' : '' }}
             </span>
-            <button 
-              type="button" 
-              class="btn-quick-clear" 
+            <button
+              type="button"
+              class="bg-transparent border-0 text-muted-foreground text-xs cursor-pointer inline-flex items-center gap-1.25 px-2 py-1 rounded transition-colors duration-150 hover:text-danger focus-visible:outline-danger"
               @click="desmarcarTodos"
               title="Desmarcar todos os commits"
             >
@@ -249,29 +228,29 @@
       </section>
 
       <!-- Mensagem quando os filtros não retornam nada -->
-      <div v-if="commitsFiltrados.length === 0" class="empty">
+      <StateMessage v-if="commitsFiltrados.length === 0" type="empty">
         <p>Nenhum commit encontrado para os critérios selecionados.</p>
-        <button type="button" class="btn-ghost" @click="limparTodosFiltros" style="margin-top: 0.75rem;">
+        <BaseButton variant="ghost" class="mt-3" @click="limparTodosFiltros">
           Limpar Filtros
-        </button>
-      </div>
+        </BaseButton>
+      </StateMessage>
 
       <!-- PAINEL 1: VISÃO POR REPOSITÓRIO -->
-      <div 
-        v-else-if="visaoModo === 'repositorio'" 
-        id="panel-commits-view" 
-        class="repo-cards-container" 
-        role="tabpanel" 
+      <div
+        v-else-if="visaoModo === 'repositorio'"
+        id="panel-commits-view"
+        class="flex flex-col gap-6"
+        role="tabpanel"
         aria-labelledby="tab-modo-repo"
       >
-        <div 
-          v-for="repo in commitsAgrupadosPorRepo" 
-          :key="repo.nome" 
-          class="repo-card"
+        <div
+          v-for="repo in commitsAgrupadosPorRepo"
+          :key="repo.nome"
+          :class="cls.repoCard"
         >
           <!-- Cabeçalho do Card de Repositório -->
-          <div 
-            class="repo-card-header"
+          <div
+            :class="cls.repoCardHeader"
             tabindex="0"
             role="button"
             :aria-expanded="!isRepoColapsado(repo.nome)"
@@ -279,12 +258,12 @@
             @keydown.enter.prevent="toggleColapsoRepo(repo.nome)"
             @keydown.space.prevent="toggleColapsoRepo(repo.nome)"
           >
-            <div class="repo-header-main">
+            <div class="flex items-center gap-3.5 min-w-0 flex-1">
               <!-- Checkbox para selecionar/desmarcar todos do repositório -->
-              <div class="repo-select-col" @click.stop @keydown.stop>
-                <input 
+              <div :class="cls.colunaSelecao" @click.stop @keydown.stop>
+                <input
                   type="checkbox"
-                  class="repo-checkbox"
+                  :class="cls.checkbox"
                   :checked="isRepoTotalmenteSelecionado(repo)"
                   :indeterminate="isRepoParcialmenteSelecionado(repo)"
                   @change="toggleSelecionarTodosRepo(repo)"
@@ -292,15 +271,15 @@
                   :title="`Selecionar todos os commits do repositório ${repo.nome}`"
                 />
               </div>
-              <div class="repo-avatar-icon" :class="repo.colorClass">
-                <i class="fa-brands fa-git-alt" aria-hidden="true" style="font-size: 1.15rem;"></i>
+              <div :class="['size-10 rounded-[10px] flex items-center justify-center shrink-0 border', CORES_REPO[repo.colorClass].tag]">
+                <i class="fa-brands fa-git-alt text-lg" aria-hidden="true"></i>
               </div>
-              <div class="repo-header-text">
-                <div class="repo-title-row">
-                  <h3 class="repo-title">{{ repo.nome }}</h3>
-                  <span class="badge badge-repo-count">{{ repo.commits.length }} commit{{ repo.commits.length > 1 ? 's' : '' }}</span>
+              <div class="flex flex-col gap-0.75 min-w-0">
+                <div class="flex items-center gap-2.5 flex-wrap">
+                  <h3 class="m-0 text-lg font-extrabold text-foreground tracking-[-0.01em] [word-break:break-word] light:text-slate-900">{{ repo.nome }}</h3>
+                  <span class="inline-block text-xs font-bold leading-none tracking-[0.03em] uppercase px-2 py-0.5 bg-background border border-border-strong rounded-xl text-muted-foreground light:bg-slate-100 light:border-slate-300 light:text-slate-700">{{ repo.commits.length }} commit{{ repo.commits.length > 1 ? 's' : '' }}</span>
                 </div>
-                <span class="repo-subtitle">
+                <span class="text-xs text-muted-foreground [&_strong]:text-foreground">
                   <span v-if="repo.ultimoCommitData">Mais recente em: <strong>{{ repo.ultimoCommitData }}</strong></span>
                   <span v-else>Repositório de atividades</span>
                 </span>
@@ -308,44 +287,43 @@
             </div>
 
             <!-- Lado Direito: Métricas e Indicador de Toggle -->
-            <div class="repo-header-actions" @click.stop>
-              <div class="repo-stats-pills">
+            <div class="flex items-center gap-4 shrink-0" @click.stop>
+              <div class="flex items-center gap-2 flex-wrap">
                 <!-- Badge Dinâmico de Tarefas na Fila do Repositório -->
-                <span 
-                  v-if="repo.totalNaFila > 0" 
-                  class="badge badge-status badge-fila-repo" 
+                <span
+                  v-if="repo.totalNaFila > 0"
+                  :class="cls.badgeFilaRepo"
                   :title="`${repo.totalNaFila} tarefa(s) deste repositório estão na fila de execução`"
                 >
-                  <span class="spinner-dot-xs"></span>
+                  <span :class="cls.spinnerXs"></span>
                   {{ repo.totalNaFila }} na fila
                 </span>
 
-                <span class="badge badge-status badge-green" :title="`${repo.analisados} commit(s) analisado(s)`">
-                  <i class="fa-solid fa-circle-check" aria-hidden="true" style="margin-right: 2px;"></i>
+                <BaseBadge variant="green" :title="`${repo.analisados} commit(s) analisado(s)`">
+                  <i class="fa-solid fa-circle-check mr-0.5" aria-hidden="true"></i>
                   {{ repo.analisados }} Analisado{{ repo.analisados !== 1 ? 's' : '' }}
-                </span>
-                <span v-if="repo.pendentes > 0" class="badge badge-status badge-gray" :title="`${repo.pendentes} commit(s) pendente(s)`">
-                  <i class="fa-solid fa-clock" aria-hidden="true" style="margin-right: 2px;"></i>
+                </BaseBadge>
+                <BaseBadge v-if="repo.pendentes > 0" variant="gray" :title="`${repo.pendentes} commit(s) pendente(s)`">
+                  <i class="fa-solid fa-clock mr-0.5" aria-hidden="true"></i>
                   {{ repo.pendentes }} Pendente{{ repo.pendentes !== 1 ? 's' : '' }}
-                </span>
-                <span v-if="repo.totalHpa > 0" class="badge badge-status badge-hpa" :title="`${repo.totalHpa} horas HPA estimadas`">
-                  <i class="fa-solid fa-bolt" aria-hidden="true" style="margin-right: 2px;"></i>
+                </BaseBadge>
+                <BaseBadge v-if="repo.totalHpa > 0" variant="hpa" :title="`${repo.totalHpa} horas HPA estimadas`">
+                  <i class="fa-solid fa-bolt mr-0.5" aria-hidden="true"></i>
                   {{ repo.totalHpa }}h HPA
-                </span>
+                </BaseBadge>
               </div>
 
               <!-- Botão Expandir / Recolher -->
-              <button 
-                type="button" 
-                class="repo-toggle-btn"
+              <button
+                type="button"
+                class="bg-background border border-border-strong text-muted-foreground text-[0.83rem] size-8 rounded-md flex items-center justify-center cursor-pointer transition-all duration-150 hover:text-foreground hover:border-primary light:bg-white light:border-slate-300 light:text-slate-600 light:hover:border-blue-600 light:hover:text-blue-600"
                 @click="toggleColapsoRepo(repo.nome)"
                 :aria-expanded="!isRepoColapsado(repo.nome)"
                 :aria-label="isRepoColapsado(repo.nome) ? `Expandir commits do repositório ${repo.nome}` : `Recolher commits do repositório ${repo.nome}`"
                 :title="isRepoColapsado(repo.nome) ? 'Expandir commits' : 'Recolher commits'"
               >
-                <i 
-                  class="fa-solid fa-chevron-down chevron-icon" 
-                  :class="{ rotated: isRepoColapsado(repo.nome) }"
+                <i
+                  :class="['fa-solid fa-chevron-down transition-transform duration-200', isRepoColapsado(repo.nome) ? '-rotate-90' : '']"
                   aria-hidden="true"
                 ></i>
               </button>
@@ -353,12 +331,11 @@
           </div>
 
           <!-- Lista de Commits do Repositório (colapsável) -->
-          <div v-show="!isRepoColapsado(repo.nome)" class="repo-commits-list">
-            <div 
-              v-for="commit in repo.commits" 
-              :key="commit.id" 
-              class="commit-row"
-              :class="{ 'is-selected': isCommitSelecionado(commit.id) }"
+          <div v-show="!isRepoColapsado(repo.nome)" class="flex flex-col">
+            <div
+              v-for="commit in repo.commits"
+              :key="commit.id"
+              :class="[cls.commitRow, isCommitSelecionado(commit.id) ? cls.commitRowSelecionada : cls.commitRowOciosa]"
               tabindex="0"
               role="row"
               :aria-selected="isCommitSelecionado(commit.id)"
@@ -367,11 +344,11 @@
               @keydown.space.prevent="toggleSelectCommit(commit.id)"
             >
               <!-- Seleção do Commit (Checkbox) -->
-              <div class="commit-select-col" @click.stop @keydown.stop>
-                <input 
+              <div :class="cls.colunaSelecao" @click.stop @keydown.stop>
+                <input
                   type="checkbox"
                   :id="`select-repo-${commit.id}`"
-                  class="commit-checkbox"
+                  :class="cls.checkbox"
                   :checked="isCommitSelecionado(commit.id)"
                   @change="toggleSelectCommit(commit.id)"
                   :aria-label="`Selecionar commit ${commit.id.slice(0, 8)}: ${commit.mensagem || 'sem mensagem'}`"
@@ -379,75 +356,68 @@
               </div>
 
               <!-- Lado Esquerdo: Avatar do Autor -->
-              <div 
-                class="commit-avatar" 
-                :style="{ backgroundColor: obterCorAvatar(commit.autor) }"
+              <div
+                :class="cls.avatar"
+                v-bind="atributosAvatar(commit.autor)"
                 :title="commit.autor"
               >
                 {{ obterIniciais(commit.autor) }}
               </div>
 
               <!-- Centro: Mensagem e Metadados -->
-              <div class="commit-info">
-                <div class="commit-msg-container">
-                  <span class="commit-msg-title" :title="commit.mensagem">
+              <div class="flex flex-col gap-1 flex-1 min-w-0">
+                <div class="flex items-center gap-2.5 flex-wrap">
+                  <span :class="cls.commitTitulo" :title="commit.mensagem">
                     {{ commit.mensagem || '(sem mensagem)' }}
                   </span>
 
                   <!-- Badges de Status, Envio e FILA -->
-                  <div class="commit-row-badges">
-                    <span class="badge badge-status" :class="commit.analisado ? 'badge-green' : 'badge-gray'">
+                  <div class="flex gap-1.5 flex-wrap items-center">
+                    <BaseBadge :variant="commit.analisado ? 'green' : 'gray'">
                       {{ commit.analisado ? 'Analisado' : 'Pendente' }}
-                    </span>
+                    </BaseBadge>
 
                     <template v-if="commit.analisado">
-                      <span class="badge badge-status" :class="
-                        (commit.atividades_enviadas || 0) === (commit.atividades_total || 0) && (commit.atividades_total || 0) > 0
-                          ? 'badge-blue'
-                          : (commit.atividades_enviadas || 0) > 0
-                            ? 'badge-orange'
-                            : 'badge-purple'
-                      ">
+                      <BaseBadge :variant="variantEnviadas(commit)">
                         {{ commit.atividades_enviadas || 0 }}/{{ commit.atividades_total || 0 }} env.
-                      </span>
+                      </BaseBadge>
                     </template>
 
                     <!-- BADGE DINÂMICO DE FILA -->
                     <template v-if="obterInfoFila(commit.id)">
-                      <span 
-                        v-if="obterInfoFila(commit.id)!.analisando" 
-                        class="badge badge-status badge-fila-analise"
+                      <span
+                        v-if="obterInfoFila(commit.id)!.analisando"
+                        :class="cls.badgeFilaAnalise"
                         title="Análise de IA deste commit aguardando ou processando na fila"
                       >
-                        <span class="pulse-dot"></span>
+                        <span class="size-1.5 rounded-full bg-current inline-block animate-pulse-queue shrink-0"></span>
                         Análise na fila
                       </span>
 
-                      <span 
-                        v-if="obterInfoFila(commit.id)!.envios > 0" 
-                        class="badge badge-status badge-fila-envio"
-                        :class="{ 'is-running': obterInfoFila(commit.id)!.running > 0 }"
+                      <span
+                        v-if="obterInfoFila(commit.id)!.envios > 0"
+                        :class="obterInfoFila(commit.id)!.running > 0 ? cls.badgeFilaEnvioRodando : cls.badgeFilaEnvio"
                         :title="`${obterInfoFila(commit.id)!.envios} tarefa(s) deste commit na fila (${obterInfoFila(commit.id)!.running} em execução, ${obterInfoFila(commit.id)!.pending} aguardando)`"
                       >
-                        <span class="spinner-dot-xs" v-if="obterInfoFila(commit.id)!.running > 0"></span>
-                        <i class="fa-solid fa-clock" aria-hidden="true" style="font-size: 0.72rem; margin-right: 2px;" v-else></i>
+                        <span :class="cls.spinnerXs" v-if="obterInfoFila(commit.id)!.running > 0"></span>
+                        <i class="fa-solid fa-clock text-xs mr-0.5" aria-hidden="true" v-else></i>
                         {{ obterInfoFila(commit.id)!.envios }} na fila
                       </span>
                     </template>
                   </div>
                 </div>
-                <span class="commit-author-time">
-                  <span class="commit-date-badge">{{ formatarDataCurta(commit.data_autor || commit.data) }}</span>
+                <span :class="cls.commitAutorTempo">
+                  <span :class="cls.commitData">{{ formatarDataCurta(commit.data_autor || commit.data) }}</span>
                   · {{ commit.autor }} authored {{ obterTempoRelativo(commit.data_autor) }}
                 </span>
               </div>
 
               <!-- Lado Direito: Ações, SHA e Olho para Entrar -->
-              <div class="commit-actions" @click.stop>
+              <div class="flex items-center gap-2 shrink-0 ml-3" @click.stop>
                 <!-- Botão Excluir -->
-                <button 
+                <button
                   type="button"
-                  class="action-btn delete-btn" 
+                  :class="[cls.btnAcao, cls.btnExcluir]"
                   @click.stop="abrirModalConfirmacao(commit)"
                   title="Excluir commit"
                   aria-label="Excluir commit"
@@ -456,27 +426,26 @@
                 </button>
 
                 <!-- Botão SHA interativo (copia ao clicar) -->
-                <button 
+                <button
                   type="button"
-                  class="sha-btn" 
-                  :class="{ 'is-copied': shaCopiadoId === commit.id }"
+                  :class="[cls.btnSha, shaCopiadoId === commit.id ? cls.btnShaCopiado : cls.btnShaNormal]"
                   @click.stop="copiarSHA(commit.id)"
                   :title="shaCopiadoId === commit.id ? 'SHA copiado!' : 'Clique para copiar o SHA completo'"
                   :aria-label="`Copiar hash SHA ${commit.id}`"
                 >
-                  <span v-if="shaCopiadoId === commit.id" class="sha-copied-badge">
+                  <span v-if="shaCopiadoId === commit.id" class="inline-flex items-center gap-1.25 text-xs font-bold tracking-[0.01em]">
                     <i class="fa-solid fa-check" aria-hidden="true"></i>
                     <span>Copiado!</span>
                   </span>
-                  <span v-else class="sha-code-text">
+                  <span v-else class="text-xs tracking-[0.04em]">
                     {{ commit.id.slice(0, 8) }}
                   </span>
                 </button>
 
                 <!-- Botão Olho: ÚNICO método para entrar no commit -->
-                <button 
+                <button
                   type="button"
-                  class="action-btn eye-btn" 
+                  :class="[cls.btnAcao, cls.btnOlho]"
                   @click.stop="$router.push(`/commits/${commit.id}`)"
                   title="Abrir detalhes do commit"
                   :aria-label="`Abrir detalhes do commit ${commit.id.slice(0, 8)}`"
@@ -490,29 +459,28 @@
       </div>
 
       <!-- PAINEL 2: VISÃO POR DATA (LINHA DO TEMPO) -->
-      <div 
-        v-else 
-        id="panel-commits-view" 
-        class="commit-list-grouped" 
-        role="tabpanel" 
+      <div
+        v-else
+        id="panel-commits-view"
+        class="flex flex-col gap-6"
+        role="tabpanel"
         aria-labelledby="tab-modo-data"
       >
         <!-- Percorre os dias agrupados -->
-        <div v-for="grupo in commitsAgrupadosPorData" :key="grupo.data" class="date-group">
-          
+        <div v-for="grupo in commitsAgrupadosPorData" :key="grupo.data" class="flex flex-col">
+
           <!-- Cabeçalho do dia: "31 Ago, 2026 2 commits" -->
-          <div class="date-group-header">
-            <span class="date-text">{{ grupo.data }}</span>
-            <span class="commit-count-text">{{ grupo.commits.length }} commit{{ grupo.commits.length > 1 ? 's' : '' }}</span>
+          <div class="flex items-baseline gap-2 px-5 py-3 bg-muted border border-b-0 border-border rounded-t-[10px] text-sm light:bg-slate-50 light:border-slate-200">
+            <span class="font-extrabold text-foreground text-[0.95rem] light:text-slate-900">{{ grupo.data }}</span>
+            <span class="text-muted-foreground text-[0.82rem] font-medium light:text-slate-600">{{ grupo.commits.length }} commit{{ grupo.commits.length > 1 ? 's' : '' }}</span>
           </div>
 
           <!-- Lista de commits desse dia -->
-          <div class="date-group-commits">
-            <div 
-              v-for="commit in grupo.commits" 
-              :key="commit.id" 
-              class="commit-row"
-              :class="{ 'is-selected': isCommitSelecionado(commit.id) }"
+          <div class="border border-t-0 border-border bg-card flex flex-col rounded-b-[10px] overflow-hidden light:bg-white light:border-slate-200">
+            <div
+              v-for="commit in grupo.commits"
+              :key="commit.id"
+              :class="[cls.commitRow, isCommitSelecionado(commit.id) ? cls.commitRowSelecionada : cls.commitRowOciosa]"
               tabindex="0"
               role="row"
               :aria-selected="isCommitSelecionado(commit.id)"
@@ -521,11 +489,11 @@
               @keydown.space.prevent="toggleSelectCommit(commit.id)"
             >
               <!-- Seleção do Commit (Checkbox) -->
-              <div class="commit-select-col" @click.stop @keydown.stop>
-                <input 
+              <div :class="cls.colunaSelecao" @click.stop @keydown.stop>
+                <input
                   type="checkbox"
                   :id="`select-data-${commit.id}`"
-                  class="commit-checkbox"
+                  :class="cls.checkbox"
                   :checked="isCommitSelecionado(commit.id)"
                   @change="toggleSelectCommit(commit.id)"
                   :aria-label="`Selecionar commit ${commit.id.slice(0, 8)}: ${commit.mensagem || 'sem mensagem'}`"
@@ -533,87 +501,79 @@
               </div>
 
               <!-- Lado Esquerdo: Avatar do Autor -->
-              <div 
-                class="commit-avatar" 
-                :style="{ backgroundColor: obterCorAvatar(commit.autor) }"
+              <div
+                :class="cls.avatar"
+                v-bind="atributosAvatar(commit.autor)"
                 :title="commit.autor"
               >
                 {{ obterIniciais(commit.autor) }}
               </div>
 
               <!-- Centro: Mensagem, Repositório e Metadados -->
-              <div class="commit-info">
-                <div class="commit-msg-container">
+              <div class="flex flex-col gap-1 flex-1 min-w-0">
+                <div class="flex items-center gap-2.5 flex-wrap">
                   <!-- Tag / Badge destacada do Repositório -->
-                  <button 
-                    type="button" 
-                    class="badge-repo-pill" 
-                    :class="obterClasseCorRepo(commit.projeto)" 
+                  <button
+                    type="button"
+                    :class="['inline-flex items-center gap-1.5 border text-xs font-bold px-2 py-0.75 rounded-md cursor-pointer transition-all duration-150 whitespace-nowrap max-w-55 no-underline hover:brightness-115 hover:-translate-y-px', CORES_REPO[obterClasseCorRepo(commit.projeto)].tag]"
                     @click.stop="toggleFiltroRepo(commit.projeto)"
                     :title="`Filtrar pelo repositório ${commit.projeto || 'Sem repositório'}`"
                     aria-label="Filtrar por este repositório"
                   >
-                    <i class="fa-brands fa-gitlab" aria-hidden="true" style="font-size: 0.78rem;"></i>
+                    <i class="fa-brands fa-gitlab text-xs" aria-hidden="true"></i>
                     <span>{{ commit.projeto || 'Sem repositório' }}</span>
                   </button>
 
-                  <span class="commit-msg-title" :title="commit.mensagem">
+                  <span :class="cls.commitTitulo" :title="commit.mensagem">
                     {{ commit.mensagem || '(sem mensagem)' }}
                   </span>
 
                   <!-- Badges de Status, Envio e FILA -->
-                  <div class="commit-row-badges">
-                    <span class="badge badge-status" :class="commit.analisado ? 'badge-green' : 'badge-gray'">
+                  <div class="flex gap-1.5 flex-wrap items-center">
+                    <BaseBadge :variant="commit.analisado ? 'green' : 'gray'">
                       {{ commit.analisado ? 'Analisado' : 'Pendente' }}
-                    </span>
+                    </BaseBadge>
 
                     <template v-if="commit.analisado">
-                      <span class="badge badge-status" :class="
-                        (commit.atividades_enviadas || 0) === (commit.atividades_total || 0) && (commit.atividades_total || 0) > 0
-                          ? 'badge-blue'
-                          : (commit.atividades_enviadas || 0) > 0
-                            ? 'badge-orange'
-                            : 'badge-purple'
-                      ">
+                      <BaseBadge :variant="variantEnviadas(commit)">
                         {{ commit.atividades_enviadas || 0 }}/{{ commit.atividades_total || 0 }} env.
-                      </span>
+                      </BaseBadge>
                     </template>
 
                     <!-- BADGE DINÂMICO DE FILA -->
                     <template v-if="obterInfoFila(commit.id)">
-                      <span 
-                        v-if="obterInfoFila(commit.id)!.analisando" 
-                        class="badge badge-status badge-fila-analise"
+                      <span
+                        v-if="obterInfoFila(commit.id)!.analisando"
+                        :class="cls.badgeFilaAnalise"
                         title="Análise de IA deste commit aguardando ou processando na fila"
                       >
-                        <span class="pulse-dot"></span>
+                        <span class="size-1.5 rounded-full bg-current inline-block animate-pulse-queue shrink-0"></span>
                         Análise na fila
                       </span>
 
-                      <span 
-                        v-if="obterInfoFila(commit.id)!.envios > 0" 
-                        class="badge badge-status badge-fila-envio"
-                        :class="{ 'is-running': obterInfoFila(commit.id)!.running > 0 }"
+                      <span
+                        v-if="obterInfoFila(commit.id)!.envios > 0"
+                        :class="obterInfoFila(commit.id)!.running > 0 ? cls.badgeFilaEnvioRodando : cls.badgeFilaEnvio"
                         :title="`${obterInfoFila(commit.id)!.envios} tarefa(s) deste commit na fila (${obterInfoFila(commit.id)!.running} em execução, ${obterInfoFila(commit.id)!.pending} aguardando)`"
                       >
-                        <span class="spinner-dot-xs" v-if="obterInfoFila(commit.id)!.running > 0"></span>
-                        <i class="fa-solid fa-clock" aria-hidden="true" style="font-size: 0.72rem; margin-right: 2px;" v-else></i>
+                        <span :class="cls.spinnerXs" v-if="obterInfoFila(commit.id)!.running > 0"></span>
+                        <i class="fa-solid fa-clock text-xs mr-0.5" aria-hidden="true" v-else></i>
                         {{ obterInfoFila(commit.id)!.envios }} na fila
                       </span>
                     </template>
                   </div>
                 </div>
-                <span class="commit-author-time">
+                <span :class="cls.commitAutorTempo">
                   {{ commit.autor }} authored {{ obterTempoRelativo(commit.data_autor) }}
                 </span>
               </div>
 
               <!-- Lado Direito: Ações, SHA e Olho para Entrar -->
-              <div class="commit-actions" @click.stop>
+              <div class="flex items-center gap-2 shrink-0 ml-3" @click.stop>
                 <!-- Botão Excluir -->
-                <button 
+                <button
                   type="button"
-                  class="action-btn delete-btn" 
+                  :class="[cls.btnAcao, cls.btnExcluir]"
                   @click.stop="abrirModalConfirmacao(commit)"
                   title="Excluir commit"
                   aria-label="Excluir commit"
@@ -622,27 +582,26 @@
                 </button>
 
                 <!-- Botão SHA interativo (copia ao clicar) -->
-                <button 
+                <button
                   type="button"
-                  class="sha-btn" 
-                  :class="{ 'is-copied': shaCopiadoId === commit.id }"
+                  :class="[cls.btnSha, shaCopiadoId === commit.id ? cls.btnShaCopiado : cls.btnShaNormal]"
                   @click.stop="copiarSHA(commit.id)"
                   :title="shaCopiadoId === commit.id ? 'SHA copiado!' : 'Clique para copiar o SHA completo'"
                   :aria-label="`Copiar hash SHA ${commit.id}`"
                 >
-                  <span v-if="shaCopiadoId === commit.id" class="sha-copied-badge">
+                  <span v-if="shaCopiadoId === commit.id" class="inline-flex items-center gap-1.25 text-xs font-bold tracking-[0.01em]">
                     <i class="fa-solid fa-check" aria-hidden="true"></i>
                     <span>Copiado!</span>
                   </span>
-                  <span v-else class="sha-code-text">
+                  <span v-else class="text-xs tracking-[0.04em]">
                     {{ commit.id.slice(0, 8) }}
                   </span>
                 </button>
 
                 <!-- Botão Olho: ÚNICO método para entrar no commit -->
-                <button 
+                <button
                   type="button"
-                  class="action-btn eye-btn" 
+                  :class="[cls.btnAcao, cls.btnOlho]"
                   @click.stop="$router.push(`/commits/${commit.id}`)"
                   title="Abrir detalhes do commit"
                   :aria-label="`Abrir detalhes do commit ${commit.id.slice(0, 8)}`"
@@ -659,112 +618,115 @@
     </div>
 
     <!-- Modal de Confirmação de Exclusão -->
-    <div v-if="exibindoModalConfirmacao" class="modal-overlay" @click.self="fecharModalConfirmacao">
-      <div ref="confirmModalRef" class="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
-        <h2 id="confirm-modal-title">Confirmar Exclusão</h2>
-        <p>Tem certeza de que deseja excluir o commit <strong>{{ commitParaDeletar?.id.slice(0, 8) }}</strong> e sua respectiva análise? Esta ação não pode ser desfeita.</p>
-        <div class="modal-actions">
-          <button class="btn-ghost" @click="fecharModalConfirmacao">Cancelar</button>
-          <button class="btn-danger" @click="confirmarExclusao">Excluir</button>
-        </div>
-      </div>
-    </div>
+    <BaseModal v-if="exibindoModalConfirmacao" ref="confirmModalRef" labelledby="confirm-modal-title" @close="fecharModalConfirmacao">
+      <h2 id="confirm-modal-title" class="mb-1 text-xl font-bold text-foreground">Confirmar Exclusão</h2>
+      <p>Tem certeza de que deseja excluir o commit <strong>{{ commitParaDeletar?.id.slice(0, 8) }}</strong> e sua respectiva análise? Esta ação não pode ser desfeita.</p>
+      <template #actions>
+        <BaseButton variant="ghost" @click="fecharModalConfirmacao">Cancelar</BaseButton>
+        <button type="button" :class="cls.btnPerigo" @click="confirmarExclusao">Excluir</button>
+      </template>
+    </BaseModal>
 
     <!-- BARRA FLUTUANTE DE AÇÕES EM LOTE (STICKY FOOTER) -->
-    <transition name="slide-up">
-      <div 
-        v-if="selecionados.length > 0" 
-        class="bulk-action-footer" 
-        role="region" 
+    <transition
+      enter-active-class="transition-all duration-250 ease-[cubic-bezier(0.16,1,0.3,1)]"
+      leave-active-class="transition-all duration-250 ease-[cubic-bezier(0.16,1,0.3,1)]"
+      enter-from-class="translate-y-full opacity-0"
+      leave-to-class="translate-y-full opacity-0"
+    >
+      <div
+        v-if="selecionados.length > 0"
+        class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-275 bg-card border border-primary shadow-[0_14px_36px] shadow-black/50 drop-shadow-[0_0_20px] drop-shadow-primary-glow rounded-[14px] px-5.5 py-3.5 z-1000 backdrop-blur-[10px] light:bg-white light:border-blue-500 light:shadow-black/12 light:drop-shadow-[0_0_16px] light:drop-shadow-blue-500/20"
+        role="region"
         aria-label="Ações para commits selecionados"
         aria-live="polite"
       >
-        <div class="bulk-footer-content">
-          <div class="bulk-info-col">
-            <div class="bulk-counter-row">
-              <span class="bulk-badge-selected">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+          <div class="flex flex-col gap-1.25">
+            <div class="flex items-center gap-2.5">
+              <span class="font-bold text-base text-foreground inline-flex items-center gap-2 [&_i]:text-primary-light">
                 <i class="fa-solid fa-check-double" aria-hidden="true"></i>
                 {{ selecionados.length }} commit{{ selecionados.length > 1 ? 's' : '' }} marcado{{ selecionados.length > 1 ? 's' : '' }}
               </span>
-              <span class="bulk-repo-tag" v-if="totalReposSelecionadosCount > 0">
+              <span class="text-[0.82rem] text-muted-foreground" v-if="totalReposSelecionadosCount > 0">
                 ({{ totalReposSelecionadosCount }} repositório{{ totalReposSelecionadosCount > 1 ? 's' : '' }})
               </span>
             </div>
 
-            <div class="bulk-stats-row">
-              <span v-if="totalTarefasProntas > 0" class="bulk-stat-pill stat-tasks" title="Tarefas prontas para enfileiramento no Munka">
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <span v-if="totalTarefasProntas > 0" :class="[cls.statPill, 'bg-emerald-500/15 text-emerald-400 border-emerald-500/35']" title="Tarefas prontas para enfileiramento no Munka">
                 <i class="fa-solid fa-bolt" aria-hidden="true"></i>
                 <strong>{{ totalTarefasProntas }}</strong> tarefa{{ totalTarefasProntas > 1 ? 's' : '' }} pronta{{ totalTarefasProntas > 1 ? 's' : '' }} ({{ totalHpaSelecionado.toFixed(1) }}h HPA)
               </span>
-              <span v-else-if="totalCommitsAnalisadosSelecionados > 0 && totalTarefasJaEnviadas > 0" class="bulk-stat-pill stat-sent" title="Todas as tarefas destes commits já foram enviadas">
+              <span v-else-if="totalCommitsAnalisadosSelecionados > 0 && totalTarefasJaEnviadas > 0" :class="[cls.statPill, 'bg-blue-500/12 text-blue-300 border-blue-500/25']" title="Todas as tarefas destes commits já foram enviadas">
                 <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
                 {{ totalTarefasJaEnviadas }} tarefa(s) já enviada(s)
               </span>
-              <span v-if="totalCommitsPendentesSelecionados > 0" class="bulk-stat-pill stat-pending" title="Commits ainda não analisados pela IA">
+              <span v-if="totalCommitsPendentesSelecionados > 0" :class="[cls.statPill, 'bg-amber-500/15 text-amber-300 border-amber-500/35']" title="Commits ainda não analisados pela IA">
                 <i class="fa-solid fa-clock" aria-hidden="true"></i>
                 <strong>{{ totalCommitsPendentesSelecionados }}</strong> commit{{ totalCommitsPendentesSelecionados > 1 ? 's' : '' }} pendente{{ totalCommitsPendentesSelecionados > 1 ? 's' : '' }} de análise
               </span>
             </div>
           </div>
 
-          <div class="bulk-actions-col">
-            <button 
-              type="button" 
-              class="btn-ghost btn-sm" 
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <BaseButton
+              variant="ghost"
+              size="sm"
               @click="desmarcarTodos"
               aria-label="Limpar seleção atual de commits"
             >
               <i class="fa-solid fa-xmark" aria-hidden="true"></i>
               <span>Limpar</span>
-            </button>
+            </BaseButton>
 
             <!-- Botão Principal: Enfileirar Tarefas no Munka -->
-            <button 
+            <BaseButton
               v-if="totalTarefasProntas > 0"
-              type="button" 
-              class="btn-primary btn-bulk-send" 
-              :disabled="enfileirandoEnvio" 
+              variant="primary"
+              class="focus-visible:outline-white"
+              :disabled="enfileirandoEnvio"
               @click="executarEnfileirarTarefasLote"
               :aria-label="`Enfileirar ${totalTarefasProntas} tarefas no Munka`"
             >
-              <span v-if="enfileirandoEnvio" class="spinner-dot-sm" aria-hidden="true"></span>
+              <span v-if="enfileirandoEnvio" aria-hidden="true"></span>
               <i v-else class="fa-solid fa-paper-plane" aria-hidden="true"></i>
               <span>{{ enfileirandoEnvio ? 'Enfileirando...' : `Adicionar ${totalTarefasProntas} Tarefa(s) na Fila Munka` }}</span>
-            </button>
+            </BaseButton>
 
             <!-- Botão Alternativo: Reenfileirar tarefas já enviadas -->
-            <button 
+            <BaseButton
               v-else-if="totalCommitsAnalisadosSelecionados > 0 && totalTarefasJaEnviadas > 0"
-              type="button" 
-              class="btn-warning btn-bulk-send" 
-              :disabled="enfileirandoEnvio" 
+              variant="plain"
+              :class="cls.btnReenfileirar"
+              :disabled="enfileirandoEnvio"
               @click="executarEnfileirarTarefasLoteForcado"
               :aria-label="`Reenfileirar ${totalTarefasJaEnviadas} tarefas no Munka`"
               title="Todas as tarefas já foram enviadas. Clique para reenfileirar novamente."
             >
-              <span v-if="enfileirandoEnvio" class="spinner-dot-sm" aria-hidden="true"></span>
+              <span v-if="enfileirandoEnvio" aria-hidden="true"></span>
               <i v-else class="fa-solid fa-rotate-right" aria-hidden="true"></i>
               <span>{{ enfileirandoEnvio ? 'Reenfileirando...' : `Reenfileirar ${totalTarefasJaEnviadas} Tarefa(s)` }}</span>
-            </button>
+            </BaseButton>
 
             <!-- Botão Secundário: Enfileirar Análise AI para pendentes -->
-            <button 
+            <BaseButton
               v-if="totalCommitsPendentesSelecionados > 0"
-              type="button" 
-              class="btn-secondary btn-bulk-ai" 
-              :disabled="enfileirandoAnalise" 
+              variant="plain"
+              class="text-sm px-4 py-2.5 bg-purple-500/20 text-purple-400 border border-purple-500/40 rounded-lg hover:bg-purple-500/30 hover:border-purple-400 focus-visible:outline-purple-400"
+              :disabled="enfileirandoAnalise"
               @click="executarEnfileirarAnaliseLote"
               :aria-label="`Enfileirar ${totalCommitsPendentesSelecionados} commits para análise de IA`"
             >
-              <span v-if="enfileirandoAnalise" class="spinner-dot-sm" aria-hidden="true"></span>
+              <span v-if="enfileirandoAnalise" aria-hidden="true"></span>
               <i v-else class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
               <span>{{ enfileirandoAnalise ? 'Enfileirando IA...' : `Analisar ${totalCommitsPendentesSelecionados} com IA` }}</span>
-            </button>
+            </BaseButton>
 
             <!-- Atalho para a página da fila -->
-            <router-link 
-              to="/fila" 
-              class="btn-ghost btn-sm btn-view-queue"
+            <router-link
+              to="/fila"
+              class="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-md border border-border-strong bg-card px-3.25 py-1.5 text-[0.82rem] leading-none font-semibold text-foreground no-underline transition-all duration-200 hover:-translate-y-px hover:border-primary hover:text-primary"
               title="Abrir painel da Fila de Execução"
             >
               <i class="fa-solid fa-list-ol" aria-hidden="true"></i>
@@ -785,9 +747,176 @@ import { useCommitsStore } from '../stores/commits'
 import { useFilaStore } from '../stores/fila'
 import { useToastStore } from '../stores/toast'
 import TutorialModal from '../components/TutorialModal.vue'
+import BaseButton from '../components/ui/BaseButton.vue'
+import BaseBadge from '../components/ui/BaseBadge.vue'
+import BaseModal from '../components/ui/BaseModal.vue'
+import BaseTextarea from '../components/ui/BaseTextarea.vue'
+import BaseLabel from '../components/ui/BaseLabel.vue'
+import PageHeader from '../components/ui/PageHeader.vue'
+import PageTitle from '../components/ui/PageTitle.vue'
+import StateMessage from '../components/ui/StateMessage.vue'
+import SearchBox from '../components/ui/SearchBox.vue'
 import type { CommitSummary } from '../api'
 
 const route = useRoute()
+
+// ── Classes Tailwind reutilizadas no template (strings completas, detectáveis pelo Tailwind) ──
+const cls = {
+  controlBar:
+    'bg-card border border-border-strong rounded-xl p-5 flex flex-col gap-4 shadow-[0_4px_14px] shadow-black/15 light:bg-white light:border-slate-200 light:shadow-[0_2px_10px] light:shadow-black/4',
+
+  // Abas de modo de visualização
+  abaModo:
+    'inline-flex items-center gap-2 h-8.5 px-3.5 text-sm font-semibold border-0 rounded-md cursor-pointer transition-all duration-150 hover:text-foreground light:hover:text-slate-900',
+  abaModoInativa: 'bg-transparent text-muted-foreground light:text-slate-600',
+  abaModoAtiva:
+    'bg-card text-foreground shadow-[0_2px_8px] shadow-black/25 light:bg-white light:text-slate-900 light:border light:border-slate-200 light:shadow-[0_1px_3px] light:shadow-black/8',
+  modoContagem:
+    'text-xs font-bold px-1.5 py-0.5 rounded-full bg-primary-glow text-primary border border-border-strong light:bg-blue-50 light:text-blue-700 light:border-blue-200',
+
+  // Chips de filtro
+  chip:
+    'inline-flex items-center gap-2 px-3 py-1.5 text-[0.82rem] font-semibold rounded-full border cursor-pointer whitespace-nowrap transition-all duration-150 hover:-translate-y-px',
+  chipInativo:
+    'light:bg-white light:text-slate-700 light:border-slate-300 light:hover:bg-slate-50 light:hover:border-blue-600 light:hover:text-slate-900',
+  chipCorTodos:
+    'bg-background text-muted-foreground border-border-strong hover:border-primary hover:text-foreground',
+  chipCorFila: 'bg-background text-amber-400 border-amber-500/40 hover:border-amber-500',
+  chipAtivo:
+    'text-white bg-primary border-primary shadow-[0_2px_8px] shadow-canvas-accent/30 light:bg-blue-600 light:border-blue-600 light:shadow-blue-600/25',
+  chipAtivoFila:
+    'text-white bg-warning border-amber-600 shadow-[0_2px_8px] shadow-canvas-accent/30 light:bg-blue-600 light:border-blue-600 light:shadow-blue-600/25',
+  chipCount: 'text-xs font-extrabold px-1.5 py-px rounded-full',
+  chipCountInativo: 'bg-white/8 text-muted-foreground light:bg-slate-100 light:text-slate-600',
+
+  // Filtros ativos
+  filtroTag:
+    'inline-flex items-center gap-1.5 px-2 py-0.75 border rounded-md text-xs font-semibold',
+  filtroTagNeutra: 'bg-card border-border-strong text-foreground',
+  filtroTagAmbar:
+    'bg-amber-500/15 border-amber-500/35 text-amber-400 light:bg-amber-100 light:border-amber-300 light:text-amber-700',
+  tagRemover:
+    'bg-transparent border-0 text-muted-foreground text-xs cursor-pointer px-0.5 rounded-sm hover:text-canvas-danger',
+  spinnerXs:
+    'size-1.75 border-2 border-transparent border-t-current border-r-current rounded-full animate-spin inline-block shrink-0',
+
+  // Seleção rápida
+  btnSelecao:
+    'border px-2.5 py-1.25 rounded-md text-xs font-medium cursor-pointer transition-all duration-150 inline-flex items-center gap-1.5',
+  btnSelecaoNeutro:
+    'bg-transparent border-border-strong text-foreground hover:bg-white/8 hover:border-primary hover:text-primary-light light:border-slate-300 light:text-slate-900 light:hover:bg-slate-100 light:hover:border-blue-600 light:hover:text-slate-900',
+  btnSelecaoAnalisados:
+    'bg-transparent border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/12 hover:border-emerald-400 hover:text-emerald-300 light:bg-emerald-50 light:border-emerald-200 light:text-emerald-800 light:hover:bg-emerald-100 light:hover:border-emerald-400 light:hover:text-emerald-900',
+  btnSelecaoPendentes:
+    'bg-transparent border-amber-500/40 text-amber-400 hover:bg-amber-500/12 hover:border-amber-400 hover:text-amber-200 light:bg-amber-50 light:border-amber-200 light:text-amber-800 light:hover:bg-amber-100 light:hover:border-amber-500 light:hover:text-amber-900',
+
+  // Cards de repositório
+  repoCard:
+    'bg-card border border-border rounded-xl overflow-hidden shadow-[0_4px_16px] shadow-black/15 transition-colors duration-150 hover:border-border-strong light:bg-white light:border-slate-200 light:shadow-[0_2px_10px] light:shadow-black/4 light:hover:border-slate-200',
+  repoCardHeader:
+    'flex items-center justify-between px-5.5 py-4.5 bg-muted border-b border-border cursor-pointer transition-colors duration-150 gap-4 flex-wrap hover:bg-primary-glow focus-visible:-outline-offset-2 light:bg-slate-50 light:border-slate-200 light:hover:bg-slate-100',
+  colunaSelecao: 'flex items-center justify-center mr-3 shrink-0',
+  checkbox:
+    'size-4.5 cursor-pointer accent-primary rounded focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-primary focus-visible:outline-offset-2',
+
+  // Badges de fila (visual próprio; os de status usam BaseBadge)
+  badgeFilaEnvio:
+    'border inline-flex items-center gap-1.25 rounded px-2 py-0.75 text-[0.7rem] leading-none tracking-wide uppercase font-extrabold bg-amber-500/15 text-amber-400 border-amber-500/40 light:bg-amber-100 light:text-amber-700 light:border-amber-300',
+  badgeFilaEnvioRodando:
+    'border inline-flex items-center gap-1.25 rounded px-2 py-0.75 text-[0.7rem] leading-none tracking-wide uppercase font-extrabold bg-amber-500/25 text-yellow-200 border-amber-500 shadow-[0_0_10px] shadow-amber-500/30 animate-pulse-border light:bg-amber-200 light:text-amber-800 light:border-amber-500',
+  badgeFilaAnalise:
+    'border inline-flex items-center gap-1.5 rounded px-2 py-0.75 text-[0.7rem] leading-none tracking-wide uppercase font-extrabold bg-sky-400/15 text-sky-400 border-sky-400/40 light:bg-sky-100 light:text-sky-700 light:border-sky-300',
+  badgeFilaRepo:
+    'border inline-flex items-center gap-1.5 rounded px-2 py-0.75 text-[0.7rem] leading-none tracking-wide uppercase font-extrabold bg-amber-500/18 text-amber-400 border-amber-500/40 light:bg-amber-100 light:text-amber-700 light:border-amber-300',
+
+  // Linha de commit
+  commitRow:
+    'flex items-center px-5 py-3.5 border-b border-b-border-strong border-l-3 cursor-pointer select-none transition-colors duration-150 last:border-b-0 focus-visible:-outline-offset-2 light:border-b-slate-200',
+  commitRowOciosa:
+    'border-l-transparent hover:bg-blue-500/5 focus-visible:bg-blue-500/9 light:hover:bg-slate-50',
+  commitRowSelecionada:
+    'border-l-primary bg-blue-500/8 hover:bg-blue-500/14 light:bg-blue-50 light:border-l-blue-600 light:hover:bg-blue-600/10',
+  avatar:
+    'size-9 rounded-full text-white flex items-center justify-center text-xs font-extrabold mr-3.5 shrink-0 border border-white/12 text-shadow-[0_1px_2px] text-shadow-black/35 shadow-[0_2px_4px] shadow-black/15',
+  commitTitulo:
+    'text-sm font-semibold text-foreground truncate max-w-135 tracking-[-0.01em] light:text-slate-900',
+  commitAutorTempo: 'text-xs text-muted-foreground mt-0.5 light:text-slate-600',
+  commitData: 'font-bold text-foreground light:text-slate-900',
+
+  // Botões de ação da linha
+  btnAcao:
+    'inline-flex items-center justify-center w-8 h-7.5 p-0 rounded-md cursor-pointer border transition-all duration-150',
+  btnOlho:
+    'bg-card border-border-strong text-muted-foreground text-sm hover:text-white hover:bg-primary hover:border-primary hover:-translate-y-px hover:shadow-[0_2px_8px] hover:shadow-blue-500/35 light:bg-white light:border-slate-300 light:text-slate-600 light:hover:bg-blue-600 light:hover:border-blue-600 light:hover:text-white light:hover:shadow-blue-600/25',
+  btnExcluir:
+    'bg-transparent border-transparent text-canvas-danger opacity-85 text-sm hover:opacity-100 hover:bg-red-500/15 hover:border-red-500/35 hover:text-red-500 hover:-translate-y-px focus-visible:outline-red-500 light:text-red-600 light:hover:bg-red-100 light:hover:border-red-300 light:hover:text-red-700',
+  btnSha:
+    'inline-flex items-center justify-center font-mono text-xs font-bold border rounded-md px-2.5 py-1.25 tracking-[0.04em] cursor-pointer transition-all duration-150 min-w-20.5 h-7.5 hover:-translate-y-px',
+  btnShaNormal:
+    'text-code-foreground bg-code border-border-strong hover:text-primary-light hover:border-primary hover:bg-blue-500/12 light:bg-slate-50 light:text-slate-700 light:border-slate-300 light:hover:bg-blue-50 light:hover:text-blue-700 light:hover:border-blue-300',
+  btnShaCopiado:
+    'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 light:bg-emerald-100 light:text-emerald-700 light:border-emerald-400',
+
+  // Barra de ações em lote
+  statPill: 'text-xs px-2 py-0.75 rounded-md inline-flex items-center gap-1.5 border',
+  btnReenfileirar:
+    'px-5 py-2.5 text-[0.83rem] shadow-[0_4px_14px] shadow-blue-500/35 bg-amber-600 text-white border-0 rounded-lg hover:bg-amber-700 focus-visible:outline-white',
+
+  // Modal de exclusão
+  btnPerigo:
+    'inline-flex items-center justify-center gap-2 leading-none bg-canvas-danger text-white border-2 border-border-strong rounded-none px-4.5 py-2 font-bold cursor-pointer text-sm tracking-wide shadow-[3px_3px_0] shadow-border-strong transition-[transform,box-shadow] duration-100 hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[5px_5px_0] hover:shadow-border-strong hover:bg-canvas-danger-hover',
+}
+
+// Paleta determinística por repositório: `chip` (só tema escuro; o claro vem do chip) e `tag` (escuro + claro).
+const CORES_REPO: Record<string, { chip: string; tag: string }> = {
+  'repo-color-default': {
+    chip: 'bg-slate-400/12 text-slate-300 border-slate-400/30 hover:border-primary hover:text-foreground',
+    tag: 'bg-slate-400/12 text-slate-300 border-slate-400/30 light:bg-slate-100 light:text-slate-700 light:border-slate-300',
+  },
+  'repo-color-0': {
+    chip: 'bg-sky-400/12 text-sky-400 border-sky-400/35 hover:border-primary hover:text-foreground',
+    tag: 'bg-sky-400/12 text-sky-400 border-sky-400/35 light:bg-sky-100 light:text-sky-700 light:border-sky-300',
+  },
+  'repo-color-1': {
+    chip: 'bg-purple-400/12 text-purple-400 border-purple-400/35 hover:border-primary hover:text-foreground',
+    tag: 'bg-purple-400/12 text-purple-400 border-purple-400/35 light:bg-purple-100 light:text-purple-700 light:border-purple-300',
+  },
+  'repo-color-2': {
+    chip: 'bg-emerald-400/12 text-emerald-400 border-emerald-400/35 hover:border-primary hover:text-foreground',
+    tag: 'bg-emerald-400/12 text-emerald-400 border-emerald-400/35 light:bg-emerald-100 light:text-emerald-700 light:border-emerald-300',
+  },
+  'repo-color-3': {
+    chip: 'bg-amber-400/12 text-amber-400 border-amber-400/35 hover:border-primary hover:text-foreground',
+    tag: 'bg-amber-400/12 text-amber-400 border-amber-400/35 light:bg-amber-100 light:text-amber-700 light:border-amber-300',
+  },
+  'repo-color-4': {
+    chip: 'bg-pink-400/12 text-pink-400 border-pink-400/35 hover:border-primary hover:text-foreground',
+    tag: 'bg-pink-400/12 text-pink-400 border-pink-400/35 light:bg-pink-100 light:text-pink-700 light:border-pink-300',
+  },
+  'repo-color-5': {
+    chip: 'bg-indigo-400/12 text-indigo-400 border-indigo-400/35 hover:border-primary hover:text-foreground',
+    tag: 'bg-indigo-400/12 text-indigo-400 border-indigo-400/35 light:bg-indigo-100 light:text-indigo-700 light:border-indigo-300',
+  },
+}
+
+function variantEnviadas(commit: CommitSummary): 'blue' | 'orange' | 'purple' {
+  const enviadas = commit.atividades_enviadas || 0
+  const total = commit.atividades_total || 0
+  if (enviadas === total && total > 0) return 'blue'
+  return enviadas > 0 ? 'orange' : 'purple'
+}
+
+const chipTodosAtivo = computed(() => repositorioFiltro.value === 'todos' && !apenasNaFila.value)
+
+// Cor do avatar vem dos dados (hash do autor): única parte dinâmica, aplicada via style.
+function atributosAvatar(nome: string) {
+  return { style: { backgroundColor: obterCorAvatar(nome) } }
+}
+
+function classeChipContagem(ativo: boolean) {
+  return [cls.chipCount, ativo ? 'bg-white/25 text-white' : cls.chipCountInativo]
+}
+
 
 const store = useCommitsStore()
 const filaStore = useFilaStore()
@@ -846,16 +975,16 @@ function limparTodosFiltros() {
 const commitParaDeletar = ref<any>(null)
 const exibindoModalConfirmacao = ref(false)
 
-const importModalRef = ref<HTMLElement | null>(null)
-const confirmModalRef = ref<HTMLElement | null>(null)
+const importModalRef = ref<InstanceType<typeof BaseModal> | null>(null)
+const confirmModalRef = ref<InstanceType<typeof BaseModal> | null>(null)
 const previousActiveElement = ref<HTMLElement | null>(null)
 
 function handleImportKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
     showImport.value = false
   }
-  if (e.key === 'Tab' && importModalRef.value) {
-    const focusable = importModalRef.value.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+  if (e.key === 'Tab' && importModalRef.value?.panel) {
+    const focusable = importModalRef.value.panel.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
     if (focusable.length === 0) return
     const first = focusable[0] as HTMLElement
     const last = focusable[focusable.length - 1] as HTMLElement
@@ -877,8 +1006,8 @@ function handleConfirmKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
     fecharModalConfirmacao()
   }
-  if (e.key === 'Tab' && confirmModalRef.value) {
-    const focusable = confirmModalRef.value.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+  if (e.key === 'Tab' && confirmModalRef.value?.panel) {
+    const focusable = confirmModalRef.value.panel.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
     if (focusable.length === 0) return
     const first = focusable[0] as HTMLElement
     const last = focusable[focusable.length - 1] as HTMLElement
@@ -901,7 +1030,7 @@ watch(showImport, (newVal) => {
     previousActiveElement.value = document.activeElement as HTMLElement
     document.addEventListener('keydown', handleImportKeydown)
     nextTick(() => {
-      const textarea = importModalRef.value?.querySelector('textarea') as HTMLElement
+      const textarea = importModalRef.value?.panel?.querySelector('textarea') as HTMLElement
       textarea?.focus()
     })
   } else {
@@ -918,7 +1047,7 @@ watch(exibindoModalConfirmacao, (newVal) => {
     previousActiveElement.value = document.activeElement as HTMLElement
     document.addEventListener('keydown', handleConfirmKeydown)
     nextTick(() => {
-      const btn = confirmModalRef.value?.querySelector('.modal-actions button') as HTMLElement
+      const btn = confirmModalRef.value?.panel?.querySelector('[data-modal-actions] button') as HTMLElement
       btn?.focus()
     })
   } else {
@@ -1553,1576 +1682,3 @@ async function executarEnfileirarAnaliseLote() {
   }
 }
 </script>
-
-<style scoped>
-.title-row { display: flex; align-items: center; gap: 0.5rem; }
-
-.commits-content-area {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-/* ── BARRA DE CONTROLE E FILTROS ── */
-.repo-control-bar {
-  background: var(--card-bg, #161b22);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 12px;
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
-}
-
-.control-top-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-/* Tabs do Modo de Visualização */
-.view-mode-tabs {
-  display: inline-flex;
-  background: var(--bg, #0d1117);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 8px;
-  padding: 3px;
-  gap: 3px;
-}
-
-.mode-tab-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  height: 34px;
-  padding: 0 0.85rem;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--text-muted, #8b949e);
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  outline: none;
-}
-
-.mode-tab-btn:hover {
-  color: var(--text, #f0f6fc);
-}
-
-.mode-tab-btn:focus-visible {
-  outline: 2px solid var(--accent, #58a6ff);
-  outline-offset: 2px;
-}
-
-.mode-tab-btn.active {
-  background: var(--card-bg, #161b22);
-  color: var(--text, #f0f6fc);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-}
-
-.mode-count-badge {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 10px;
-  background: var(--accent-glow, rgba(56, 189, 248, 0.15));
-  color: var(--accent, #58a6ff);
-  border: 1px solid var(--border, #30363d);
-}
-
-/* Campo de Busca */
-.search-box {
-  display: flex;
-  align-items: center;
-  position: relative;
-  flex: 1;
-  max-width: 420px;
-  min-width: 260px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 0.85rem;
-  color: var(--text-muted, #8b949e);
-  pointer-events: none;
-}
-
-.search-input {
-  width: 100%;
-  height: 38px;
-  padding: 0 2.35rem;
-  font-size: 0.88rem;
-  background: var(--bg, #0d1117);
-  color: var(--text, #f0f6fc);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 8px;
-  outline: none;
-  transition: all 0.2s ease;
-}
-
-.search-input:focus {
-  border-color: var(--accent, #58a6ff);
-}
-
-.clear-search-btn {
-  position: absolute;
-  right: 0.6rem;
-  background: transparent;
-  border: none;
-  color: var(--text-muted, #8b949e);
-  font-size: 0.85rem;
-  padding: 0.2rem 0.4rem;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.clear-search-btn:hover {
-  color: var(--text, #f0f6fc);
-}
-
-/* Chips de Repositórios e Fila */
-.repo-chips-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  padding-top: 0.25rem;
-  border-top: 1px dashed var(--border, #30363d);
-}
-
-.chips-label {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--text-muted, #8b949e);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  flex-shrink: 0;
-}
-
-.chips-list {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.repo-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.35rem 0.75rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  border-radius: 20px;
-  background: var(--bg, #0d1117);
-  color: var(--text-muted, #8b949e);
-  border: 1px solid var(--border, #30363d);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-
-.repo-chip:hover {
-  border-color: var(--accent, #58a6ff);
-  color: var(--text, #f0f6fc);
-  transform: translateY(-1px);
-}
-
-.repo-chip.active {
-  background: var(--accent, #388bfd);
-  color: #ffffff;
-  border-color: var(--accent, #388bfd);
-  box-shadow: 0 2px 8px rgba(56, 139, 253, 0.3);
-}
-
-.repo-chip.active .chip-count {
-  background: rgba(255, 255, 255, 0.25);
-  color: #ffffff;
-}
-
-/* Chip especial Na Fila */
-.repo-chip.chip-na-fila {
-  border-color: rgba(245, 158, 11, 0.4);
-  color: #fbbf24;
-}
-
-.repo-chip.chip-na-fila:hover {
-  border-color: #f59e0b;
-}
-
-.repo-chip.chip-na-fila.active {
-  background: var(--warning, #d97706);
-  color: #ffffff;
-  border-color: #d97706;
-}
-
-.chip-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: currentColor;
-  flex-shrink: 0;
-}
-
-.chip-dot.pulse {
-  animation: pulse-dot-anim 1.5s infinite;
-}
-
-@keyframes pulse-dot-anim {
-  0% { transform: scale(0.9); opacity: 0.7; }
-  50% { transform: scale(1.3); opacity: 1; }
-  100% { transform: scale(0.9); opacity: 0.7; }
-}
-
-.chip-name {
-  max-width: 220px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.chip-count {
-  font-size: 0.72rem;
-  font-weight: 800;
-  padding: 1px 6px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-muted, #8b949e);
-}
-
-.chip-fila-badge {
-  font-size: 0.68rem;
-  font-weight: 800;
-  padding: 1px 5px;
-  border-radius: 8px;
-  background: rgba(245, 158, 11, 0.2);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.3);
-}
-
-/* Barra de Filtros Ativos */
-.active-filter-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  background: rgba(56, 189, 248, 0.08);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  border-radius: 8px;
-  padding: 0.5rem 0.85rem;
-  flex-wrap: wrap;
-}
-
-.filter-bar-items {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-
-.filter-bar-label {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text-muted, #8b949e);
-}
-
-.filter-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.2rem 0.55rem;
-  background: var(--card-bg, #161b22);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 6px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text, #f0f6fc);
-}
-
-.filter-tag-amber {
-  background: rgba(245, 158, 11, 0.15);
-  border-color: rgba(245, 158, 11, 0.35);
-  color: #fbbf24;
-}
-
-.tag-remove-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-muted, #8b949e);
-  font-size: 0.78rem;
-  cursor: pointer;
-  padding: 0 2px;
-  border-radius: 3px;
-}
-
-.tag-remove-btn:hover {
-  color: #f85149;
-}
-
-.filter-match-count {
-  font-size: 0.8rem;
-  color: var(--text-muted, #8b949e);
-}
-
-.btn-clear-all {
-  background: transparent;
-  border: none;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--accent, #58a6ff);
-  cursor: pointer;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  text-decoration: none;
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.btn-clear-all:hover {
-  text-decoration: none;
-  background: var(--accent-glow);
-}
-
-/* ── CARDS DE REPOSITÓRIO (MODO "POR REPOSITÓRIO") ── */
-.repo-cards-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.repo-card {
-  background: var(--card-bg, #161b22);
-  border: 1px solid var(--card-border, #30363d);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  transition: border-color 0.15s ease;
-}
-
-.repo-card:hover {
-  border-color: var(--border, #475569);
-}
-
-.repo-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.1rem 1.35rem;
-  background: var(--header-group-bg, rgba(255, 255, 255, 0.02));
-  border-bottom: 1px solid var(--card-border, #30363d);
-  cursor: pointer;
-  transition: background 0.15s;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.repo-card-header:hover {
-  background: var(--accent-glow, rgba(56, 189, 248, 0.08));
-}
-
-.repo-card-header:focus-visible {
-  outline: 2px solid var(--accent, #58a6ff);
-  outline-offset: -2px;
-}
-
-.repo-header-main {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  min-width: 0;
-  flex: 1;
-}
-
-.repo-avatar-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border: 1px solid transparent;
-}
-
-.repo-header-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  min-width: 0;
-}
-
-.repo-title-row {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  flex-wrap: wrap;
-}
-
-.repo-title {
-  margin: 0;
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: var(--text, #f0f6fc);
-  letter-spacing: -0.01em;
-  word-break: break-word;
-}
-
-.badge-repo-count {
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  background: var(--bg, #0d1117);
-  border: 1px solid var(--border, #30363d);
-  border-radius: 12px;
-  color: var(--text-muted, #8b949e);
-}
-
-.repo-subtitle {
-  font-size: 0.8rem;
-  color: var(--text-muted, #8b949e);
-}
-
-.repo-subtitle strong {
-  color: var(--text, #f0f6fc);
-}
-
-.repo-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-shrink: 0;
-}
-
-.repo-stats-pills {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.repo-toggle-btn {
-  background: var(--bg, #0d1117);
-  border: 1px solid var(--border, #30363d);
-  color: var(--text-muted, #8b949e);
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.repo-toggle-btn:hover {
-  color: var(--text, #f0f6fc);
-  border-color: var(--accent, #58a6ff);
-}
-
-.chevron-icon {
-  transition: transform 0.2s ease;
-}
-
-.chevron-icon.rotated {
-  transform: rotate(-90deg);
-}
-
-.repo-commits-list {
-  display: flex;
-  flex-direction: column;
-}
-
-/* ── LINHA DO TEMPO (MODO "POR DATA") ── */
-.commit-list-grouped {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.date-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.date-group-header {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  background: var(--header-group-bg, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--card-border, #30363d);
-  border-bottom: none;
-  border-radius: 10px 10px 0 0;
-  font-size: 0.88rem;
-}
-
-.date-text {
-  font-weight: 800;
-  color: var(--text, #f0f6fc);
-  font-size: 0.95rem;
-}
-
-.commit-count-text {
-  color: var(--text-muted, #8b949e);
-  font-size: 0.82rem;
-  font-weight: 500;
-}
-
-.date-group-commits {
-  border: 1px solid var(--card-border, #30363d);
-  border-top: none;
-  background: var(--card-bg, #161b22);
-  display: flex;
-  flex-direction: column;
-  border-radius: 0 0 10px 10px;
-  overflow: hidden;
-}
-
-/* ── LINHA DE COMMIT INDIVIDUAL ── */
-.commit-row {
-  display: flex;
-  align-items: center;
-  padding: 0.85rem 1.25rem;
-  border-bottom: 1px solid var(--border, #334155);
-  border-left: 3px solid transparent;
-  cursor: pointer;
-  transition: background 0.15s ease, border-left-color 0.15s ease;
-  outline: none;
-  user-select: none;
-}
-
-.commit-row:last-child {
-  border-bottom: none;
-}
-
-.commit-row:hover {
-  background: rgba(59, 130, 246, 0.05);
-}
-
-.commit-row:focus-visible {
-  background: rgba(59, 130, 246, 0.09);
-  outline: 2px solid var(--accent, #3b82f6);
-  outline-offset: -2px;
-}
-
-.commit-row.is-selected {
-  background: rgba(59, 130, 246, 0.09);
-  border-left-color: var(--accent, #3b82f6);
-}
-
-.commit-row.is-selected:hover {
-  background: rgba(59, 130, 246, 0.14);
-}
-
-.commit-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.78rem;
-  font-weight: 800;
-  margin-right: 0.9rem;
-  flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-}
-
-.commit-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  flex: 1;
-  min-width: 0;
-}
-
-.commit-msg-container {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  flex-wrap: wrap;
-}
-
-/* Badge do Repositório (Tag destacada) */
-.badge-repo-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 0.2rem 0.55rem;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-  max-width: 220px;
-  text-decoration: none;
-  outline: none;
-}
-
-.badge-repo-pill:hover {
-  filter: brightness(1.15);
-  transform: translateY(-1px);
-}
-
-.badge-repo-pill:focus-visible {
-  outline: 2px solid var(--accent, #58a6ff);
-  outline-offset: 2px;
-}
-
-.commit-msg-title {
-  font-size: 0.93rem;
-  font-weight: 600;
-  color: var(--text, #f0f6fc);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 540px;
-  letter-spacing: -0.01em;
-}
-
-.commit-row-badges {
-  display: flex;
-  gap: 0.35rem;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.badge-status {
-  font-size: 0.7rem;
-  padding: 3px 8px;
-  font-weight: 700;
-  border-radius: 4px;
-  letter-spacing: 0.02em;
-}
-
-/* ── BADGES DINÂMICOS DE FILA (ESTADO ATIVO) ── */
-.badge-fila-envio {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-}
-
-.badge-fila-envio.is-running {
-  background: rgba(245, 158, 11, 0.25);
-  border-color: #f59e0b;
-  color: #fef08a;
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
-  animation: pulse-border 2s infinite ease-in-out;
-}
-
-.badge-fila-analise {
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.4);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-weight: 800;
-}
-
-.badge-fila-repo {
-  background: rgba(245, 158, 11, 0.18);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-weight: 800;
-}
-
-.spinner-dot-xs {
-  width: 7px;
-  height: 7px;
-  border: 2px solid transparent;
-  border-top-color: currentColor;
-  border-right-color: currentColor;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  display: inline-block;
-  flex-shrink: 0;
-}
-
-.pulse-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  display: inline-block;
-  animation: pulse-dot-anim 1.2s infinite ease-in-out;
-  flex-shrink: 0;
-}
-
-.queue-icon-txt {
-  font-size: 0.72rem;
-  line-height: 1;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@keyframes pulse-border {
-  0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
-  70% { box-shadow: 0 0 0 5px rgba(245, 158, 11, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
-}
-
-.commit-author-time {
-  font-size: 0.8rem;
-  color: var(--text-muted, #8b949e);
-  margin-top: 0.1rem;
-}
-
-.commit-date-badge {
-  font-weight: 700;
-  color: var(--text, #f0f6fc);
-}
-
-/* ── AÇÕES DA LINHA DO COMMIT ── */
-.commit-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  flex-shrink: 0;
-  margin-left: 0.75rem;
-}
-
-/* Botão SHA interativo (copia ao clicar) */
-.sha-btn {
-  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--sha-box-color, #94a3b8);
-  background: var(--sha-box-bg, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--border, #334155);
-  border-radius: 6px;
-  padding: 0.28rem 0.65rem;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 82px;
-  height: 30px;
-  outline: none;
-  box-sizing: border-box;
-}
-
-.sha-btn:hover {
-  color: var(--accent-light, #60a5fa);
-  border-color: var(--accent, #3b82f6);
-  background: rgba(59, 130, 246, 0.12);
-  transform: translateY(-1px);
-}
-
-.sha-btn:focus-visible {
-  outline: 2px solid var(--accent, #3b82f6);
-  outline-offset: 2px;
-}
-
-.sha-btn.is-copied {
-  background: rgba(16, 185, 129, 0.2);
-  color: #34d399;
-  border-color: rgba(16, 185, 129, 0.5);
-}
-
-.sha-copied-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-}
-
-.sha-code-text {
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
-}
-
-/* Botões de Ação Padronizados */
-.action-btn {
-  background: var(--card-bg, #1e293b);
-  border: 1px solid var(--border, #475569);
-  border-radius: 7px;
-  color: var(--text-muted, #cbd5e1);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 30px;
-  padding: 0;
-  transition: all 0.15s ease;
-  outline: none;
-  box-sizing: border-box;
-}
-
-.action-btn:focus-visible {
-  outline: 2px solid var(--accent, #3b82f6);
-  outline-offset: 2px;
-}
-
-/* Botão Olho (Entrar no Commit) */
-.eye-btn {
-  font-size: 0.85rem;
-}
-
-.eye-btn:hover {
-  color: #ffffff;
-  background: var(--accent, #3b82f6);
-  border-color: var(--accent, #3b82f6);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
-}
-
-/* Botão Deletar */
-.delete-btn {
-  background: transparent;
-  border: 1px solid transparent;
-  color: #f85149;
-  opacity: 0.85;
-  font-size: 0.9rem;
-}
-
-.delete-btn:hover {
-  opacity: 1;
-  background: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.35);
-  color: #ef4444;
-  transform: translateY(-1px);
-}
-
-.delete-btn:focus-visible {
-  outline: 2px solid #ef4444;
-  outline-offset: 2px;
-}
-
-.btn-danger {
-  background: #f85149;
-  color: #ffffff;
-  border: 2px solid var(--border);
-  border-radius: 0;
-  padding: 0.5rem 1.1rem;
-  font-weight: 700;
-  cursor: pointer;
-  font-size: 0.88rem;
-  letter-spacing: 0.02em;
-  box-shadow: 3px 3px 0 var(--border);
-  transition: transform 0.1s, box-shadow 0.1s;
-}
-
-.btn-danger:hover {
-  transform: translateY(-2px) translateX(-2px);
-  box-shadow: 5px 5px 0 var(--border);
-  background: #ff6b6b;
-}
-
-/* ── PALETA DE CORES DETERMINÍSTICA PARA REPOSITÓRIOS (WCAG AA CONFORME) ── */
-/* Modo Escuro (Default) */
-.repo-color-default {
-  background: rgba(148, 163, 184, 0.12);
-  color: #cbd5e1;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-}
-
-.repo-color-0 {
-  background: rgba(56, 189, 248, 0.12);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.35);
-}
-
-.repo-color-1 {
-  background: rgba(192, 132, 252, 0.12);
-  color: #c084fc; /* taste-skill-ignore */
-  border: 1px solid rgba(192, 132, 252, 0.35);
-}
-
-.repo-color-2 {
-  background: rgba(52, 211, 153, 0.12);
-  color: #34d399;
-  border: 1px solid rgba(52, 211, 153, 0.35);
-}
-
-.repo-color-3 {
-  background: rgba(251, 191, 36, 0.12);
-  color: #fbbf24;
-  border: 1px solid rgba(251, 191, 36, 0.35);
-}
-
-.repo-color-4 {
-  background: rgba(244, 114, 182, 0.12);
-  color: #f472b6;
-  border: 1px solid rgba(244, 114, 182, 0.35);
-}
-
-.repo-color-5 {
-  background: rgba(129, 140, 248, 0.12);
-  color: #818cf8; /* taste-skill-ignore */
-  border: 1px solid rgba(129, 140, 248, 0.35);
-}
-
-/* Modo Claro Adaptativo */
-:global([data-theme="light"]) .repo-color-default {
-  background: #f1f5f9;
-  color: #334155;
-  border: 1px solid #cbd5e1;
-}
-
-:global([data-theme="light"]) .repo-color-0 {
-  background: #e0f2fe;
-  color: #0369a1;
-  border: 1px solid #7dd3fc;
-}
-
-:global([data-theme="light"]) .repo-color-1 {
-  background: #f3e8ff;
-  color: #7e22ce;
-  border: 1px solid #d8b4fe;
-}
-
-:global([data-theme="light"]) .repo-color-2 {
-  background: #d1fae5;
-  color: #047857;
-  border: 1px solid #6ee7b7;
-}
-
-:global([data-theme="light"]) .repo-color-3 {
-  background: #fef3c7;
-  color: #b45309;
-  border: 1px solid #fcd34d;
-}
-
-:global([data-theme="light"]) .repo-color-4 {
-  background: #fce7f3;
-  color: #be185d;
-  border: 1px solid #f9a8d4;
-}
-
-:global([data-theme="light"]) .repo-color-5 {
-  background: #e0e7ff;
-  color: #4338ca;
-  border: 1px solid #a5b4fc;
-}
-
-:global([data-theme="light"]) .badge-fila-envio {
-  background: #fef3c7;
-  color: #b45309;
-  border-color: #fcd34d;
-}
-
-:global([data-theme="light"]) .badge-fila-envio.is-running {
-  background: #fde68a;
-  color: #92400e;
-  border-color: #f59e0b;
-}
-
-:global([data-theme="light"]) .badge-fila-analise {
-  background: #e0f2fe;
-  color: #0369a1;
-  border-color: #7dd3fc;
-}
-
-:global([data-theme="light"]) .badge-fila-repo {
-  background: #fef3c7;
-  color: #b45309;
-  border-color: #fcd34d;
-}
-
-:global([data-theme="light"]) .filter-tag-amber {
-  background: #fef3c7;
-  color: #b45309;
-  border-color: #fcd34d;
-}
-
-/* ── ESTILOS DE SELEÇÃO EM LOTE E CHECKBOXES (A11Y) ── */
-.repo-select-col,
-.commit-select-col {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 0.75rem;
-  flex-shrink: 0;
-}
-
-.repo-checkbox,
-.commit-checkbox {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: var(--accent, #3b82f6);
-  border-radius: 4px;
-}
-
-.repo-checkbox:focus-visible,
-.commit-checkbox:focus-visible {
-  outline: 2px solid var(--accent, #3b82f6);
-  outline-offset: 2px;
-}
-
-.commit-row.is-selected {
-  background: rgba(59, 130, 246, 0.08);
-  border-left: 3px solid var(--accent, #3b82f6);
-}
-
-.commit-row.is-selected:hover {
-  background: rgba(59, 130, 246, 0.14);
-}
-
-/* ── BARRA DE SELEÇÃO RÁPIDA ── */
-.selection-quick-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  padding: 0.65rem 0.85rem;
-  background: var(--header-group-bg, rgba(255, 255, 255, 0.03));
-  border-radius: 8px;
-  border: 1px solid var(--card-border, #334155);
-}
-
-.selection-quick-left {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.selection-quick-label {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text-muted, #cbd5e1);
-  margin-right: 0.25rem;
-}
-
-.btn-quick-select {
-  background: transparent;
-  border: 1px solid var(--border, #475569);
-  color: var(--text, #f8fafc);
-  padding: 0.3rem 0.65rem;
-  border-radius: 6px;
-  font-size: 0.78rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.btn-quick-select:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: var(--accent, #3b82f6);
-  color: var(--accent-light, #60a5fa);
-}
-
-.btn-quick-select:focus-visible {
-  outline: 2px solid var(--accent, #3b82f6);
-  outline-offset: 2px;
-}
-
-.btn-quick-analisados {
-  border-color: rgba(16, 185, 129, 0.4);
-  color: #34d399;
-}
-
-.btn-quick-analisados:hover {
-  background: rgba(16, 185, 129, 0.12);
-  border-color: #34d399;
-  color: #6ee7b7;
-}
-
-.btn-quick-pendentes {
-  border-color: rgba(245, 158, 11, 0.4);
-  color: #fbbf24;
-}
-
-.btn-quick-pendentes:hover {
-  background: rgba(245, 158, 11, 0.12);
-  border-color: #fbbf24;
-  color: #fde68a;
-}
-
-.selection-quick-right {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.selected-pill {
-  font-size: 0.8rem;
-  padding: 0.2rem 0.6rem;
-  border-radius: 12px;
-  background: rgba(59, 130, 246, 0.15);
-  color: var(--accent-light, #60a5fa);
-  border: 1px solid rgba(59, 130, 246, 0.35);
-  font-weight: 600;
-}
-
-.btn-quick-clear {
-  background: transparent;
-  border: none;
-  color: var(--text-muted, #cbd5e1);
-  font-size: 0.78rem;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  transition: color 0.15s ease;
-}
-
-.btn-quick-clear:hover {
-  color: var(--error, #ef4444);
-}
-
-.btn-quick-clear:focus-visible {
-  outline: 2px solid var(--error, #ef4444);
-  outline-offset: 2px;
-}
-
-/* ── BARRA FLUTUANTE DE AÇÕES EM LOTE (STICKY FOOTER) ── */
-.bulk-action-footer {
-  position: fixed;
-  bottom: 1.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  width: calc(100% - 3rem);
-  max-width: 1100px;
-  background: var(--card-bg, #1e293b);
-  border: 1px solid var(--accent, #3b82f6);
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5), 0 0 20px var(--accent-glow, rgba(59, 130, 246, 0.3));
-  border-radius: 14px;
-  padding: 0.9rem 1.4rem;
-  z-index: 1000;
-  backdrop-filter: blur(10px);
-}
-
-.bulk-footer-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.bulk-info-col {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.bulk-counter-row {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.bulk-badge-selected {
-  font-weight: 700;
-  font-size: 0.98rem;
-  color: var(--text, #f8fafc);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-.bulk-badge-selected i {
-  color: var(--accent-light, #60a5fa);
-}
-
-.bulk-repo-tag {
-  font-size: 0.82rem;
-  color: var(--text-muted, #cbd5e1);
-}
-
-.bulk-stats-row {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-
-.bulk-stat-pill {
-  font-size: 0.78rem;
-  padding: 0.2rem 0.55rem;
-  border-radius: 6px;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.bulk-stat-pill.stat-tasks {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.35);
-}
-
-.bulk-stat-pill.stat-sent {
-  background: rgba(59, 130, 246, 0.12);
-  color: #93c5fd;
-  border: 1px solid rgba(59, 130, 246, 0.25);
-}
-
-.bulk-stat-pill.stat-pending {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fcd34d;
-  border: 1px solid rgba(245, 158, 11, 0.35);
-}
-
-.bulk-actions-col {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  flex-wrap: wrap;
-}
-
-.btn-bulk-send {
-  font-weight: 700;
-  padding: 0.6rem 1.25rem;
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-.btn-bulk-send:focus-visible {
-  outline: 2px solid #ffffff;
-  outline-offset: 2px;
-}
-
-.btn-bulk-ai {
-  font-size: 0.85rem;
-  padding: 0.6rem 1rem;
-  background: rgba(168, 85, 247, 0.2);
-  color: #c084fc; /* taste-skill-ignore */
-  border: 1px solid rgba(168, 85, 247, 0.4);
-  border-radius: 8px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  transition: all 0.15s ease;
-}
-
-.btn-bulk-ai:hover {
-  background: rgba(168, 85, 247, 0.3);
-  border-color: #c084fc; /* taste-skill-ignore */
-}
-
-.btn-bulk-ai:focus-visible {
-  outline: 2px solid #c084fc; /* taste-skill-ignore */
-  outline-offset: 2px;
-}
-
-.btn-view-queue {
-  font-size: 0.82rem;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.btn-warning {
-  background: #d97706;
-  color: #ffffff;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0.6rem 1.1rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  transition: background 0.15s ease;
-}
-
-.btn-warning:hover {
-  background: #b45309;
-}
-
-.btn-warning:focus-visible {
-  outline: 2px solid #ffffff;
-  outline-offset: 2px;
-}
-
-/* Animação slide-up */
-.slide-up-enter-active,
-.slide-up-leave-active {
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.slide-up-enter-from,
-.slide-up-leave-to {
-  transform: translate(-50%, 100%);
-  opacity: 0;
-}
-
-/* Modo Claro (A11Y High Contrast & Design Taste) */
-:global([data-theme="light"]) .repo-control-bar {
-  background: #ffffff;
-  border-color: #e2e8f0;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
-}
-
-:global([data-theme="light"]) .view-mode-tabs {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-}
-
-:global([data-theme="light"]) .mode-tab-btn {
-  color: #475569;
-}
-
-:global([data-theme="light"]) .mode-tab-btn:hover {
-  color: #0f172a;
-}
-
-:global([data-theme="light"]) .mode-tab-btn.active {
-  background: #ffffff;
-  color: #0f172a;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-}
-
-:global([data-theme="light"]) .mode-count-badge {
-  background: #eff6ff;
-  color: #1d4ed8;
-  border-color: #bfdbfe;
-}
-
-:global([data-theme="light"]) .search-input {
-  background: #ffffff;
-  color: #0f172a;
-  border-color: #cbd5e1;
-}
-
-:global([data-theme="light"]) .search-input:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-}
-
-:global([data-theme="light"]) .repo-chip {
-  background: #ffffff;
-  color: #334155;
-  border-color: #cbd5e1;
-}
-
-:global([data-theme="light"]) .repo-chip:hover {
-  background: #f8fafc;
-  border-color: #2563eb;
-  color: #0f172a;
-}
-
-:global([data-theme="light"]) .repo-chip.active {
-  background: #2563eb;
-  color: #ffffff;
-  border-color: #2563eb;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
-}
-
-:global([data-theme="light"]) .chip-count {
-  background: #f1f5f9;
-  color: #475569;
-}
-
-:global([data-theme="light"]) .repo-card {
-  background: #ffffff;
-  border-color: #e2e8f0;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
-}
-
-:global([data-theme="light"]) .repo-card-header {
-  background: #f8fafc;
-  border-bottom-color: #e2e8f0;
-}
-
-:global([data-theme="light"]) .repo-card-header:hover {
-  background: #f1f5f9;
-}
-
-:global([data-theme="light"]) .repo-title {
-  color: #0f172a;
-}
-
-:global([data-theme="light"]) .badge-repo-count {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  color: #334155;
-}
-
-:global([data-theme="light"]) .repo-toggle-btn {
-  background: #ffffff;
-  border-color: #cbd5e1;
-  color: #475569;
-}
-
-:global([data-theme="light"]) .repo-toggle-btn:hover {
-  border-color: #2563eb;
-  color: #2563eb;
-}
-
-:global([data-theme="light"]) .date-group-header {
-  background: #f8fafc;
-  border-color: #e2e8f0;
-}
-
-:global([data-theme="light"]) .date-text {
-  color: #0f172a;
-}
-
-:global([data-theme="light"]) .commit-count-text {
-  color: #475569;
-}
-
-:global([data-theme="light"]) .date-group-commits {
-  background: #ffffff;
-  border-color: #e2e8f0;
-}
-
-:global([data-theme="light"]) .commit-row {
-  border-bottom-color: #e2e8f0;
-}
-
-:global([data-theme="light"]) .commit-row:hover {
-  background: #f8fafc;
-}
-
-:global([data-theme="light"]) .commit-row.is-selected {
-  background: #f0f7ff;
-  border-left-color: #2563eb;
-}
-
-:global([data-theme="light"]) .commit-row.is-selected:hover {
-  background: #e6f0fc;
-}
-
-:global([data-theme="light"]) .commit-msg-title {
-  color: #0f172a;
-}
-
-:global([data-theme="light"]) .commit-author-time {
-  color: #475569;
-}
-
-:global([data-theme="light"]) .commit-date-badge {
-  color: #0f172a;
-}
-
-:global([data-theme="light"]) .sha-btn {
-  background: #f8fafc;
-  color: #334155;
-  border-color: #cbd5e1;
-}
-
-:global([data-theme="light"]) .sha-btn:hover {
-  background: #eff6ff;
-  color: #1d4ed8;
-  border-color: #93c5fd;
-}
-
-:global([data-theme="light"]) .sha-btn.is-copied {
-  background: #d1fae5;
-  color: #047857;
-  border-color: #34d399;
-}
-
-:global([data-theme="light"]) .action-btn {
-  background: #ffffff;
-  border-color: #cbd5e1;
-  color: #475569;
-}
-
-:global([data-theme="light"]) .eye-btn:hover {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #ffffff;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
-}
-
-:global([data-theme="light"]) .delete-btn {
-  background: transparent;
-  border-color: transparent;
-  color: #dc2626;
-}
-
-:global([data-theme="light"]) .delete-btn:hover {
-  background: #fee2e2;
-  border-color: #fca5a5;
-  color: #b91c1c;
-}
-
-:global([data-theme="light"]) .selection-quick-bar {
-  background: #f8fafc;
-  border-color: #e2e8f0;
-}
-
-:global([data-theme="light"]) .selection-quick-label {
-  color: #475569;
-}
-
-:global([data-theme="light"]) .btn-quick-select {
-  border-color: #cbd5e1;
-  color: #0f172a;
-}
-
-:global([data-theme="light"]) .btn-quick-select:hover {
-  background: #f1f5f9;
-  border-color: #2563eb;
-}
-
-:global([data-theme="light"]) .btn-quick-analisados {
-  background: #ecfdf5;
-  border-color: #a7f3d0;
-  color: #065f46;
-}
-
-:global([data-theme="light"]) .btn-quick-analisados:hover {
-  background: #d1fae5;
-  border-color: #34d399;
-  color: #064e3b;
-}
-
-:global([data-theme="light"]) .btn-quick-pendentes {
-  background: #fffbeb;
-  border-color: #fde68a;
-  color: #92400e;
-}
-
-:global([data-theme="light"]) .btn-quick-pendentes:hover {
-  background: #fef3c7;
-  border-color: #f59e0b;
-  color: #78350f;
-}
-
-:global([data-theme="light"]) .selected-pill {
-  background: #eff6ff;
-  color: #1d4ed8;
-  border-color: #bfdbfe;
-}
-
-:global([data-theme="light"]) .bulk-action-footer {
-  background: #ffffff;
-  border-color: #3b82f6;
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.12), 0 0 16px rgba(59, 130, 246, 0.2);
-}
-</style>

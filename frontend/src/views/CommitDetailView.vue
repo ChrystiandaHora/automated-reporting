@@ -1,229 +1,232 @@
 <template>
-  <div class="page">
-    <div class="page-header">
-      <button class="btn-ghost" @click="$router.back()">← Voltar</button>
-      <div class="title-row">
-        <h1>{{ commit?.mensagem || sha.slice(0, 8) }}</h1>
+  <div>
+    <PageHeader>
+      <BaseButton @click="$router.back()">← Voltar</BaseButton>
+      <div class="flex items-center gap-2">
+        <PageTitle>{{ commit?.mensagem || sha.slice(0, 8) }}</PageTitle>
         <TutorialModal screenId="commit-detail" />
       </div>
-    </div>
+    </PageHeader>
 
-    <div v-if="loadingCommit" class="loading">Carregando...</div>
+    <StateMessage v-if="loadingCommit" type="loading">Carregando...</StateMessage>
 
     <template v-else-if="commit">
       <!-- Storytelling Dashboard -->
-      <div class="story-dashboard">
-        <div class="story-step active">
-          <div class="step-icon">
+      <div class="mb-6 flex items-center justify-between gap-4 rounded-xl border border-border-strong bg-card p-6 text-foreground shadow-card transition-all duration-250 ease-in-out">
+        <div :class="classesEtapa(true, false)">
+          <div :class="classesIconeEtapa(true)">
             <i class="fa-solid fa-cloud-arrow-down" aria-hidden="true"></i>
           </div>
-          <div class="step-info">
-            <span class="step-title">Importado</span>
-            <span class="step-desc">Código e diff localizados</span>
+          <div class="flex flex-col">
+            <span :class="classesTituloEtapa(true, false)">Importado</span>
+            <span :class="classesDescEtapa(true)">Código e diff localizados</span>
           </div>
         </div>
-        <div class="story-arrow">
+        <div class="text-lg font-light text-muted-foreground opacity-70">
           <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i>
         </div>
-        <div class="story-step" :class="{ 'active': commit.analisado }">
-          <div class="step-icon">
+        <div :class="classesEtapa(etapaAnaliseAtiva, false)">
+          <div :class="classesIconeEtapa(etapaAnaliseAtiva)">
             <i class="fa-solid fa-robot" aria-hidden="true"></i>
           </div>
-          <div class="step-info">
-            <span class="step-title">Análise AI</span>
-            <span class="step-desc" v-if="commit.analisado">{{ commit.atividades_total || 0 }} atividades identificadas</span>
-            <span class="step-desc" v-else>Pendente de análise Gemini</span>
+          <div class="flex flex-col">
+            <span :class="classesTituloEtapa(etapaAnaliseAtiva, false)">Análise AI</span>
+            <span :class="classesDescEtapa(etapaAnaliseAtiva)" v-if="commit.analisado">{{ commit.atividades_total || 0 }} atividades identificadas</span>
+            <span :class="classesDescEtapa(etapaAnaliseAtiva)" v-else>Pendente de análise Gemini</span>
           </div>
         </div>
-        <div class="story-arrow">
+        <div class="text-lg font-light text-muted-foreground opacity-70">
           <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i>
         </div>
-        <div class="story-step" :class="{ 
-          'active': commit.analisado && (commit.atividades_enviadas || 0) > 0,
-          'completed': commit.analisado && commit.atividades_enviadas === commit.atividades_total && (commit.atividades_total || 0) > 0
-        }">
-          <div class="step-icon">
+        <div :class="classesEtapa(etapaFaturamentoAtiva, etapaFaturamentoCompleta)">
+          <div :class="classesIconeEtapa(etapaFaturamentoAtiva)">
             <i class="fa-solid fa-rocket" aria-hidden="true"></i>
           </div>
-          <div class="step-info">
-            <span class="step-title">Faturamento</span>
-            <span class="step-desc" v-if="commit.analisado && (commit.atividades_total || 0) > 0">
+          <div class="flex flex-col">
+            <span :class="classesTituloEtapa(etapaFaturamentoAtiva, etapaFaturamentoCompleta)">Faturamento</span>
+            <span :class="classesDescEtapa(etapaFaturamentoAtiva)" v-if="commit.analisado && (commit.atividades_total || 0) > 0">
               {{ commit.atividades_enviadas || 0 }} de {{ commit.atividades_total || 0 }} enviadas ({{ (commit.hpa_enviado || 0).toFixed(1) }}h / {{ (commit.hpa_total || 0).toFixed(1) }}h)
             </span>
-            <span class="step-desc" v-else-if="commit.analisado">Sem atividades faturáveis</span>
-            <span class="step-desc" v-else>Aguardando automação</span>
+            <span :class="classesDescEtapa(etapaFaturamentoAtiva)" v-else-if="commit.analisado">Sem atividades faturáveis</span>
+            <span :class="classesDescEtapa(etapaFaturamentoAtiva)" v-else>Aguardando automação</span>
           </div>
         </div>
       </div>
 
       <!-- Metadados do commit -->
-      <div class="meta-bar" :class="{ 'meta-bar-editing': editandoMeta }">
+      <div
+        data-tour="commit-detail-metadados"
+        class="mb-6 flex flex-wrap items-center rounded-[10px] border border-border-strong bg-background px-5 py-3 text-sm leading-normal text-muted-foreground [&_b]:font-bold [&_b]:text-foreground"
+        :class="editandoMeta ? 'gap-3' : 'gap-5'"
+      >
         <template v-if="!editandoMeta">
           <span><b>SHA:</b> {{ commit.id.slice(0, 12) }}</span>
           <span><b>Data:</b> {{ commit.data }}</span>
           <span><b>Projeto:</b> {{ commit.projeto }}</span>
           <span><b>Autor:</b> {{ commit.autor }}</span>
-          <button class="btn-ghost btn-sm meta-edit-btn" @click="abrirEditarMeta" title="Editar metadados" aria-label="Editar metadados">
+          <BaseButton data-tour="commit-detail-editar-metadados" class="ml-auto" @click="abrirEditarMeta" title="Editar metadados" aria-label="Editar metadados">
             <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
-          </button>
+          </BaseButton>
         </template>
         <template v-else>
-          <div class="meta-edit-form">
-            <label for="meta-data">Data</label>
-            <input id="meta-data" v-model="metaEditavel.data" placeholder="DD/MM/YYYY" style="width: 7.5rem" />
-            <label for="meta-project">Projeto</label>
-            <input id="meta-project" v-model="metaEditavel.projeto" placeholder="grupo/repositorio" style="flex: 1; min-width: 12rem" />
-            <label for="meta-author">Autor</label>
-            <input id="meta-author" v-model="metaEditavel.autor" placeholder="Nome do autor" style="flex: 1; min-width: 10rem" />
-            <label for="meta-message">Mensagem</label>
-            <input id="meta-message" v-model="metaEditavel.mensagem" placeholder="Mensagem do commit" style="flex: 2; min-width: 14rem" />
+          <div class="flex flex-1 flex-wrap items-center gap-x-3 gap-y-1.5">
+            <BaseLabel for="meta-data">Data</BaseLabel>
+            <BaseInput id="meta-data" v-model="metaEditavel.data" placeholder="DD/MM/YYYY" />
+            <BaseLabel for="meta-project">Projeto</BaseLabel>
+            <BaseInput id="meta-project" v-model="metaEditavel.projeto" placeholder="grupo/repositorio" class="min-w-48 flex-1" />
+            <BaseLabel for="meta-author">Autor</BaseLabel>
+            <BaseInput id="meta-author" v-model="metaEditavel.autor" placeholder="Nome do autor" class="min-w-40 flex-1" />
+            <BaseLabel for="meta-message">Mensagem</BaseLabel>
+            <BaseInput id="meta-message" v-model="metaEditavel.mensagem" placeholder="Mensagem do commit" class="min-w-56 flex-2" />
           </div>
-          <div class="meta-edit-actions">
-            <button class="btn-primary btn-sm" @click="salvarMeta" :disabled="salvandoMeta">
+          <div class="flex items-center gap-2">
+            <BaseButton variant="primary" @click="salvarMeta" :disabled="salvandoMeta">
               <i class="fa-solid fa-check" aria-hidden="true"></i>
               <span>{{ salvandoMeta ? 'Salvando...' : 'Salvar' }}</span>
-            </button>
-            <button class="btn-ghost btn-sm" @click="cancelarEditarMeta">
+            </BaseButton>
+            <BaseButton @click="cancelarEditarMeta">
               <i class="fa-solid fa-xmark" aria-hidden="true"></i>
               <span>Cancelar</span>
-            </button>
+            </BaseButton>
           </div>
         </template>
       </div>
 
       <!-- Seção de Análise -->
-      <div class="section">
-        <div class="section-header">
-          <h2>Análise Gemini</h2>
-          <div class="section-actions">
-            <router-link :to="`/analisar?commit=${sha}`" class="btn-ghost" style="text-decoration: none; display: inline-block;">
+      <div class="mb-8">
+        <div class="mb-5 flex items-center justify-between border-b-2 border-blue-500/50 pb-3">
+          <h2 class="text-lg font-extrabold tracking-tight text-foreground">Análise Gemini</h2>
+          <div class="flex gap-2">
+            <router-link :to="`/analisar?commit=${sha}`" :class="classesLinkGhost">
               {{ analiseStore.analise ? 'Re-analisar com AI' : 'Analisar com AI' }}
             </router-link>
-            <button v-if="analiseStore.analise" class="btn-ghost" :disabled="analiseStore.analisando || enviandoAtividade" @click="salvar">Salvar edições</button>
-            <button v-if="analiseStore.analise" class="btn-primary" :disabled="analiseStore.analisando || enviandoAtividade || selecionadas.length === 0" @click="enviarSelecionadas">
+            <BaseButton v-if="analiseStore.analise" :disabled="analiseStore.analisando || enviandoAtividade" @click="salvar">Salvar edições</BaseButton>
+            <BaseButton v-if="analiseStore.analise" variant="primary" :disabled="analiseStore.analisando || enviandoAtividade || selecionadas.length === 0" @click="enviarSelecionadas">
               Enviar Selecionadas ({{ selecionadas.length }})
-            </button>
-            <button v-if="analiseStore.analise" class="btn-primary" :disabled="analiseStore.analisando || enviandoAtividade" @click="enviarTodasFila">
+            </BaseButton>
+            <BaseButton v-if="analiseStore.analise" variant="primary" :disabled="analiseStore.analisando || enviandoAtividade" @click="enviarTodasFila">
               Enviar Todas ao Portal
-            </button>
+            </BaseButton>
           </div>
         </div>
 
-        <div v-if="analiseStore.error" class="error">{{ analiseStore.error }}</div>
+        <StateMessage v-if="analiseStore.error" type="error">{{ analiseStore.error }}</StateMessage>
 
-        <div v-if="analiseStore.analisando" class="loading">Analisando diff com Gemini AI...</div>
+        <StateMessage v-if="analiseStore.analisando" type="loading">Analisando diff com Gemini AI...</StateMessage>
 
         <template v-else-if="analiseStore.analise">
-          <div class="complexidade-box">
-            <label for="global-complexity">Complexidade Global</label>
-            <textarea id="global-complexity" v-model="analiseStore.analise.complexidade_global" rows="3"></textarea>
+          <div class="mb-5">
+            <BaseLabel for="global-complexity">Complexidade Global</BaseLabel>
+            <BaseTextarea id="global-complexity" v-model="analiseStore.analise.complexidade_global" rows="3" />
           </div>
 
           <!-- Lista de atividades -->
           <div 
             v-for="(atv, idx) in analiseStore.analise.atividades" 
             :key="idx" 
-            class="atividade-card"
-            :class="{ 'enviada': atv.enviado }"
+            data-tour="commit-detail-atividade"
+            class="mb-5 overflow-hidden rounded-xl border border-border-strong bg-card p-6 text-foreground shadow-card transition-all duration-250 ease-in-out hover:-translate-y-px hover:border-primary hover:shadow-[0_8px_25px] hover:shadow-black/8"
           >
-            <div class="atividade-header">
+            <div data-tour="commit-detail-atividade-cabecalho" class="flex items-center gap-4 border-b border-border-strong bg-transparent px-6 pt-4 pb-3">
               <input 
                 type="checkbox" 
                 :value="idx" 
                 v-model="selecionadas" 
                 :id="'atv-check-' + idx"
-                class="atividade-header-checkbox"
+                class="size-4.5 cursor-pointer accent-primary-light disabled:cursor-not-allowed"
                 :disabled="atv.enviado"
                 :aria-label="'Selecionar atividade: ' + (atv.titulo || 'Atividade sem Título')"
               />
-              <span class="badge badge-blue">{{ atv.etapa }}</span>
-              <span class="atividade-codigo">{{ atv.codigo_id }} · {{ atv.hpa }}h</span>
-              <span class="atividade-titulo-header" :title="atv.titulo || 'Atividade sem Título'">{{ atv.titulo || 'Atividade sem Título' }}</span>
-              <span v-if="atv.enviado && !atv.data_fim_missing" class="badge badge-green" style="margin-left: auto; margin-right: 1.25rem;">
-                <i class="fa-solid fa-check" aria-hidden="true" style="margin-right: 4px;"></i>Enviada
-              </span>
-              <span v-else-if="atv.enviado && atv.data_fim_missing" class="badge badge-orange" style="margin-left: auto; margin-right: 1.25rem;">
-                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true" style="margin-right: 4px;"></i>Sem Data Fim
-              </span>
-              <span v-else class="badge badge-orange" style="margin-left: auto; margin-right: 1.25rem;">Pendente</span>
-              <button
-                class="btn-sm"
-                :class="(atv.enviado || atv.data_fim_missing) ? 'btn-ghost' : 'btn-primary'"
+              <BaseBadge variant="blue">{{ atv.etapa }}</BaseBadge>
+              <span class="whitespace-nowrap font-courier text-[0.85rem] font-semibold text-muted-foreground">{{ atv.codigo_id }} · {{ atv.hpa }}h</span>
+              <span class="ml-3 max-w-100 flex-1 truncate text-sm font-semibold text-foreground" :title="atv.titulo || 'Atividade sem Título'">{{ atv.titulo || 'Atividade sem Título' }}</span>
+              <BaseBadge v-if="atv.enviado && !atv.data_fim_missing" variant="green" class="ml-auto mr-5">
+                <i class="fa-solid fa-check mr-1" aria-hidden="true"></i>Enviada
+              </BaseBadge>
+              <BaseBadge v-else-if="atv.enviado && atv.data_fim_missing" variant="orange" class="ml-auto mr-5">
+                <i class="fa-solid fa-triangle-exclamation mr-1" aria-hidden="true"></i>Sem Data Fim
+              </BaseBadge>
+              <BaseBadge v-else variant="orange" class="ml-auto mr-5">Pendente</BaseBadge>
+              <BaseButton
+                :variant="(atv.enviado || atv.data_fim_missing) ? 'ghost' : 'primary'"
                 :disabled="!!enviandoIndividual[idx]"
                 @click="enviarUma(idx)"
               >
                 {{ enviandoIndividual[idx] ? 'Enfileirando...' : ((atv.enviado || atv.data_fim_missing) ? 'Re-enviar' : 'Enviar ao Portal') }}
-              </button>
+              </BaseButton>
             </div>
 
-            <div class="card-tabs" role="tablist" aria-label="Abas de opções da atividade">
+            <div data-tour="commit-detail-abas" class="mt-4 flex border-b border-border-strong bg-white/2" role="tablist" aria-label="Abas de opções da atividade">
               <button 
                 type="button" 
-                class="tab-btn" 
+                data-tour="commit-detail-aba"
+                :class="classesAba(activeTabs[idx] !== 'preview')"
                 role="tab"
                 :aria-selected="activeTabs[idx] !== 'preview'"
                 :aria-controls="'tab-form-' + idx"
-                :class="{ 'active': activeTabs[idx] !== 'preview' }" 
                 @click="activeTabs[idx] = 'form'"
               >
-                <i class="fa-solid fa-file-lines" aria-hidden="true" style="margin-right: 5px;"></i>
+                <i class="fa-solid fa-file-lines mr-1" aria-hidden="true"></i>
                 <span>Formulário</span>
               </button>
               <button 
                 type="button" 
-                class="tab-btn" 
+                data-tour="commit-detail-aba"
+                :class="classesAba(activeTabs[idx] === 'preview')"
                 role="tab"
                 :aria-selected="activeTabs[idx] === 'preview'"
                 :aria-controls="'tab-preview-' + idx"
-                :class="{ 'active': activeTabs[idx] === 'preview' }" 
                 @click="carregarPreview(idx)"
               >
-                <i class="fa-solid fa-eye" aria-hidden="true" style="margin-right: 5px;"></i>
+                <i class="fa-solid fa-eye mr-1" aria-hidden="true"></i>
                 <span>Visualizar Evidência</span>
               </button>
             </div>
 
-            <div v-show="activeTabs[idx] !== 'preview'" :id="'tab-form-' + idx" role="tabpanel" class="atividade-body">
-              <label :for="'atv-titulo-' + idx">Título</label>
-              <input :id="'atv-titulo-' + idx" v-model="atv.titulo" />
-              <label :for="'atv-desc-' + idx">Descrição</label>
-              <textarea :id="'atv-desc-' + idx" v-model="atv.descricao" rows="3"></textarea>
-              <label :for="'atv-just-' + idx">Justificativa</label>
-              <textarea :id="'atv-just-' + idx" v-model="atv.justificativa" rows="3"></textarea>
-              <label :for="'atv-cat-' + idx">Categoria</label>
-              <input :id="'atv-cat-' + idx" v-model="atv.categoria" />
-              <label :for="'atv-code-' + idx">Código</label>
-              <input :id="'atv-code-' + idx" v-model="atv.codigo_id" @input="recalcularHpa(atv)" style="width: 6rem" />
-              <label :for="'atv-hpa-' + idx">HPA (horas)</label>
-              <input :id="'atv-hpa-' + idx" v-model.number="atv.hpa" type="number" style="width: 5rem" />
-              <label :for="'atv-comp-' + idx">Complexidade</label>
-              <select :id="'atv-comp-' + idx" v-model="atv.complexidade" @change="recalcularHpa(atv)" style="width: 8rem">
+            <div v-show="activeTabs[idx] !== 'preview'" :id="'tab-form-' + idx" role="tabpanel" class="flex flex-col gap-2.5 px-5 pt-4 pb-5">
+              <BaseLabel :for="'atv-titulo-' + idx">Título</BaseLabel>
+              <BaseInput :id="'atv-titulo-' + idx" v-model="atv.titulo" />
+              <BaseLabel :for="'atv-desc-' + idx">Descrição</BaseLabel>
+              <BaseTextarea :id="'atv-desc-' + idx" v-model="atv.descricao" rows="3" />
+              <BaseLabel :for="'atv-just-' + idx">Justificativa</BaseLabel>
+              <BaseTextarea :id="'atv-just-' + idx" v-model="atv.justificativa" rows="3" />
+              <BaseLabel :for="'atv-cat-' + idx">Categoria</BaseLabel>
+              <BaseInput :id="'atv-cat-' + idx" v-model="atv.categoria" />
+              <BaseLabel :for="'atv-code-' + idx">Código</BaseLabel>
+              <BaseInput :id="'atv-code-' + idx" v-model="atv.codigo_id" @input="recalcularHpa(atv)" />
+              <BaseLabel :for="'atv-hpa-' + idx">HPA (horas)</BaseLabel>
+              <BaseInput :id="'atv-hpa-' + idx" v-model.number="atv.hpa" type="number" />
+              <BaseLabel :for="'atv-comp-' + idx">Complexidade</BaseLabel>
+              <BaseSelect :id="'atv-comp-' + idx" v-model="atv.complexidade" @change="recalcularHpa(atv)">
                 <option value="Baixa">Baixa</option>
                 <option value="Média">Média</option>
                 <option value="Alta">Alta</option>
-              </select>
-              <label :for="'atv-files-' + idx">Arquivos Afetados (Clique em "Visualizar Alterações" para abrir o diff)</label>
-              <div :id="'atv-files-' + idx" class="files-list-interactive">
-                <div v-for="f in atv.arquivos" :key="f" class="file-chip-container">
-                  <div class="file-chip-row">
-                    <span class="file-chip-name">
-                      <i class="fa-solid fa-file-code" aria-hidden="true" style="margin-right: 4px;"></i>
+              </BaseSelect>
+              <BaseLabel :for="'atv-files-' + idx">Arquivos Afetados (Clique em "Visualizar Alterações" para abrir o diff)</BaseLabel>
+              <div :id="'atv-files-' + idx" data-tour="commit-detail-arquivos" class="mt-1.5 flex flex-col gap-2">
+                <div
+                  v-for="f in atv.arquivos"
+                  :key="f"
+                  class="flex flex-col overflow-hidden rounded-lg border border-white/5 bg-white/2 transition-all duration-200 hover:border-blue-400/20 hover:bg-white/3"
+                >
+                  <div class="flex items-center justify-between px-3 py-2">
+                    <span class="max-w-4/5 truncate font-courier text-xs text-file-name">
+                      <i class="fa-solid fa-file-code mr-1" aria-hidden="true"></i>
                       <span>{{ f }}</span>
                     </span>
-                    <button 
-                      type="button" 
-                      class="btn-ghost btn-xs file-diff-btn" 
+                    <BaseButton
+                      variant="plain"
+                      :class="classesBotaoDiff(!!exibindoDiff[idx]?.[f])"
                       @click="alternarDiffArquivo(idx, f)"
-                      :class="{ 'btn-active-diff': exibindoDiff[idx]?.[f] }"
                     >
                       {{ exibindoDiff[idx]?.[f] ? 'Ocultar Diff' : 'Visualizar Alterações' }}
-                    </button>
+                    </BaseButton>
                   </div>
-                  <div v-if="exibindoDiff[idx]?.[f]" class="file-diff-preview">
+                  <div v-if="exibindoDiff[idx]?.[f]" class="flex max-h-62.5 flex-col overflow-auto border-t border-white/5 bg-diff-surface px-3 py-2 font-courier text-xs">
                     <div 
                       v-for="(line, lidx) in obterDiffLinhas(f)" 
                       :key="lidx" 
-                      :class="`diff-line diff-line-${line.type}`"
+                      :class="classesLinhaDiff[line.type]"
                     >
                       {{ line.text }}
                     </div>
@@ -232,61 +235,62 @@
               </div>
             </div>
 
-            <div v-if="activeTabs[idx] === 'preview'" :id="'tab-preview-' + idx" role="tabpanel" class="atividade-preview-body">
-              <div v-if="loadingPreviews[idx]" class="preview-loading">
-                <div class="spinner"></div>
+            <div v-if="activeTabs[idx] === 'preview'" :id="'tab-preview-' + idx" role="tabpanel" class="border-t border-border bg-transparent p-5">
+              <div v-if="loadingPreviews[idx]" class="flex items-center justify-center gap-3 rounded-[10px] border border-dashed border-white/8 bg-white/1 px-8 py-12 text-sm text-muted-foreground">
+                <div class="size-3 animate-spin rounded-full border-2 border-white/15 border-t-primary"></div>
                 <span>Gerando pré-visualização...</span>
               </div>
-              <div v-else-if="previews[idx]" class="preview-container">
-                <div class="preview-header">
-                  <div class="preview-header-title">
-                    <span class="preview-dot"></span>
+              <div v-else-if="previews[idx]" class="flex flex-col gap-3.5">
+                <div class="flex items-center justify-between rounded-lg border border-blue-400/20 bg-blue-500/6 px-3.5 py-2.5 text-xs font-semibold text-muted-foreground">
+                  <div class="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-blue-300">
+                    <span class="inline-block size-1.75 animate-pulse rounded-full bg-primary-light shadow-[0_0_6px] shadow-blue-400/60"></span>
                     Pré-visualização da Evidência
                   </div>
-                  <div style="display: flex; gap: 0.5rem;">
-                    <button type="button" class="btn-ghost btn-sm" @click="copiarEvidencia(idx)" :disabled="!previews[idx]">
-                      <i :class="statusCopia[idx] ? 'fa-solid fa-check' : 'fa-solid fa-clipboard'" aria-hidden="true" style="margin-right: 4px;"></i>
+                  <div class="flex gap-2">
+                    <BaseButton @click="copiarEvidencia(idx)" :disabled="!previews[idx]">
+                      <i :class="statusCopia[idx] ? 'fa-solid fa-check' : 'fa-solid fa-clipboard'" class="mr-1" aria-hidden="true"></i>
                       <span>{{ statusCopia[idx] ? 'Copiado!' : 'Copiar HTML' }}</span>
-                    </button>
-                    <button type="button" class="btn-ghost btn-sm" @click="carregarPreview(idx)">
-                      <i class="fa-solid fa-arrows-rotate" aria-hidden="true" style="margin-right: 4px;"></i>
+                    </BaseButton>
+                    <BaseButton @click="carregarPreview(idx)">
+                      <i class="fa-solid fa-arrows-rotate mr-1" aria-hidden="true"></i>
                       <span>Atualizar</span>
-                    </button>
+                    </BaseButton>
                   </div>
                 </div>
-                <div class="preview-iframe-wrapper">
+                <div class="overflow-hidden rounded-[10px] border border-white/12 bg-white shadow-lg shadow-black/40 inset-ring-1 inset-ring-white/4">
                   <iframe 
                     :srcdoc="previews[idx]" 
                     frameborder="0" 
                     width="100%" 
                     scrolling="no"
                     @load="ajustarAlturaIframe($event)"
-                    class="preview-iframe"
+                    class="block min-h-50 w-full border-0 bg-white"
                     :title="'Pré-visualização da Evidência para Atividade ' + (atv.titulo || idx)"
                   ></iframe>
                 </div>
               </div>
-              <div v-else class="preview-error">
-                <i class="fa-solid fa-triangle-exclamation preview-error-icon" aria-hidden="true"></i>
+              <div v-else class="flex flex-col items-center gap-3.5 rounded-[10px] border border-dashed border-red-500/20 bg-red-500/4 px-8 py-12 text-center text-sm text-muted-foreground">
+                <i class="fa-solid fa-triangle-exclamation text-[2rem] opacity-70" aria-hidden="true"></i>
                 <span>Erro ao gerar pré-visualização da evidência.</span>
-                <button type="button" class="btn-primary btn-sm" @click="carregarPreview(idx)">
-                  <i class="fa-solid fa-arrows-rotate" aria-hidden="true" style="margin-right: 4px;"></i>
+                <BaseButton variant="primary" @click="carregarPreview(idx)">
+                  <i class="fa-solid fa-arrows-rotate mr-1" aria-hidden="true"></i>
                   <span>Tentar Novamente</span>
-                </button>
+                </BaseButton>
               </div>
             </div>
           </div>
         </template>
 
-        <div v-else class="empty">
+        <StateMessage v-else type="empty">
           Nenhuma análise disponível. Clique em "Analisar com AI".
-        </div>
+        </StateMessage>
       </div>
 
       <!-- Diff raw -->
-      <div class="section diff-section">
+      <div data-tour="commit-detail-diff" class="mt-6 mb-8 overflow-hidden rounded-xl border border-border bg-card shadow-lg shadow-black/15">
         <div 
-          class="diff-section-header" 
+          data-tour="commit-detail-diff-cabecalho"
+          class="flex items-center justify-between border-b border-border bg-white/2 px-5 py-4 transition-colors duration-200 hover:bg-blue-400/4" 
           @click="showCommitDiff = !showCommitDiff"
           tabindex="0"
           role="button"
@@ -294,11 +298,11 @@
           @keydown.enter.prevent="showCommitDiff = !showCommitDiff"
           @keydown.space.prevent="showCommitDiff = !showCommitDiff"
         >
-          <h2>Diff Completo do Commit</h2>
-          <span class="collapse-icon-btn">{{ showCommitDiff ? '▼ Ocultar Diff' : '▶ Mostrar Diff' }}</span>
+          <h2 class="text-lg font-extrabold text-foreground">Diff Completo do Commit</h2>
+          <span class="rounded-md border border-blue-400/20 bg-blue-400/8 px-2.5 py-1 text-xs font-bold text-primary-light">{{ showCommitDiff ? '▼ Ocultar Diff' : '▶ Mostrar Diff' }}</span>
         </div>
-        <div v-show="showCommitDiff" class="diff-raw-container">
-          <pre class="diff-raw">{{ commit.diff_raw }}</pre>
+        <div v-show="showCommitDiff" class="bg-diff-surface p-4">
+          <pre class="max-h-100 overflow-auto whitespace-pre font-courier text-xs text-gray-300">{{ commit.diff_raw }}</pre>
         </div>
       </div>
     </template>
@@ -306,12 +310,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAnaliseStore } from '../stores/commits'
 import { useFilaStore } from '../stores/fila'
 import { api } from '../api'
 import TutorialModal from '../components/TutorialModal.vue'
+import BaseBadge from '../components/ui/BaseBadge.vue'
+import BaseButton from '../components/ui/BaseButton.vue'
+import BaseInput from '../components/ui/BaseInput.vue'
+import BaseLabel from '../components/ui/BaseLabel.vue'
+import BaseSelect from '../components/ui/BaseSelect.vue'
+import BaseTextarea from '../components/ui/BaseTextarea.vue'
+import PageHeader from '../components/ui/PageHeader.vue'
+import PageTitle from '../components/ui/PageTitle.vue'
+import StateMessage from '../components/ui/StateMessage.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -332,6 +345,58 @@ const loadingPreviews = ref<Record<number, boolean>>({})
 const statusCopia = ref<Record<number, boolean>>({})
 
 const showCommitDiff = ref(false)
+const etapaAnaliseAtiva = computed(() => !!commit.value?.analisado)
+const etapaFaturamentoAtiva = computed(() => !!commit.value?.analisado && (commit.value?.atividades_enviadas || 0) > 0)
+const etapaFaturamentoCompleta = computed(() =>
+  !!commit.value?.analisado
+  && commit.value?.atividades_enviadas === commit.value?.atividades_total
+  && (commit.value?.atividades_total || 0) > 0
+)
+
+const etapaBase = 'flex flex-1 items-center gap-3 rounded-[10px] border px-5 py-3 transition-all duration-300 max-w-[30%]'
+
+function classesEtapa(ativa: boolean, completa: boolean) {
+  if (completa) return `${etapaBase} border-success bg-success/8 opacity-100`
+  return ativa
+    ? `${etapaBase} border-primary bg-primary-glow opacity-100`
+    : `${etapaBase} border-border-strong bg-background opacity-60`
+}
+
+const classesLinkGhost = 'inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-border-strong bg-card px-5 py-2.5 text-[0.88rem] leading-none font-semibold tracking-[0.01em] text-foreground transition-all duration-200 hover:-translate-y-px hover:border-primary hover:text-primary'
+
+const classesAba = (ativa: boolean) =>
+  'flex cursor-pointer items-center gap-1.5 rounded-none border-b-2 bg-transparent px-4 py-2 text-xs font-semibold transition-all duration-200 '
+  + (ativa ? 'border-primary text-primary' : 'border-transparent text-muted-foreground')
+
+const classesBotaoDiff = (aberto: boolean) =>
+  'rounded-sm border px-2 py-0.5 text-[0.72rem] font-bold hover:border-primary hover:text-primary '
+  + (aberto ? 'border-blue-400/30 bg-blue-400/12 text-blue-300' : 'border-border-strong bg-card text-foreground')
+
+const classesIconeEtapa = (ativa: boolean) =>
+  ativa
+    ? 'text-3xl opacity-100 scale-105 transition-[opacity,transform] duration-300'
+    : 'text-3xl opacity-40 transition-[opacity,transform] duration-300'
+
+function classesTituloEtapa(ativa: boolean, completa: boolean) {
+  if (completa) return 'text-sm font-bold uppercase tracking-wide text-green-400'
+  return ativa
+    ? 'text-sm font-bold uppercase tracking-wide text-primary'
+    : 'text-sm font-bold uppercase tracking-wide text-muted-foreground'
+}
+
+const classesDescEtapa = (ativa: boolean) =>
+  ativa
+    ? 'mt-1 text-sm leading-snug text-foreground'
+    : 'mt-1 text-sm leading-snug text-subtle-foreground'
+
+const classesLinhaDiff: Record<string, string> = {
+  add: 'whitespace-pre rounded-xs bg-green-500/12 px-1 py-px leading-snug text-green-400',
+  del: 'whitespace-pre rounded-xs bg-red-500/12 px-1 py-px leading-snug text-red-400',
+  hunk: 'whitespace-pre rounded-xs bg-blue-500/10 px-1 py-px font-semibold leading-snug text-blue-300',
+  meta: 'whitespace-pre rounded-xs px-1 py-px font-semibold leading-snug text-violet-400',
+  normal: 'whitespace-pre rounded-xs px-1 py-px leading-snug text-gray-300',
+  info: 'whitespace-pre rounded-xs py-2 leading-snug italic text-muted-foreground',
+}
 const exibindoDiff = ref<Record<number, Record<string, boolean>>>({})
 
 function alternarDiffArquivo(taskIdx: number, filePath: string) {
@@ -690,463 +755,3 @@ async function enviarTodasFila() {
   }
 }
 </script>
-
-
-<style scoped>
-.title-row { display: flex; align-items: center; gap: 0.5rem; }
-.title-row h1 { margin: 0; }
-
-/* ── Storytelling Dashboard ── */
-.story-dashboard {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  padding: 1.25rem 1.5rem;
-  margin-bottom: 1.5rem;
-  gap: 1rem;
-  border-radius: 12px;
-}
-.story-step { display: flex; align-items: center; gap: 0.75rem; flex: 1; }
-.step-icon { font-size: 1.9rem; opacity: 0.4; transition: opacity 0.3s, transform 0.3s; }
-.story-step.active .step-icon { opacity: 1; transform: scale(1.05); }
-.story-step.completed .step-icon { opacity: 1; }
-.step-info { display: flex; flex-direction: column; }
-.step-title {
-  font-weight: 700;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.story-step.active .step-title { color: var(--accent); }
-.story-step.completed .step-title { color: #4ade80; }
-.step-desc {
-  font-size: 0.82rem;
-  color: var(--text-subtle, #9ca3af);
-  margin-top: 0.2rem;
-  line-height: 1.4;
-}
-.story-step.active .step-desc { color: var(--text); }
-.story-arrow { color: var(--accent-light); font-weight: 900; font-size: 1.1rem; opacity: 0.7; }
-
-/* ── Meta bar ── */
-.meta-bar {
-  display: flex; flex-wrap: wrap; gap: 1.25rem; align-items: center;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 10px;
-  padding: 0.875rem 1.25rem;
-  font-size: 0.88rem;
-  margin-bottom: 1.5rem;
-  color: var(--text-muted);
-  line-height: 1.5;
-}
-.meta-bar b { color: var(--text); font-weight: 700; }
-.meta-bar-editing { gap: 0.75rem; }
-.meta-edit-btn { margin-left: auto; padding: 0.2rem 0.6rem; font-size: 0.8rem; }
-.meta-edit-form {
-  display: flex; flex-wrap: wrap; gap: 0.4rem 0.75rem; align-items: center; flex: 1;
-}
-.meta-edit-form input { padding: 0.3rem 0.5rem; font-size: 0.82rem; }
-.meta-edit-actions { display: flex; gap: 0.5rem; align-items: center; }
-
-/* ── Sections ── */
-.section { margin-bottom: 2rem; }
-.section-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 1.25rem;
-  border-bottom: 2px solid rgba(59, 130, 246, 0.5);
-  padding-bottom: 0.75rem;
-}
-.section-header h2 { font-size: 1.15rem; font-weight: 800; letter-spacing: -0.01em; color: var(--text); }
-.section-actions { display: flex; gap: 0.5rem; }
-
-.complexidade-box { margin-bottom: 1.25rem; }
-.complexidade-box textarea { width: 100%; }
-
-/* ── Activity cards ── */
-.atividade-card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 12px;
-  margin-bottom: 1.25rem;
-  overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
-}
-.atividade-card:hover {
-  border-color: rgba(96, 165, 250, 0.35);
-  box-shadow: 0 8px 30px rgba(59, 130, 246, 0.1);
-  transform: translateY(-1px);
-}
-.atividade-card.enviada {
-  border-color: rgba(34, 197, 94, 0.4);
-  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.08);
-}
-.atividade-card.enviada:hover {
-  border-color: rgba(34, 197, 94, 0.6);
-  box-shadow: 0 8px 30px rgba(34, 197, 94, 0.12);
-}
-.atividade-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--card-border);
-  background: rgba(255, 255, 255, 0.02);
-}
-.atividade-card.enviada .atividade-header {
-  background: rgba(34, 197, 94, 0.04);
-}
-.atividade-header-checkbox {
-  all: revert !important;
-  width: 18px !important;
-  height: 18px !important;
-  margin: 0 !important;
-  cursor: pointer !important;
-  accent-color: var(--accent-light) !important;
-  box-shadow: none !important;
-  border: none !important;
-  background: transparent !important;
-}
-.atividade-codigo {
-  font-family: 'Courier New', monospace;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  font-weight: 600;
-  white-space: nowrap;
-}
-.atividade-titulo-header {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text);
-  margin-left: 0.75rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 400px;
-  flex: 1;
-}
-.atividade-body {
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.625rem;
-}
-.atividade-body input, .atividade-body textarea { width: 100%; }
-
-/* ── Interactive File Diff ── */
-.files-list-interactive {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 0.35rem;
-}
-.file-chip-container {
-  display: flex;
-  flex-direction: column;
-  background: rgba(255, 255, 255, 0.015);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  overflow: hidden;
-  transition: all 0.2s ease;
-}
-.file-chip-container:hover {
-  border-color: rgba(96, 165, 250, 0.2);
-  background: rgba(255, 255, 255, 0.03);
-}
-.file-chip-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem 0.75rem;
-}
-.file-chip-name {
-  font-family: 'Courier New', monospace;
-  font-size: 0.78rem;
-  color: #c1c7d4;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 80%;
-}
-.file-diff-btn {
-  font-size: 0.72rem !important;
-  font-weight: 700 !important;
-  padding: 2px 8px !important;
-  border-radius: 4px !important;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.btn-active-diff {
-  background: rgba(96, 165, 250, 0.12) !important;
-  border-color: rgba(96, 165, 250, 0.3) !important;
-  color: #93c5fd !important;
-}
-.file-diff-preview {
-  background: #03050a;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  padding: 0.5rem 0.75rem;
-  font-family: 'Courier New', monospace;
-  font-size: 0.75rem;
-  overflow-x: auto;
-  max-height: 250px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-.diff-line {
-  white-space: pre;
-  padding: 1px 4px;
-  border-radius: 2px;
-  line-height: 1.4;
-}
-.diff-line-add {
-  background: rgba(34, 197, 94, 0.12);
-  color: #4ade80;
-}
-.diff-line-del {
-  background: rgba(239, 68, 68, 0.12);
-  color: #f87171;
-}
-.diff-line-hunk {
-  background: rgba(59, 130, 246, 0.1);
-  color: #93c5fd;
-  font-weight: 600;
-}
-.diff-line-meta {
-  color: #a78bfa;
-  font-weight: 600;
-}
-.diff-line-normal {
-  color: #d1d5db;
-}
-.diff-line-info {
-  color: var(--text-muted);
-  font-style: italic;
-  padding: 0.5rem 0;
-}
-
-/* ── Diff section ── */
-.diff-section {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 12px;
-  margin-top: 1.5rem;
-  overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-}
-.diff-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.25rem;
-  background: rgba(255, 255, 255, 0.02);
-  border-bottom: 1px solid var(--card-border);
-  transition: background 0.2s;
-}
-.diff-section-header:hover {
-  background: rgba(96, 165, 250, 0.04);
-}
-.diff-section-header h2 {
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: var(--text);
-  margin: 0;
-}
-.collapse-icon-btn {
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: var(--accent-light);
-  background: rgba(96, 165, 250, 0.08);
-  border: 1px solid rgba(96, 165, 250, 0.2);
-  padding: 4px 10px;
-  border-radius: 6px;
-}
-.diff-raw-container {
-  padding: 1rem;
-  background: #03050a;
-}
-.diff-raw {
-  margin: 0;
-  font-size: 0.78rem;
-  overflow-x: auto;
-  white-space: pre;
-  max-height: 400px;
-  overflow-y: auto;
-  font-family: 'Courier New', monospace;
-  color: #d1d5db;
-}
-
-/* ── Buttons ── */
-.btn-sm { padding: 0.3rem 0.75rem; font-size: 0.8rem; }
-
-/* ── Modal terminal ── */
-.modal-wide { width: 100%; max-width: 650px; }
-.terminal-container {
-  background: #0a0a0a;
-  border: 2px solid rgba(238,238,238,0.2);
-  margin-top: 1rem;
-  overflow: hidden;
-}
-.terminal-header {
-  background: rgba(238,238,238,0.04);
-  padding: 0.5rem 1rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid rgba(238,238,238,0.1);
-}
-.terminal-body {
-  padding: 1rem;
-  font-size: 0.8rem;
-  font-family: 'Courier New', Courier, monospace;
-  max-height: 250px;
-  overflow-y: auto;
-  margin: 0;
-  white-space: pre-wrap;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-.terminal-body div.log-line { color: #ccc; }
-.terminal-body div.error-line { color: #f85149; }
-.terminal-body div.success-line { color: var(--accent); }
-
-.spinner {
-  width: 12px; height: 12px;
-  border: 2px solid rgba(255,255,255,0.15);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ── Card Tabs styling ── */
-.card-tabs {
-  display: flex;
-  background: rgba(238, 238, 238, 0.02);
-  border-bottom: 2px solid var(--border);
-}
-.tab-btn {
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--text-muted);
-  padding: 0.5rem 1.25rem;
-  font-size: 0.8rem;
-  font-weight: 700;
-  cursor: pointer;
-  border-radius: 0;
-  transition: all 0.15s;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-.tab-btn:hover {
-  background: rgba(238, 238, 238, 0.05);
-  color: var(--text);
-}
-.tab-btn.active {
-  border-bottom-color: var(--accent);
-  color: var(--text);
-  background: rgba(0, 122, 204, 0.04);
-}
-
-.atividade-preview-body {
-  padding: 1.25rem;
-  background: transparent;
-  border-top: 1px solid var(--card-border);
-}
-.preview-loading {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  padding: 3rem 2rem;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.01);
-  border-radius: 10px;
-  border: 1px dashed rgba(255, 255, 255, 0.08);
-}
-.preview-container {
-  display: flex;
-  flex-direction: column;
-  gap: 0.875rem;
-}
-.preview-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  font-weight: 600;
-  padding: 0.625rem 0.875rem;
-  background: rgba(59, 130, 246, 0.06);
-  border: 1px solid rgba(96, 165, 250, 0.2);
-  border-radius: 8px;
-}
-.preview-header-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #93c5fd;
-  font-weight: 700;
-  font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-.preview-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--accent-light);
-  display: inline-block;
-  box-shadow: 0 0 6px rgba(96, 165, 250, 0.6);
-  animation: pulse-dot 2s infinite;
-}
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-.preview-iframe-wrapper {
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-  background: #ffffff;
-}
-.preview-iframe {
-  border: none;
-  background: #ffffff;
-  width: 100%;
-  min-height: 200px;
-  display: block;
-}
-.preview-error {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.875rem;
-  padding: 3rem 2rem;
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  background: rgba(239, 68, 68, 0.04);
-  border: 1px dashed rgba(239, 68, 68, 0.2);
-  border-radius: 10px;
-}
-.preview-error-icon {
-  font-size: 2rem;
-  opacity: 0.7;
-}
-</style>
