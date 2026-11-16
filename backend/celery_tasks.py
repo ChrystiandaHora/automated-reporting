@@ -1,7 +1,7 @@
 import json
 import os
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import redis
 
 from dotenv import load_dotenv
@@ -866,8 +866,23 @@ def sincronizar_status_munka_task(self, fila_id=None):
             log_callback=log,
         )
 
-        tarefas_portal = auto.sincronizar_status_tarefas_do_mes()
-        log(f"📋 {len(tarefas_portal)} tarefa(s) lidas da listagem do portal.")
+        tarefas_portal = auto.ler_kanban_status()
+        log(f"📋 {len(tarefas_portal)} card(s) lidos no Kanban do portal.")
+
+        if not tarefas_portal:
+            # Fallback limitado (máx. 30 requisições): só quando o Kanban não pôde ser lido
+            log("⚠️ Kanban sem cards; consultando individualmente as tarefas recentes ainda abertas...")
+            with SessionLocal() as db_fb:
+                limite_fb = (datetime.now() - timedelta(days=62)).isoformat()
+                candidatos = [h for h in db_fb.query(models.Historico).all()
+                              if h.task_id and (h.enviado_em or "") >= limite_fb
+                              and (h.status_munka or "").strip().lower() not in ("concluído", "concluido", "arquivado")]
+                # Mais antigos na sincronização primeiro; "Concluído para o Supervisor" entra (pode ter sido movido)
+                candidatos.sort(key=lambda h: h.munka_atualizado_em or "")
+                abertas = [h.task_id for h in candidatos]
+            status_fb = auto.consultar_status_tarefas(abertas) if abertas else {}
+            tarefas_portal = [{"task_id": tid, "titulo": "", "status": st, "show_url": ""}
+                              for tid, st in status_fb.items()]
 
         agora = datetime.now().isoformat()
         total_atualizadas = 0
@@ -888,7 +903,7 @@ def sincronizar_status_munka_task(self, fila_id=None):
                 item = None
                 if p_task_id:
                     item = next((h for h in historicos if h.task_id == p_task_id), None)
-                if not item and p_titulo:
+                if not item and p_titulo and not p_task_id:
                     item = next((h for h in historicos if h.titulo and (h.titulo.strip().lower() == p_titulo.lower() or p_titulo.lower() in h.titulo.strip().lower() or h.titulo.strip().lower() in p_titulo.lower())), None)
 
                 if item:
@@ -912,6 +927,7 @@ def sincronizar_status_munka_task(self, fila_id=None):
                     if "conclu" in p_status.lower() or p_status == "21":
                         item.status = "Concluído"
                     total_atualizadas += 1
+
             db.commit()
 
         log(f"✅ Sincronização concluída com sucesso! {total_atualizadas} tarefa(s) do histórico local atualizadas, {len(mudancas)} mudaram de status.")

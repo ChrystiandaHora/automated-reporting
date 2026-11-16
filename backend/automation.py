@@ -2580,97 +2580,102 @@ class MunkaAutomation:
             self._log(f"❌ Erro ao corrigir tarefa no portal: {e}")
             raise e
 
-    def sincronizar_status_tarefas_do_mes(self, mes: int = None, ano: int = None) -> list[dict]:
-        """Navega para 'Tarefas do Mês' no portal Munka e extrai a listagem com os status reais de cada tarefa."""
-        self._log("🔄 Iniciando sincronização de status das tarefas do mês no portal Munka...")
-        tarefas_encontradas = []
-        try:
-            with sync_playwright() as p:
-                browser = p.chromium.launch(
-                    headless=self.headless,
-                    args=["--no-sandbox", "--disable-setuid-sandbox"]
-                )
-                context = browser.new_context()
-                page = context.new_page()
+    def ler_kanban_status(self) -> list[dict]:
+        """Lê o Kanban da tela inicial do Munka (uma única página, já filtrada pelo usuário logado).
 
+        Estrutura do portal: cada coluna é ``div.status#tarefas<ID_STATUS>`` (o id da coluna é o id
+        do status) e cada card é ``div.tarefa#tarefa<TASK_ID>`` com o título em ``a[href*=show]``.
+        Devolve ``[{task_id, titulo, status, show_url}]`` (status = rótulo do portal). Não altera nada no portal.
+        """
+        from status_munka import CATALOGO_STATUS
+
+        rotulo_por_id = {sid: rotulo for sid, rotulo, _ in CATALOGO_STATUS}
+        self._log("🗂️ Lendo o Kanban da tela inicial do Munka...")
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=self.headless, args=["--no-sandbox", "--disable-setuid-sandbox"])
+            try:
+                page = browser.new_context().new_page()
                 self._login(page)
-                self._navegar_tarefas_do_mes(page, expand_page_size=True)
-                page.wait_for_timeout(1000)
+                self._safe_goto(page, f"{self.base_url}/", force=True)
+                try:
+                    page.wait_for_selector("div.status[id^='tarefas']", state="attached", timeout=15000)
+                except Exception:
+                    self._log("⚠️ Nenhuma coluna do Kanban apareceu dentro do tempo limite.")
+                page.wait_for_timeout(500)
 
-                # Extrai as linhas da tabela
-                tarefas_encontradas = page.evaluate(r"""() => {
-                    const table = document.querySelector('table.table-bordered');
-                    if (!table) return [];
-
-                    const headers = Array.from(table.querySelectorAll('thead th')).map(th => 
-                        (th.textContent || '').trim().toLowerCase()
-                    );
-                    const rows = Array.from(table.querySelectorAll('tbody tr'));
-                    
-                    return rows.map(tr => {
-                        const cells = Array.from(tr.querySelectorAll('td'));
-                        if (cells.length === 0) return null;
-
-                        const rowData = {
-                            task_id: '',
-                            titulo: '',
-                            status: '',
-                            responsavel: '',
-                            projeto: '',
-                            data_inicio: '',
-                            data_fim: '',
-                            edit_url: '',
-                            show_url: ''
-                        };
-
-                        const editLink = tr.querySelector("a[href*='tarefamodelview/edit']");
-                        const showLink = tr.querySelector("a[href*='tarefamodelview/show']");
-
-                        if (editLink) rowData.edit_url = editLink.getAttribute('href') || '';
-                        if (showLink) rowData.show_url = showLink.getAttribute('href') || '';
-
-                        const m = (rowData.edit_url || '').match(/tarefamodelview\/edit\/(\d+)/) ||
-                                  (rowData.show_url || '').match(/tarefamodelview\/show\/(\d+)/);
-                        if (m) {
-                            rowData.task_id = m[1];
+                dados = page.evaluate(r"""() => {
+                    const colunas = [];
+                    for (const col of document.querySelectorAll("div.status[id^='tarefas']")) {
+                        const statusId = col.id.replace(/^\D+/, '');
+                        const cards = [];
+                        for (const card of col.querySelectorAll(".tarefa[id^='tarefa']")) {
+                            const link = card.querySelector("a[href*='tarefamodelview/show']");
+                            cards.push({
+                                task_id: card.id.replace(/^\D+/, ''),
+                                titulo: ((link && link.textContent) || '').replace(/\s+/g, ' ').trim(),
+                                show_url: (link && link.getAttribute('href')) || '',
+                            });
                         }
-
-                        // Mapeia colunas por cabeçalho
-                        headers.forEach((h, idx) => {
-                            const val = cells[idx] ? (cells[idx].textContent || '').trim() : '';
-                            if (!val) return;
-                            if (h.includes('id') && !rowData.task_id) rowData.task_id = val;
-                            else if (h.includes('nome') || h.includes('título') || h.includes('titulo')) rowData.titulo = val;
-                            else if (h.includes('status')) rowData.status = val;
-                            else if (h.includes('respons') || h.includes('atribu')) rowData.responsavel = val;
-                            else if (h.includes('projeto') || h.includes('produto')) rowData.projeto = val;
-                            else if (h.includes('início') || h.includes('inicio')) rowData.data_inicio = val;
-                            else if (h.includes('fim')) rowData.data_fim = val;
-                        });
-
-                        // Fallbacks posicionais caso headers não tenham correspondido exatamente
-                        if (!rowData.task_id && cells[1]) rowData.task_id = (cells[1].textContent || '').trim();
-                        if (!rowData.titulo && cells[2]) rowData.titulo = (cells[2].textContent || '').trim();
-                        if (!rowData.status) {
-                            for (const c of cells) {
-                                const txt = (c.textContent || '').trim();
-                                if (/^(homolog|conclu|backlog|desenv|aberto|pendente)/i.test(txt)) {
-                                    rowData.status = txt;
-                                    break;
-                                }
-                            }
-                        }
-
-                        return rowData;
-                    }).filter(Boolean);
+                        colunas.push({ status_id: statusId, cards });
+                    }
+                    return { colunas, trecho: (document.body.innerText || '').slice(0, 500) };
                 }""")
-
+            finally:
                 browser.close()
-                self._log(f"✅ Sincronização concluída: {len(tarefas_encontradas)} tarefa(s) encontradas na listagem do Munka.")
-                return tarefas_encontradas
-        except Exception as e:
-            self._log(f"❌ Erro ao sincronizar status com o portal: {e}")
-            raise e
+
+        tarefas, resumo = [], []
+        vistos = set()
+        for col in dados.get("colunas", []):
+            rotulo = rotulo_por_id.get(col["status_id"], col["status_id"])
+            resumo.append(f"{rotulo}: {len(col['cards'])}")
+            for card in col["cards"]:
+                if not card["task_id"] or card["task_id"] in vistos:
+                    continue
+                vistos.add(card["task_id"])
+                tarefas.append({**card, "status": rotulo})
+        if not dados.get("colunas"):
+            self._log(f"⚠️ Estrutura do Kanban não reconhecida. Início da página: {dados.get('trecho', '')!r}")
+        self._log(f"📋 Colunas lidas -> {'; '.join(resumo) or 'nenhuma'}. Total: {len(tarefas)} card(s).")
+        return tarefas
+
+    def consultar_status_tarefas(self, task_ids: list) -> dict:
+        """Abre a página 'show' de cada tarefa e devolve {task_id: status atual no portal}.
+
+        Fonte de verdade independente da listagem paginada/filtrada: reflete cards
+        movidos manualmente no Kanban do Munka. Falhas em uma tarefa não abortam as demais.
+        """
+        resultado = {}
+        ids = [str(t).strip() for t in task_ids if str(t).strip()][:30]  # teto: evita sobrecarregar o servidor
+        if not ids:
+            return resultado
+        self._log(f"🔎 Consultando status individual de {len(ids)} tarefa(s) no portal...")
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=self.headless, args=["--no-sandbox", "--disable-setuid-sandbox"])
+            try:
+                page = browser.new_context().new_page()
+                self._login(page)
+                for tid in ids:
+                    try:
+                        self._safe_goto(page, f"{self.base_url}/tarefamodelview/show/{tid}", force=True)
+                        page.wait_for_selector("table", state="attached", timeout=10000)
+                        status = page.evaluate(r"""() => {
+                            for (const tr of document.querySelectorAll('table tr')) {
+                                const th = tr.querySelector('th');
+                                const td = tr.querySelector('td');
+                                if (th && td && (th.textContent || '').trim().toLowerCase().replace(':', '') === 'status')
+                                    return (td.textContent || '').trim();
+                            }
+                            return '';
+                        }""")
+                        if status:
+                            resultado[tid] = status
+                    except Exception as e:
+                        self._log(f"⚠️ Não foi possível ler o status da tarefa {tid}: {e}")
+                    page.wait_for_timeout(500)
+            finally:
+                browser.close()
+        self._log(f"✅ Status individual obtido para {len(resultado)}/{len(ids)} tarefa(s).")
+        return resultado
 
     def _aplicar_campos_e_salvar_tarefa(self, page, edit_url: str, alteracoes: dict) -> list[str]:
         """Aplica os campos em 'alteracoes' na página de edição aberta e salva o formulário."""
