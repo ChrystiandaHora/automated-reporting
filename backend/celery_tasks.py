@@ -827,6 +827,16 @@ def corrigir_lancamento_task(self, target_job_id: int, fila_id: int = None):
         raise e
 
 
+@celery_app.task(name="tasks.agendar_sincronizacao_periodica")
+def agendar_sincronizacao_periodica_task():
+    """Disparada pelo Celery beat: enfileira a sincronização de status (pula se já houver uma recente)."""
+    from database import SessionLocal
+    from api import enfileirar_sincronizacao_inicial
+
+    with SessionLocal() as db:
+        return enfileirar_sincronizacao_inicial(db)
+
+
 @celery_app.task(bind=True, name="tasks.sincronizar_status_munka")
 def sincronizar_status_munka_task(self, fila_id=None):
     from database import SessionLocal

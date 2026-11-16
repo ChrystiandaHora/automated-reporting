@@ -2651,7 +2651,7 @@ def enfileirar_sincronizacao_inicial(db: Session) -> Optional[int]:
         commit_id="",
         status="pending",
         resultado=json.dumps(
-            {"resultado": "PENDING", "logs": ["Sincronização inicial do mês agendada no startup."]},
+            {"resultado": "PENDING", "logs": ["Sincronização do mês agendada."]},
             ensure_ascii=False,
         ),
         criado_em=datetime.now().isoformat(),

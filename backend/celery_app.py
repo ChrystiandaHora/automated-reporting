@@ -22,7 +22,16 @@ celery_app.conf.task_routes = {
     "tasks.verificar_lancamento": {"queue": "envios"},
     "tasks.corrigir_lancamento": {"queue": "envios"},
     "tasks.sincronizar_status_munka": {"queue": "envios"},
+    "tasks.agendar_sincronizacao_periodica": {"queue": "envios"},
     "tasks.ajustar_tarefas_munka": {"queue": "envios"},
     "tasks.ajustar_tarefa_individual": {"queue": "envios"},
 }
 
+
+# Sincronização de status do mês com o portal a cada 15 min (requer o serviço celery_beat).
+celery_app.conf.beat_schedule = {
+    "sincronizar-status-munka-15min": {
+        "task": "tasks.agendar_sincronizacao_periodica",
+        "schedule": 15 * 60,
+    },
+}

@@ -63,6 +63,23 @@ services:
     command: celery -A celery_app worker --loglevel=info -Q envios -c 8
     restart: unless-stopped
 
+  celery_beat:
+    build: ./backend
+    env_file: .env
+    environment:
+      TZ: America/Sao_Paulo
+      DATABASE_URL: sqlite:////data/nexus.db
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      PYTHONPATH: /app
+    volumes:
+      - munka_data:/data
+      - /etc/localtime:/etc/localtime:ro
+    depends_on:
+      - redis
+    command: celery -A celery_app beat --loglevel=info -s /tmp/celerybeat-schedule
+    restart: unless-stopped
+
   celery_flower:
     build: ./backend
     command: celery -A celery_app flower --port=5555
