@@ -27,7 +27,8 @@ const routeTitles: Record<string, string> = {
   '/fila-logs': 'Logs de Execução',
   '/modelos': 'Modelos',
   '/historico': 'Histórico',
-  '/tarefas-mes': 'Tarefas do Mês - Ajuste Munka',
+  '/tarefas-mes/lista': 'Tarefas do Mês - Ajuste Munka',
+  '/tarefas-mes/kanban': 'Tarefas do Mês - Kanban',
   '/config': 'Configuração'
 }
 

@@ -302,6 +302,28 @@ export const TUTORIALS: Record<string, ScreenTutorial> = {
     ]
   },
 
+  'tarefas-kanban': {
+    id: 'tarefas-kanban',
+    title: 'Guia do Kanban de Tarefas',
+    subtitle: 'Visão por colunas de status das tarefas lançadas no Munka',
+    steps: [
+      {
+        title: 'Uma coluna por status',
+        icon: 'fa-solid fa-table-columns',
+        target: '.kanban-board',
+        description: 'Cada coluna é um status do Munka (Backlog, Desenvolvimento, Homologação, Concluído etc.), mesmo quando está vazia. Status não reconhecidos caem em "Sem status / Outros".',
+        tip: 'As colunas seguem a mesma lista de status das Configurações e dos filtros.'
+      },
+      {
+        title: 'Filtros e período',
+        icon: 'fa-solid fa-filter',
+        target: '.filters-bar',
+        description: 'Use o seletor de mês e os filtros de regra e atividade. O mês escolhido é o mesmo da aba Lista.',
+        tip: 'Nesta versão o Kanban é somente leitura; para alterar status use a aba Lista.'
+      }
+    ]
+  },
+
   'tarefas-mes': {
     id: 'tarefas-mes',
     title: 'Guia de Tarefas do Mês (Ajuste Munka)',
