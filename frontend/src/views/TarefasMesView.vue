@@ -242,7 +242,7 @@
           <span class="filter-label">Status no portal</span>
           <select v-model="filtroStatusPortal" class="filter-select" aria-label="Filtrar por status no portal">
             <option value="">Todos</option>
-            <option v-for="s in opcoesStatusPortal" :key="s" :value="s">{{ s }}</option>
+            <option v-for="s in opcoesStatusPortal" :key="s.valor" :value="s.valor">{{ s.rotulo }} ({{ s.total }})</option>
           </select>
         </label>
 
@@ -475,13 +475,7 @@
               <div class="form-group">
                 <label for="single_status"><i class="fa-solid fa-tag"></i> Status</label>
                 <select id="single_status" v-model="formSingle.status_id" class="field-select">
-                  <option value="15">Backlog (15)</option>
-                  <option value="16">Backlog Prioritário (16)</option>
-                  <option value="17">Aberto / Pendente (17)</option>
-                  <option value="18">Desenvolvimento (18)</option>
-                  <option value="19">Concluído para o Supervisor (19)</option>
-                  <option value="20">Homologação (20)</option>
-                  <option value="21">Concluído (21)</option>
+                  <option v-for="st in CATALOGO_STATUS" :key="st.id" :value="st.id">{{ st.rotulo }} ({{ st.id }})</option>
                 </select>
               </div>
 
@@ -614,13 +608,7 @@
                 </div>
                 <div class="field-input-wrap">
                   <select v-model="formLote.status_id" :disabled="!habilitarCampo.status" class="field-select">
-                    <option value="15">Backlog (15)</option>
-                    <option value="16">Backlog Prioritário (16)</option>
-                    <option value="17">Aberto / Pendente (17)</option>
-                    <option value="18">Desenvolvimento (18)</option>
-                    <option value="19">Concluído para o Supervisor (19)</option>
-                    <option value="20">Homologação (20)</option>
-                    <option value="21">Concluído (21)</option>
+                    <option v-for="st in CATALOGO_STATUS" :key="st.id" :value="st.id">{{ st.rotulo }} ({{ st.id }})</option>
                   </select>
                 </div>
               </div>
@@ -795,16 +783,18 @@ import { ref, computed, onMounted, reactive } from 'vue'
 import { api, type TarefaMesItem, type TarefasMesResponse, type Config } from '../api'
 import { useToastStore } from '../stores/toast'
 import { useFilaStore } from '../stores/fila'
+import { useTarefasMesStore } from '../stores/tarefasMes'
+import { storeToRefs } from 'pinia'
 import TutorialModal from '../components/TutorialModal.vue'
+import { CATALOGO_STATUS, resolverStatus, rotuloStatus, isStatusConcluido, classeBadgeStatus } from '../config/statusMunka'
 
 const meses = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ]
 
-const hoje = new Date()
-const mesAtual = ref<number>(hoje.getMonth() + 1)
-const anoAtual = ref<number>(hoje.getFullYear())
+const tarefasMesStore = useTarefasMesStore()
+const { mes: mesAtual, ano: anoAtual } = storeToRefs(tarefasMesStore)
 
 const isMesAtual = computed(() => {
   const d = new Date()
@@ -886,28 +876,42 @@ const totalCamposHabilitados = computed(() => {
 })
 
 function isTarefaConcluida(t: TarefaMesItem): boolean {
-  const s = (t.status_munka || t.status || '').toLowerCase()
-  return (
-    s.includes('conclu') ||
-    s === '19' ||
-    s === '21' ||
-    s.includes('supervisor') ||
-    s.includes('aprovad') ||
-    s.includes('finalizad')
-  )
+  return isStatusConcluido(t.status_munka || t.status)
 }
 
 function statusPortalDe(t: TarefaMesItem): string {
   return t.status_munka || t.status || ''
 }
 
+// Valor do filtro: ID do catálogo quando reconhecido; texto cru caso contrário.
+function chaveStatusPortal(t: TarefaMesItem): string {
+  const texto = statusPortalDe(t)
+  return resolverStatus(texto)?.id ?? texto
+}
+
 const opcoesRegra = computed(() =>
   [...new Set(dados.value.tarefas.map(t => t.codigo).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'))
 )
 
-const opcoesStatusPortal = computed(() =>
-  [...new Set(dados.value.tarefas.map(statusPortalDe).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'))
-)
+// Catálogo completo (mesmo sem tarefas) + status desconhecidos vindos do portal.
+const opcoesStatusPortal = computed(() => {
+  const contagem = new Map<string, number>()
+  for (const t of dados.value.tarefas) {
+    const k = chaveStatusPortal(t)
+    if (k) contagem.set(k, (contagem.get(k) || 0) + 1)
+  }
+  const catalogo = CATALOGO_STATUS.map(s => ({
+    valor: s.id,
+    rotulo: s.rotulo,
+    total: contagem.get(s.id) || 0
+  }))
+  const ids = new Set(CATALOGO_STATUS.map(s => s.id))
+  const extras = [...contagem.keys()]
+    .filter(k => !ids.has(k))
+    .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+    .map(k => ({ valor: k, rotulo: k, total: contagem.get(k) || 0 }))
+  return [...catalogo, ...extras]
+})
 
 // Contagens e Filtros
 // Busca geral + filtros por coluna; a condição do supervisor é aplicada depois,
@@ -917,7 +921,7 @@ const tarefasFiltradasPorTexto = computed(() => {
   const atividade = filtroAtividade.value.trim().toLowerCase()
   return dados.value.tarefas.filter(t => {
     if (filtroRegra.value && t.codigo !== filtroRegra.value) return false
-    if (filtroStatusPortal.value && statusPortalDe(t) !== filtroStatusPortal.value) return false
+    if (filtroStatusPortal.value && chaveStatusPortal(t) !== filtroStatusPortal.value) return false
     if (atividade && !(t.titulo || '').toLowerCase().includes(atividade)) return false
     if (!q) return true
     return (
@@ -1073,16 +1077,7 @@ async function salvarAjusteSingle() {
     toastStore.addToast(`Ajuste da tarefa enfileirado com sucesso (Job #${res.job_id})!`, 'success')
 
     // Atualização otimista imediata na UI
-    const statusMap: Record<string, string> = {
-      '15': 'Backlog',
-      '16': 'Backlog Prioritário',
-      '17': 'Aberto / Pendente',
-      '18': 'Desenvolvimento',
-      '19': 'Concluído para o Supervisor',
-      '20': 'Homologação',
-      '21': 'Concluído'
-    }
-    const novoNome = statusMap[formSingle.status_id] || `Status ${formSingle.status_id}`
+    const novoNome = rotuloStatus(formSingle.status_id)
     tarefaAlvoSingle.value.status = novoNome
     tarefaAlvoSingle.value.status_munka = novoNome
 
@@ -1150,16 +1145,7 @@ async function salvarAjusteLote() {
 
     // Atualização otimista imediata na UI das tarefas selecionadas
     if (habilitarCampo.status) {
-      const statusMap: Record<string, string> = {
-        '15': 'Backlog',
-        '16': 'Backlog Prioritário',
-        '17': 'Aberto / Pendente',
-        '18': 'Desenvolvimento',
-        '19': 'Concluído para o Supervisor',
-        '20': 'Homologação',
-        '21': 'Concluído'
-      }
-      const novoNome = statusMap[formLote.status_id] || `Status ${formLote.status_id}`
+      const novoNome = rotuloStatus(formLote.status_id)
       for (const t of dados.value.tarefas) {
         if (idsParaAjustar.includes(t.id)) {
           t.status = novoNome
@@ -1181,15 +1167,7 @@ async function salvarAjusteLote() {
 }
 
 function obterClasseBadgeStatus(status?: string): string {
-  if (!status) return 'badge-gray'
-  const s = status.toLowerCase()
-  if (s.includes('supervisor') || s === '19') return 'badge-green'
-  if (s.includes('conclu') || s === '21' || s.includes('aprov')) return 'badge-green'
-  if (s.includes('homolog') || s === '20') return 'badge-blue'
-  if (s.includes('desenv') || s === '18') return 'badge-orange'
-  if (s.includes('backlog')) return 'badge-gray'
-  if (s.includes('aberto') || s.includes('pendente') || s === '17') return 'badge-yellow'
-  return 'badge-blue'
+  return classeBadgeStatus(status)
 }
 
 function formatarDataHora(isoString: string): string {

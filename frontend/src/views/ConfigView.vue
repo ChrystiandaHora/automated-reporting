@@ -139,14 +139,7 @@
           <input id="munka_projeto" v-model="form.munka_projeto" placeholder="Ex: [DESENV] MUNKA" />
           <label for="munka_status_id">Status Inicial Padrão</label>
           <select id="munka_status_id" v-model="form.munka_status_id">
-            <option value="15">Backlog</option>
-            <option value="16">Backlog Prioritário</option>
-            <option value="17">Pendente</option>
-            <option value="18">Desenvolvimento</option>
-            <option value="19">Concluído para o Supervisor</option>
-            <option value="20">Homologação</option>
-            <option value="21">Concluído</option>
-            <option value="18">Desenvolvimento</option>
+            <option v-for="st in CATALOGO_STATUS" :key="st.id" :value="st.id">{{ st.rotulo }}</option>
           </select>
           <label for="munka_data_inicio">Data/Hora de Início Padrão (Ex: 08:00 ou DD/MM/YYYY 08:00)</label>
           <input id="munka_data_inicio" v-model="form.munka_data_inicio" placeholder="Ex: 08:00" />
@@ -301,6 +294,7 @@ import { ref, onMounted } from 'vue'
 import { api, type Config, type GitAccount } from '../api'
 import { useToastStore } from '../stores/toast'
 import TutorialModal from '../components/TutorialModal.vue'
+import { CATALOGO_STATUS } from '../config/statusMunka'
 
 const toastStore = useToastStore()
 const loading = ref(true)

@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 from concurrency import get_concurrency_config
+from status_munka import STATUS_MAP, eh_concluido, listar_catalogo
 
 load_dotenv()
 
@@ -1113,14 +1114,7 @@ def enviar_atividade(sha: str, req: EnviarRequest, db: Session = Depends(get_db)
                 pass
 
     pulada = resultado == "PULADA_DUPLICADA"
-    status_map = {
-        "15": "Backlog",
-        "16": "Backlog Prioritário",
-        "17": "Enviado ao Munka",
-        "18": "Desenvolvimento",
-        "20": "Homologação",
-        "21": "Concluído"
-    }
+    status_map = STATUS_MAP
     if pulada:
         hist_status = "Concluído"
         tem_df = True
@@ -1425,13 +1419,7 @@ def listar_tarefas_mes(
             task_url = f"{munka_base}/tarefamodelview/show/{task_id}"
 
         status_str = (h.status_munka or h.status or "").strip()
-        is_concluida = (
-            "conclu" in status_str.lower()
-            or status_str in ("19", "21")
-            or "supervisor" in status_str.lower()
-            or "aprovad" in status_str.lower()
-            or "finalizad" in status_str.lower()
-        )
+        is_concluida = eh_concluido(status_str)
         if is_concluida:
             concluidas += 1
         else:
@@ -1528,17 +1516,7 @@ def ajustar_tarefas_munka(req: AjusteTarefasRequest, db: Session = Depends(get_d
 
     from celery_tasks import ajustar_tarefa_individual_task
 
-    status_map = {
-        "15": "Backlog",
-        "16": "Backlog Prioritário",
-        "17": "Enviado ao Munka",
-        "18": "Desenvolvimento",
-        "19": "Concluído para o Supervisor",
-        "20": "Homologação",
-        "21": "Concluído",
-        "22": "Arquivado",
-        "35": "Evidência com Pendência",
-    }
+    status_map = STATUS_MAP
     target_status_id = alteracoes.get("status_id") or alteracoes.get("status")
     target_status_nome = status_map.get(str(target_status_id)) if target_status_id else None
 
@@ -1684,6 +1662,12 @@ def verificar_atualizacao_projeto():
 
 
 # ─── Endpoints: Configuração ────────────────────────────────────────────────
+
+
+@app.get("/status-munka")
+def listar_status_munka():
+    """Catálogo único de status do Munka (colunas do Kanban, filtros e selects)."""
+    return listar_catalogo()
 
 
 @app.get("/config")

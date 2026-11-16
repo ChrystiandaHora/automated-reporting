@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from celery_app import celery_app
+from status_munka import STATUS_MAP
 
 redis_client = redis.Redis.from_url(
     os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
@@ -394,14 +395,7 @@ def enviar_atividade_task(
 
         pulada = resultado == "PULADA_DUPLICADA"
         status_id = cfg.get("MUNKA_STATUS_ID", "17")
-        status_map = {
-            "15": "Backlog",
-            "16": "Backlog Prioritário",
-            "17": "Enviado ao Munka",
-            "18": "Desenvolvimento",
-            "20": "Homologação",
-            "21": "Concluído"
-        }
+        status_map = STATUS_MAP
         if pulada:
             hist_status = "Concluído"
             tem_df = True
@@ -611,14 +605,7 @@ def verificar_lancamento_task(self, target_job_id: int, fila_id: int = None):
             data_fim_val = hora_fim if " " in hora_fim else f"{commit_data_val} {hora_fim}"
             codigo_id = atividade.get("codigo_id") or atividade.get("codigo") or ""
 
-            status_map = {
-                "15": "Backlog",
-                "16": "Backlog Prioritário",
-                "17": "Enviado ao Munka",
-                "18": "Desenvolvimento",
-                "20": "Homologação",
-                "21": "Concluído"
-            }
+            status_map = STATUS_MAP
             status_id = cfg.get("MUNKA_STATUS_ID", "20")
             status_nome = status_map.get(status_id, "Homologação")
 
@@ -1014,17 +1001,7 @@ def ajustar_tarefas_munka_task(self, historico_ids: list[int], alteracoes: dict,
             log_callback=log,
         )
 
-        status_map = {
-            "15": "Backlog",
-            "16": "Backlog Prioritário",
-            "17": "Enviado ao Munka",
-            "18": "Desenvolvimento",
-            "19": "Concluído para o Supervisor",
-            "20": "Homologação",
-            "21": "Concluído",
-            "22": "Arquivado",
-            "35": "Evidência com Pendência",
-        }
+        status_map = STATUS_MAP
 
         sucessos = 0
         puladas = 0
@@ -1175,17 +1152,7 @@ def ajustar_tarefa_individual_task(self, historico_id: int, alteracoes: dict, fi
                     f.task_id = self.request.id
                     db_f.commit()
 
-        status_map = {
-            "15": "Backlog",
-            "16": "Backlog Prioritário",
-            "17": "Enviado ao Munka",
-            "18": "Desenvolvimento",
-            "19": "Concluído para o Supervisor",
-            "20": "Homologação",
-            "21": "Concluído",
-            "22": "Arquivado",
-            "35": "Evidência com Pendência",
-        }
+        status_map = STATUS_MAP
 
         # 1. Carrega dados da tarefa no SQLite
         with SessionLocal() as db:
