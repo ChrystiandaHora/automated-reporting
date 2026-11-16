@@ -356,7 +356,12 @@ let previousActiveElement: HTMLElement | null = null
 
 function checarPrimeiraVisita() {
   if (typeof window === 'undefined') return
-  const jaVisitou = sessionStorage.getItem(storageKey.value)
+  let jaVisitou: string | null = null
+  try {
+    jaVisitou = localStorage.getItem(storageKey.value)
+  } catch {
+    // Armazenamento indisponível: mostra o tutorial
+  }
   if (!jaVisitou) {
     passoAtual.value = 0
     open.value = true
@@ -384,13 +389,21 @@ function passoAnterior() {
   }
 }
 
+function salvarLeitura(valor: 'skipped' | 'completed') {
+  try {
+    localStorage.setItem(storageKey.value, valor)
+  } catch {
+    // Armazenamento indisponível: o tutorial volta a aparecer
+  }
+}
+
 function pularTutorial() {
-  sessionStorage.setItem(storageKey.value, 'skipped')
+  salvarLeitura('skipped')
   fecharModal()
 }
 
 function concluirTutorial() {
-  sessionStorage.setItem(storageKey.value, 'completed')
+  salvarLeitura('completed')
   fecharModal()
 }
 
