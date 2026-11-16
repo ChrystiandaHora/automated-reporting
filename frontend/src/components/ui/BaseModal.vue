@@ -1,4 +1,6 @@
 <template>
+  <!-- Teleport: ancestrais com backdrop-filter/transform (ex.: o header) viram o bloco de contenção de `fixed` -->
+  <Teleport to="body">
   <div
     class="fixed inset-0 z-200 flex animate-fade-in items-center justify-center bg-slate-900/75 backdrop-blur-sm"
     @click.self="emit('close')"
@@ -18,6 +20,7 @@
       </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
