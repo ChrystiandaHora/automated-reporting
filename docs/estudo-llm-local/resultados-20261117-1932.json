@@ -1,0 +1,81 @@
+[
+  {
+    "modelo": "qwen2.5-coder:7b",
+    "modo": "compacto",
+    "commit": "88f88fafd5",
+    "segundos": 93.7,
+    "tokens_prompt": 15422,
+    "tokens_saida": 3540,
+    "tok_s": 41.5,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.5,
+    "acerto_servico": 1.0,
+    "hpa_local": 142.5,
+    "hpa_gemini": 12.0,
+    "codigos_sem_hpa": 3,
+    "n_atv_local": 23,
+    "n_atv_gemini": 4,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 42,
+    "codigos_local": [
+      "",
+      "",
+      "",
+      "21a",
+      "21b",
+      "21e",
+      "21g",
+      "22a",
+      "23a",
+      "24a",
+      "25a",
+      "26",
+      "28",
+      "29",
+      "30",
+      "31",
+      "32",
+      "33a",
+      "33b",
+      "33c",
+      "57b",
+      "62b",
+      "65"
+    ],
+    "codigos_gemini": [
+      "21a",
+      "21a",
+      "21d",
+      "21e"
+    ],
+    "vram_mb": 4956
+  },
+  {
+    "modelo": "qwen2.5-coder:7b",
+    "modo": "compacto",
+    "commit": "134ac086e0",
+    "segundos": 8.9,
+    "tokens_prompt": 11103,
+    "tokens_saida": 150,
+    "tok_s": 45.0,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 1.0,
+    "hpa_gemini": 2.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gemini": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "7"
+    ],
+    "codigos_gemini": [
+      "56c"
+    ],
+    "vram_mb": 4956
+  }
+]

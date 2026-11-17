@@ -1,0 +1,904 @@
+[
+  {
+    "modelo": "qwen2.5-coder:14b",
+    "modo": "compacto",
+    "commit": "88f88fafd5",
+    "segundos": 42.4,
+    "tokens_prompt": 13974,
+    "tokens_saida": 289,
+    "tok_s": 22.9,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 11.0,
+    "hpa_gemini": 12.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gemini": 4,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 7,
+    "codigos_local": [
+      "2b"
+    ],
+    "codigos_gemini": [
+      "21a",
+      "21a",
+      "21d",
+      "21e"
+    ],
+    "vram_mb": 10058
+  },
+  {
+    "modelo": "qwen2.5-coder:14b",
+    "modo": "compacto",
+    "commit": "134ac086e0",
+    "segundos": 13.8,
+    "tokens_prompt": 9655,
+    "tokens_saida": 170,
+    "tok_s": 24.4,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 1.0,
+    "hpa_gemini": 2.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gemini": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "7"
+    ],
+    "codigos_gemini": [
+      "56c"
+    ],
+    "vram_mb": 10058
+  },
+  {
+    "modelo": "qwen2.5-coder:14b",
+    "modo": "compacto",
+    "commit": "04083049f5",
+    "segundos": 25.4,
+    "tokens_prompt": 13844,
+    "tokens_saida": 190,
+    "tok_s": 22.9,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 6.0,
+    "hpa_gemini": 3.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "57b"
+    ],
+    "codigos_gemini": [
+      "21b",
+      "21e"
+    ],
+    "vram_mb": 10058
+  },
+  {
+    "modelo": "qwen2.5-coder:14b",
+    "modo": "compacto",
+    "commit": "a96b230134",
+    "segundos": 45.5,
+    "tokens_prompt": 12200,
+    "tokens_saida": 833,
+    "tok_s": 23.5,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.5,
+    "hpa_local": 22.0,
+    "hpa_gemini": 3.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 6,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 6,
+    "codigos_local": [
+      "21a",
+      "21a",
+      "23b",
+      "25a",
+      "56c",
+      "57b"
+    ],
+    "codigos_gemini": [
+      "21d",
+      "22b"
+    ],
+    "vram_mb": 10058
+  },
+  {
+    "modelo": "qwen2.5-coder:14b",
+    "modo": "compacto",
+    "commit": "86d89f15c1",
+    "segundos": 45.3,
+    "tokens_prompt": 12897,
+    "tokens_saida": 782,
+    "tok_s": 23.3,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.5,
+    "acerto_servico": 0.5,
+    "hpa_local": 40.0,
+    "hpa_gemini": 16.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 6,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 8,
+    "arquivos_citados": 10,
+    "codigos_local": [
+      "21a",
+      "21a",
+      "23a",
+      "25a",
+      "56a",
+      "57b"
+    ],
+    "codigos_gemini": [
+      "56a",
+      "56c"
+    ],
+    "vram_mb": 10058
+  },
+  {
+    "modelo": "qwen2.5-coder:14b",
+    "modo": "compacto",
+    "commit": "d3c7c07e50",
+    "segundos": 26.4,
+    "tokens_prompt": 10662,
+    "tokens_saida": 419,
+    "tok_s": 24.3,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 12.0,
+    "hpa_gemini": 2.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "57b",
+      "57b"
+    ],
+    "codigos_gemini": [
+      "21b",
+      "21b"
+    ],
+    "vram_mb": 10058
+  },
+  {
+    "modelo": "qwen2.5-coder:14b",
+    "modo": "compacto",
+    "commit": "ad66fa24bd",
+    "segundos": 42.7,
+    "tokens_prompt": 14472,
+    "tokens_saida": 651,
+    "tok_s": 22.6,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.5,
+    "hpa_local": 28.0,
+    "hpa_gemini": 7.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 4,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 4,
+    "codigos_local": [
+      "57b",
+      "57b",
+      "57b",
+      "59b"
+    ],
+    "codigos_gemini": [
+      "59",
+      "62b"
+    ],
+    "vram_mb": 10058
+  },
+  {
+    "modelo": "qwen2.5-coder:14b",
+    "modo": "compacto",
+    "commit": "f42a92d580",
+    "segundos": 40.1,
+    "tokens_prompt": 15629,
+    "tokens_saida": 509,
+    "tok_s": 22.2,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.5,
+    "acerto_servico": 0.5,
+    "hpa_local": 9.0,
+    "hpa_gemini": 4.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 3,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 4,
+    "codigos_local": [
+      "62b",
+      "62b",
+      "62b"
+    ],
+    "codigos_gemini": [
+      "21b",
+      "62b"
+    ],
+    "vram_mb": 10058
+  },
+  {
+    "modelo": "qwen2.5-coder:14b",
+    "modo": "compacto",
+    "commit": "e509fee2bb",
+    "segundos": 21.2,
+    "tokens_prompt": 10141,
+    "tokens_saida": 221,
+    "tok_s": 24.4,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 10.0,
+    "hpa_gemini": 1.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gemini": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "59b"
+    ],
+    "codigos_gemini": [
+      "21b"
+    ],
+    "vram_mb": 10058
+  },
+  {
+    "modelo": "qwen2.5-coder:14b",
+    "modo": "compacto",
+    "commit": "3ee6e0cb3e",
+    "segundos": 40.9,
+    "tokens_prompt": 11519,
+    "tokens_saida": 773,
+    "tok_s": 23.9,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 20.0,
+    "hpa_gemini": 2.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 4,
+    "n_atv_gemini": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 4,
+    "codigos_local": [
+      "21a",
+      "21a",
+      "21a",
+      "55"
+    ],
+    "codigos_gemini": [
+      "56c"
+    ],
+    "vram_mb": 10058
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "88f88fafd5",
+    "segundos": 80.3,
+    "tokens_prompt": 13982,
+    "tokens_saida": 1380,
+    "tok_s": 23.5,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 32.0,
+    "hpa_gemini": 12.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 6,
+    "n_atv_gemini": 4,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 7,
+    "codigos_local": [
+      "24b",
+      "57b",
+      "57b",
+      "57b",
+      "57b",
+      "57b"
+    ],
+    "codigos_gemini": [
+      "21a",
+      "21a",
+      "21d",
+      "21e"
+    ],
+    "vram_mb": 10102
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "134ac086e0",
+    "segundos": 16.4,
+    "tokens_prompt": 9663,
+    "tokens_saida": 257,
+    "tok_s": 24.9,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 1.0,
+    "hpa_gemini": 2.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gemini": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "7"
+    ],
+    "codigos_gemini": [
+      "56c"
+    ],
+    "vram_mb": 10102
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "04083049f5",
+    "segundos": 116.5,
+    "tokens_prompt": 13852,
+    "tokens_saida": 2389,
+    "tok_s": 23.4,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 28.0,
+    "hpa_gemini": 3.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 10,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 10,
+    "codigos_local": [
+      "44b",
+      "62b",
+      "62b",
+      "62b",
+      "62b",
+      "62b",
+      "62b",
+      "62b",
+      "62b",
+      "62b"
+    ],
+    "codigos_gemini": [
+      "21b",
+      "21e"
+    ],
+    "vram_mb": 10102
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "a96b230134",
+    "segundos": 26.1,
+    "tokens_prompt": 12208,
+    "tokens_saida": 402,
+    "tok_s": 24.3,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 8.0,
+    "hpa_gemini": 3.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "24b",
+      "57b"
+    ],
+    "codigos_gemini": [
+      "21d",
+      "22b"
+    ],
+    "vram_mb": 10102
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "86d89f15c1",
+    "segundos": 24.8,
+    "tokens_prompt": 12905,
+    "tokens_saida": 321,
+    "tok_s": 24.1,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 1.0,
+    "hpa_gemini": 16.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 5,
+    "codigos_local": [
+      "7"
+    ],
+    "codigos_gemini": [
+      "56a",
+      "56c"
+    ],
+    "vram_mb": 10102
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "d3c7c07e50",
+    "segundos": 24.7,
+    "tokens_prompt": 10670,
+    "tokens_saida": 371,
+    "tok_s": 24.9,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 6.0,
+    "hpa_gemini": 2.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "57b"
+    ],
+    "codigos_gemini": [
+      "21b",
+      "21b"
+    ],
+    "vram_mb": 10102
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "ad66fa24bd",
+    "segundos": 51.6,
+    "tokens_prompt": 14480,
+    "tokens_saida": 828,
+    "tok_s": 23.5,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.5,
+    "hpa_local": 22.0,
+    "hpa_gemini": 7.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 3,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 7,
+    "codigos_local": [
+      "16",
+      "57b",
+      "59b"
+    ],
+    "codigos_gemini": [
+      "59",
+      "62b"
+    ],
+    "vram_mb": 10102
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "f42a92d580",
+    "segundos": 40.0,
+    "tokens_prompt": 15637,
+    "tokens_saida": 489,
+    "tok_s": 23.1,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 6.0,
+    "hpa_gemini": 4.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 4,
+    "codigos_local": [
+      "16"
+    ],
+    "codigos_gemini": [
+      "21b",
+      "62b"
+    ],
+    "vram_mb": 10102
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "e509fee2bb",
+    "segundos": 19.6,
+    "tokens_prompt": 10149,
+    "tokens_saida": 237,
+    "tok_s": 25.2,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 1.0,
+    "hpa_gemini": 1.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gemini": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "45b"
+    ],
+    "codigos_gemini": [
+      "21b"
+    ],
+    "vram_mb": 10102
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "3ee6e0cb3e",
+    "segundos": 20.2,
+    "tokens_prompt": 11527,
+    "tokens_saida": 303,
+    "tok_s": 24.6,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 1.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 2.0,
+    "hpa_gemini": 2.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gemini": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "56c"
+    ],
+    "codigos_gemini": [
+      "56c"
+    ],
+    "vram_mb": 10102
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "88f88fafd5",
+    "segundos": 52.7,
+    "tokens_prompt": 13278,
+    "tokens_saida": 1092,
+    "tok_s": 29.9,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 26.0,
+    "hpa_gemini": 12.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 6,
+    "n_atv_gemini": 4,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 6,
+    "codigos_local": [
+      "22a",
+      "56c",
+      "56c",
+      "57b",
+      "57b",
+      "57b"
+    ],
+    "codigos_gemini": [
+      "21a",
+      "21a",
+      "21d",
+      "21e"
+    ],
+    "vram_mb": 7534
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "134ac086e0",
+    "segundos": 15.7,
+    "tokens_prompt": 8792,
+    "tokens_saida": 259,
+    "tok_s": 29.6,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 1.0,
+    "hpa_gemini": 2.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gemini": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "7"
+    ],
+    "codigos_gemini": [
+      "56c"
+    ],
+    "vram_mb": 7534
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "04083049f5",
+    "segundos": 34.6,
+    "tokens_prompt": 13298,
+    "tokens_saida": 711,
+    "tok_s": 29.8,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 9.0,
+    "hpa_gemini": 3.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 4,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 8,
+    "codigos_local": [
+      "25b",
+      "56c",
+      "62a",
+      "62b"
+    ],
+    "codigos_gemini": [
+      "21b",
+      "21e"
+    ],
+    "vram_mb": 7534
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "a96b230134",
+    "segundos": 26.3,
+    "tokens_prompt": 11357,
+    "tokens_saida": 512,
+    "tok_s": 30.1,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.5,
+    "acerto_servico": 1.0,
+    "hpa_local": 4.0,
+    "hpa_gemini": 3.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 3,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "21b",
+      "22b",
+      "56c"
+    ],
+    "codigos_gemini": [
+      "21d",
+      "22b"
+    ],
+    "vram_mb": 7534
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "86d89f15c1",
+    "segundos": 48.4,
+    "tokens_prompt": 12009,
+    "tokens_saida": 1018,
+    "tok_s": 30.1,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.5,
+    "acerto_servico": 0.5,
+    "hpa_local": 18.0,
+    "hpa_gemini": 16.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 6,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 12,
+    "codigos_local": [
+      "25b",
+      "30",
+      "56c",
+      "60b",
+      "62a",
+      "62b"
+    ],
+    "codigos_gemini": [
+      "56a",
+      "56c"
+    ],
+    "vram_mb": 7534
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "d3c7c07e50",
+    "segundos": 18.0,
+    "tokens_prompt": 9773,
+    "tokens_saida": 256,
+    "tok_s": 29.5,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 14.0,
+    "hpa_gemini": 2.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "14b"
+    ],
+    "codigos_gemini": [
+      "21b",
+      "21b"
+    ],
+    "vram_mb": 7534
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "ad66fa24bd",
+    "segundos": 64.3,
+    "tokens_prompt": 13892,
+    "tokens_saida": 1560,
+    "tok_s": 29.9,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.5,
+    "hpa_local": 56.0,
+    "hpa_gemini": 7.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 10,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 12,
+    "codigos_local": [
+      "21a",
+      "57b",
+      "57b",
+      "57b",
+      "57b",
+      "57b",
+      "57b",
+      "57b",
+      "57b",
+      "59a"
+    ],
+    "codigos_gemini": [
+      "59",
+      "62b"
+    ],
+    "vram_mb": 7534
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "f42a92d580",
+    "segundos": 39.3,
+    "tokens_prompt": 15206,
+    "tokens_saida": 793,
+    "tok_s": 29.5,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.5,
+    "hpa_local": 10.0,
+    "hpa_gemini": 4.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 4,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 10,
+    "codigos_local": [
+      "21f",
+      "25b",
+      "56c",
+      "57a"
+    ],
+    "codigos_gemini": [
+      "21b",
+      "62b"
+    ],
+    "vram_mb": 7534
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "e509fee2bb",
+    "segundos": 15.8,
+    "tokens_prompt": 9354,
+    "tokens_saida": 226,
+    "tok_s": 29.1,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 1.0,
+    "hpa_gemini": 1.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gemini": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "7"
+    ],
+    "codigos_gemini": [
+      "21b"
+    ],
+    "vram_mb": 7534
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "3ee6e0cb3e",
+    "segundos": 25.2,
+    "tokens_prompt": 10446,
+    "tokens_saida": 496,
+    "tok_s": 29.8,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 6.0,
+    "hpa_gemini": 2.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 3,
+    "n_atv_gemini": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "25b",
+      "60b",
+      "7"
+    ],
+    "codigos_gemini": [
+      "56c"
+    ],
+    "vram_mb": 7534
+  }
+]

@@ -1,0 +1,3113 @@
+{
+  "resumo": {
+    "acerto_por_arquivo_%": 42.3,
+    "todos": {
+      "commits": 160,
+      "exato_%": 18.8,
+      "erro_hpa_medio": 3.16
+    },
+    "respondidos_sozinho": {
+      "commits": 38,
+      "exato_%": 47.4,
+      "erro_hpa_medio": 1.95,
+      "cobertura_%": 23.8
+    },
+    "curva_confianca_x_cobertura": [
+      {
+        "confianca": 0.4,
+        "cobertura_%": 53.8,
+        "commits": 86,
+        "exato_%": 29.1,
+        "erro_hpa_medio": 2.81
+      },
+      {
+        "confianca": 0.5,
+        "cobertura_%": 36.2,
+        "commits": 58,
+        "exato_%": 36.2,
+        "erro_hpa_medio": 2.56
+      },
+      {
+        "confianca": 0.6,
+        "cobertura_%": 25.0,
+        "commits": 40,
+        "exato_%": 45.0,
+        "erro_hpa_medio": 2.05
+      },
+      {
+        "confianca": 0.7,
+        "cobertura_%": 18.1,
+        "commits": 29,
+        "exato_%": 51.7,
+        "erro_hpa_medio": 2.28
+      },
+      {
+        "confianca": 0.8,
+        "cobertura_%": 13.1,
+        "commits": 21,
+        "exato_%": 52.4,
+        "erro_hpa_medio": 2.95
+      },
+      {
+        "confianca": 0.85,
+        "cobertura_%": 11.2,
+        "commits": 18,
+        "exato_%": 61.1,
+        "erro_hpa_medio": 3.28
+      },
+      {
+        "confianca": 0.9,
+        "cobertura_%": 3.8,
+        "commits": 6,
+        "exato_%": 66.7,
+        "erro_hpa_medio": 7.33
+      },
+      {
+        "confianca": 0.95,
+        "cobertura_%": 1.2,
+        "commits": 2,
+        "exato_%": 50.0,
+        "erro_hpa_medio": 2.0
+      }
+    ],
+    "params": {
+      "MIN_EXEMPLOS": 5,
+      "CONFIANCA": 0.6,
+      "PESO_MENSAGEM": 0.3,
+      "C_REG": 4.0
+    }
+  },
+  "commits": [
+    {
+      "commit": "0f03922b83",
+      "gabarito": {
+        "30": 1,
+        "68": 1,
+        "61": 1
+      },
+      "previsto": {
+        "30": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "docker-compose.homolog.yml: incerto (30 44%)",
+        "docker-compose.prod.yml: incerto (30 26%)",
+        "entrypoint-beat.sh: incerto (30 26%)",
+        "entrypoint-worker.sh: incerto (30 24%)",
+        "ulysses/ulysses/settings.py: incerto (30 44%)"
+      ],
+      "conf_min": 0.24,
+      "erro_hpa": 0.25
+    },
+    {
+      "commit": "1ae08f1957",
+      "gabarito": {
+        "21a": 4,
+        "62b": 1
+      },
+      "previsto": {
+        "21a": 1,
+        "21g": 1,
+        "21b": 1,
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templates/emendas/emendas_create.html: incerto (21g 56%)",
+        "ulysses/core/templates/emendas/emendas_view.html: incerto (21g 54%)",
+        "ulysses/core/templates/formulario/detail.html: incerto (21b 43%)"
+      ],
+      "conf_min": 0.43,
+      "erro_hpa": 8.0
+    },
+    {
+      "commit": "29c6fe619c",
+      "gabarito": {
+        "21c": 1,
+        "21e": 1
+      },
+      "previsto": {
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/components/fhir/etapa3/TabelaQuadro1MI.tsx: incerto (21a 54%)"
+      ],
+      "conf_min": 0.54,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "3496e3f073",
+      "gabarito": {
+        "22b": 1,
+        "21e": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "22a": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "api/views.py: incerto (21e 60%)"
+      ],
+      "conf_min": 0.6,
+      "erro_hpa": 5.0
+    },
+    {
+      "commit": "3c153b9873",
+      "gabarito": {
+        "57c": 1,
+        "22a": 1
+      },
+      "previsto": {
+        "21a": 1,
+        "57": 1,
+        "22a": 1,
+        "58": 1,
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templates/components/sidebar.html: incerto (21a 53%)",
+        "ulysses/core/templates/user/permissao_list.html: incerto (57 51%)",
+        "ulysses/core/urls.py: incerto (nenhum 54%)",
+        "ulysses/core/views/usuario_permissao.py: incerto (58 24%)"
+      ],
+      "conf_min": 0.24,
+      "erro_hpa": 2.0
+    },
+    {
+      "commit": "52543eef6a",
+      "gabarito": {
+        "21b": 2
+      },
+      "previsto": {
+        "21b": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.81,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "6218e03149",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.78,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "79da976e1d",
+      "gabarito": {
+        "21d": 1
+      },
+      "previsto": {
+        "21d": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.6,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "8b75a9f929",
+      "gabarito": {
+        "21g": 1,
+        "22a": 8,
+        "21f": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "22b": 1,
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        ".pre-commit-config.yaml: incerto (21d 17%)",
+        "ulysses/core/tests/check_form.py: incerto (22b 34%)",
+        "ulysses/core/tests/get_page.py: incerto (22b 33%)",
+        "ulysses/core/tests/test_atualizacoes.py: incerto (21d 42%)"
+      ],
+      "conf_min": 0.17,
+      "erro_hpa": 30.0
+    },
+    {
+      "commit": "9ac9dbcafa",
+      "gabarito": {
+        "21e": 4
+      },
+      "previsto": {
+        "21e": 1,
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/views/common.py: incerto (21d 39%)",
+        "ulysses/core/views/preenchimento_formulario.py: incerto (21d 38%)"
+      ],
+      "conf_min": 0.38,
+      "erro_hpa": 4.0
+    },
+    {
+      "commit": "b7cbc8b6d6",
+      "gabarito": {
+        "22b": 1,
+        "21e": 1
+      },
+      "previsto": {
+        "22b": 1,
+        "21e": 1
+      },
+      "exato": true,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/tests/test_temporary_files_views.py: incerto (22b 50%)",
+        "ulysses/core/utils/resilience.py: incerto (21e 54%)"
+      ],
+      "conf_min": 0.5,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "c3a5853a49",
+      "gabarito": {
+        "62b": 1,
+        "21d": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/components/fhir/etapa3/Etapa3ModelagemClinica.tsx: incerto (21e 49%)",
+        "frontend/components/fhir/etapa4/Etapa4MapeamentoCompleta.tsx: incerto (21e 45%)",
+        "frontend/components/fhir/etapa4/Fase1SugerirRecursosFHIR.tsx: incerto (21a 29%)"
+      ],
+      "conf_min": 0.29,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "d502f47ce4",
+      "gabarito": {
+        "22a": 1,
+        "57": 1
+      },
+      "previsto": {
+        "62a": 1,
+        "22a": 1,
+        "60": 1,
+        "62b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "app/views.py: incerto (62b 33%)"
+      ],
+      "conf_min": 0.33,
+      "erro_hpa": 5.0
+    },
+    {
+      "commit": "e1ea7a6d33",
+      "gabarito": {
+        "21d": 1,
+        "21e": 1,
+        "21a": 1,
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1,
+        "62b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "app/mock_data.py: incerto (21b 42%)",
+        "app/views.py: incerto (62b 33%)"
+      ],
+      "conf_min": 0.33,
+      "erro_hpa": 5.0
+    },
+    {
+      "commit": "f1bcda5dff",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "22a": 1,
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templates/emendas/components/modal_andamentos_sei.html: incerto (21e 57%)"
+      ],
+      "conf_min": 0.57,
+      "erro_hpa": 6.0
+    },
+    {
+      "commit": "ff9c207cd2",
+      "gabarito": {
+        "21e": 1,
+        "21b": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.61,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "0eac66b300",
+      "gabarito": {
+        "22a": 11
+      },
+      "previsto": {
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.92,
+      "erro_hpa": 40.0
+    },
+    {
+      "commit": "1940a77d91",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": true,
+      "revisar": true,
+      "motivos": [
+        "README.md: incerto (21b 31%)"
+      ],
+      "conf_min": 0.31,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "297a46a509",
+      "gabarito": {
+        "21f": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.76,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "33fe690c08",
+      "gabarito": {
+        "22a": 1,
+        "22b": 1
+      },
+      "previsto": {
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/test/etapa1/Etapa1EntendimentoCompleta.test.tsx: incerto (nenhum 42%)",
+        "frontend/test/etapa1/ModalSimilaridade.test.tsx: incerto (22a 53%)",
+        "frontend/test/ui/card.test.tsx: incerto (22a 51%)"
+      ],
+      "conf_min": 0.42,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "3bb8283598",
+      "gabarito": {
+        "21e": 2,
+        "21d": 1
+      },
+      "previsto": {
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/views/common.py: incerto (21d 55%)"
+      ],
+      "conf_min": 0.55,
+      "erro_hpa": 4.0
+    },
+    {
+      "commit": "50150271f5",
+      "gabarito": {
+        "22a": 1,
+        "21d": 1,
+        "68": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "21a": 1,
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/forms.py: incerto (21d 59%)"
+      ],
+      "conf_min": 0.59,
+      "erro_hpa": 3.75
+    },
+    {
+      "commit": "60b5e4302f",
+      "gabarito": {
+        "21f": 1,
+        "30": 1,
+        "58": 1,
+        "59a": 1
+      },
+      "previsto": {
+        "22a": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "api/authentication.py: incerto (22a 45%)",
+        "api/urls.py: incerto (21e 56%)",
+        "core/settings.py: incerto (nenhum 37%)"
+      ],
+      "conf_min": 0.37,
+      "erro_hpa": 5.0
+    },
+    {
+      "commit": "79575047a9",
+      "gabarito": {
+        "21d": 1,
+        "21a": 1,
+        "22a": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "21a": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/forms.py: incerto (21d 57%)",
+        "ulysses/core/tests/test_tipo_documento.py: incerto (21e 37%)"
+      ],
+      "conf_min": 0.37,
+      "erro_hpa": 2.0
+    },
+    {
+      "commit": "8a62e44894",
+      "gabarito": {
+        "21e": 2,
+        "21d": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/views/preenchimento_formulario.py: incerto (21e 49%)"
+      ],
+      "conf_min": 0.49,
+      "erro_hpa": 2.0
+    },
+    {
+      "commit": "995aa04aeb",
+      "gabarito": {
+        "30": 1
+      },
+      "previsto": {
+        "30": 1
+      },
+      "exato": true,
+      "revisar": true,
+      "motivos": [
+        "ulysses/ulysses/settings.py: incerto (30 33%)"
+      ],
+      "conf_min": 0.33,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "b6d0cce158",
+      "gabarito": {
+        "21b": 1,
+        "22a": 1,
+        "21a": 2,
+        "21d": 2,
+        "57": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "62a": 1,
+        "21a": 1,
+        "21b": 1,
+        "57": 1,
+        "62b": 1,
+        "22a": 1,
+        "58": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templates/cnpj/detail.html: incerto (62a 36%)",
+        "ulysses/core/templates/cnpj/update.html: incerto (21a 54%)",
+        "ulysses/core/templates/prestador_cnpj/create.html: incerto (21b 55%)",
+        "ulysses/core/templates/prestador_cnpj/list.html: incerto (21a 53%)",
+        "ulysses/core/templates/processo_cnpj/vincular.html: incerto (62b 46%)"
+      ],
+      "conf_min": 0.36,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "c2e5871a90",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.88,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "d220813752",
+      "gabarito": {
+        "21b": 1,
+        "61": 1,
+        "22a": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "22a": 1,
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/ulysses/settings.py: incerto (nenhum 28%)"
+      ],
+      "conf_min": 0.28,
+      "erro_hpa": 3.0
+    },
+    {
+      "commit": "e1af701e08",
+      "gabarito": {
+        "32": 1
+      },
+      "previsto": {
+        "30": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        ".gitlab-ci.yml: incerto (30 20%)"
+      ],
+      "conf_min": 0.2,
+      "erro_hpa": 5.0
+    },
+    {
+      "commit": "f02e50f4b0",
+      "gabarito": {
+        "62b": 2,
+        "62a": 1,
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1,
+        "62b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "app/templates/gestor/dashboards.html: incerto (21b 40%)",
+        "app/templates/gestor/estratificador.html: incerto (62b 33%)"
+      ],
+      "conf_min": 0.33,
+      "erro_hpa": 5.0
+    },
+    {
+      "commit": "fe2da9da11",
+      "gabarito": {
+        "21b": 1,
+        "62b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.88,
+      "erro_hpa": 3.0
+    },
+    {
+      "commit": "0d21926f81",
+      "gabarito": {
+        "21e": 1,
+        "21b": 2
+      },
+      "previsto": {
+        "62b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/exemplos/ciclo_engrenagem.html: incerto (62b 32%)",
+        "frontend/src/painel/painel.css: incerto (62b 47%)"
+      ],
+      "conf_min": 0.32,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "18dacb183a",
+      "gabarito": {
+        "21b": 1,
+        "62b": 3
+      },
+      "previsto": {
+        "21b": 1,
+        "62b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "app/templates/pages/cidadao/consultas.html: incerto (62b 51%)"
+      ],
+      "conf_min": 0.51,
+      "erro_hpa": 6.0
+    },
+    {
+      "commit": "28dec78274",
+      "gabarito": {
+        "21e": 1,
+        "59a": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "21f": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/components/fhir/etapa1/Etapa1EntendimentoCompleta.tsx: incerto (21f 56%)",
+        "frontend/lib/navigation.ts: tipo de alteração com pouca base aprovada"
+      ],
+      "conf_min": 0.24,
+      "erro_hpa": 3.0
+    },
+    {
+      "commit": "313d437489",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.65,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "3b81323d94",
+      "gabarito": {
+        "22a": 8
+      },
+      "previsto": {
+        "22b": 2,
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "api/tests/test_services_agent_av.py: incerto (22a 51%)"
+      ],
+      "conf_min": 0.51,
+      "erro_hpa": 26.0
+    },
+    {
+      "commit": "4d7af89768",
+      "gabarito": {
+        "21a": 1
+      },
+      "previsto": {
+        "62b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/components/AdminRegistrationsPage.tsx: incerto (62b 28%)"
+      ],
+      "conf_min": 0.28,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "5e3b059a25",
+      "gabarito": {
+        "21e": 2
+      },
+      "previsto": {
+        "21d": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.62,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "76571958f4",
+      "gabarito": {
+        "21e": 2,
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1,
+        "21e": 1,
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "core/templates/base.html: incerto (21e 47%)",
+        "requirements.txt: incerto (nenhum 22%)"
+      ],
+      "conf_min": 0.22,
+      "erro_hpa": 2.0
+    },
+    {
+      "commit": "897232e976",
+      "gabarito": {
+        "21a": 1
+      },
+      "previsto": {
+        "21a": 1,
+        "21g": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templates/emendas/emendas_list.html: incerto (21g 57%)",
+        "ulysses/core/views/prestacao_contas.py: incerto (nenhum 30%)"
+      ],
+      "conf_min": 0.3,
+      "erro_hpa": 4.0
+    },
+    {
+      "commit": "992cdbcb9b",
+      "gabarito": {
+        "21g": 1,
+        "58b": 1,
+        "21a": 1,
+        "21d": 1,
+        "21f": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "60": 1,
+        "30": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templates/base.html: incerto (21e 47%)",
+        "ulysses/core/templates/emendas/emendas_list.html: incerto (21e 25%)",
+        "ulysses/core/urls.py: incerto (60 29%)",
+        "ulysses/core/views/auditoria.py: incerto (21e 54%)",
+        "ulysses/core/views/common.py: incerto (21e 51%)"
+      ],
+      "conf_min": 0.25,
+      "erro_hpa": 8.0
+    },
+    {
+      "commit": "b639c1ff7a",
+      "gabarito": {
+        "62a": 3,
+        "60": 1
+      },
+      "previsto": {
+        "21a": 1,
+        "21b": 1,
+        "62b": 1,
+        "62a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "app/templates/cidadao/assistente.html: incerto (62b 24%)",
+        "app/templates/cidadao/atendimento.html: incerto (62b 43%)",
+        "app/templates/cidadao/consultas.html: incerto (62a 38%)",
+        "app/templates/cidadao/exames.html: incerto (62b 48%)",
+        "app/templates/cidadao/linha_do_tempo.html: incerto (21b 23%)"
+      ],
+      "conf_min": 0.23,
+      "erro_hpa": 4.0
+    },
+    {
+      "commit": "c09948f72a",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.9,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "ce5c8f735c",
+      "gabarito": {
+        "21e": 1,
+        "21a": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.96,
+      "erro_hpa": 4.0
+    },
+    {
+      "commit": "e19d582723",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "62b": 1,
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.88,
+      "erro_hpa": 3.0
+    },
+    {
+      "commit": "edfa68d6bf",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.74,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "fd186abf0c",
+      "gabarito": {
+        "22a": 1,
+        "21d": 2
+      },
+      "previsto": {
+        "21e": 1,
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templates/base.html: incerto (nenhum 33%)",
+        "ulysses/core/templates/login.html: incerto (21e 57%)",
+        "ulysses/core/views/common.py: incerto (21e 35%)"
+      ],
+      "conf_min": 0.33,
+      "erro_hpa": 2.0
+    },
+    {
+      "commit": "0cea3ea18c",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.86,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "17a1cb83d4",
+      "gabarito": {
+        "62b": 2
+      },
+      "previsto": {
+        "62b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "app/templates/gestor/visao_geral.html: incerto (62b 60%)"
+      ],
+      "conf_min": 0.6,
+      "erro_hpa": 3.0
+    },
+    {
+      "commit": "266129ca5f",
+      "gabarito": {
+        "21a": 1,
+        "21e": 1,
+        "21d": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templates/components/sidebar.html: incerto (21b 58%)",
+        "ulysses/core/templates/home.html: incerto (21b 51%)",
+        "ulysses/core/views/acompanhamento.py: incerto (21d 47%)"
+      ],
+      "conf_min": 0.47,
+      "erro_hpa": 5.0
+    },
+    {
+      "commit": "3003501807",
+      "gabarito": {
+        "21b": 1,
+        "21e": 1
+      },
+      "previsto": {
+        "21a": 1,
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templates/emendas/emendas_edit.html: incerto (21a 49%)"
+      ],
+      "conf_min": 0.49,
+      "erro_hpa": 2.0
+    },
+    {
+      "commit": "3b8117e797",
+      "gabarito": {
+        "21e": 1,
+        "21a": 1,
+        "21f": 1,
+        "30": 1
+      },
+      "previsto": {
+        "30": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/contexts/RabbitContext.tsx: incerto (21e 52%)"
+      ],
+      "conf_min": 0.52,
+      "erro_hpa": 5.0
+    },
+    {
+      "commit": "4a6ae4d73f",
+      "gabarito": {
+        "21b": 3,
+        "62a": 1,
+        "21c": 1
+      },
+      "previsto": {
+        "21b": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/painel.html: incerto (21b 49%)",
+        "frontend/src/painel/aba.js: incerto (nenhum 43%)",
+        "frontend/src/painel/recorte.js: incerto (21e 33%)"
+      ],
+      "conf_min": 0.33,
+      "erro_hpa": 3.0
+    },
+    {
+      "commit": "5b09c705ce",
+      "gabarito": {
+        "21f": 1,
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "21f": 1
+      },
+      "exato": true,
+      "revisar": true,
+      "motivos": [
+        "frontend/app/logout/page.tsx: incerto (21e 55%)",
+        "frontend/hooks/useDemandaDraft.ts: incerto (21f 54%)",
+        "frontend/services/api.ts: incerto (21f 54%)"
+      ],
+      "conf_min": 0.54,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "707b6be15e",
+      "gabarito": {
+        "30": 1,
+        "21d": 1
+      },
+      "previsto": {
+        "30": 1,
+        "58": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        ".env-prod: incerto (58 54%)",
+        "ulysses/requirements.txt: incerto (30 51%)",
+        "ulysses/ulysses/settings.py: incerto (21e 49%)"
+      ],
+      "conf_min": 0.49,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "825ac8dcab",
+      "gabarito": {
+        "22a": 1
+      },
+      "previsto": {
+        "22a": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.95,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "97ed768029",
+      "gabarito": {
+        "21d": 1
+      },
+      "previsto": {
+        "58": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/services/sei_soap.py: incerto (58 47%)"
+      ],
+      "conf_min": 0.47,
+      "erro_hpa": 2.0
+    },
+    {
+      "commit": "b19f48f3ce",
+      "gabarito": {
+        "22a": 1,
+        "60": 1,
+        "16": 1
+      },
+      "previsto": {
+        "21a": 1,
+        "21b": 1,
+        "22a": 1,
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templates/home.html: incerto (21a 38%)",
+        "ulysses/core/templates/home_processo.html: incerto (21b 32%)",
+        "ulysses/core/views/common.py: incerto (21d 31%)"
+      ],
+      "conf_min": 0.31,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "bee07cb35e",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.92,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "cdc2a76dcf",
+      "gabarito": {
+        "21e": 1,
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "core/static/js/portal.js: incerto (21b 35%)"
+      ],
+      "conf_min": 0.35,
+      "erro_hpa": 2.0
+    },
+    {
+      "commit": "e03e167a98",
+      "gabarito": {
+        "21e": 4,
+        "21d": 4,
+        "61": 1
+      },
+      "previsto": {
+        "21a": 1,
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/views/prestacao_contas.py: incerto (21d 45%)",
+        "ulysses/ulysses/middlewares.py: incerto (21a 40%)"
+      ],
+      "conf_min": 0.4,
+      "erro_hpa": 10.0
+    },
+    {
+      "commit": "eb7a47964b",
+      "gabarito": {
+        "22b": 1
+      },
+      "previsto": {
+        "22b": 1
+      },
+      "exato": true,
+      "revisar": true,
+      "motivos": [
+        "app/tests.py: incerto (22b 33%)"
+      ],
+      "conf_min": 0.33,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "fceb2e3290",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.77,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "0687df5fdd",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.92,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "1638e75607",
+      "gabarito": {
+        "21b": 1,
+        "21e": 1
+      },
+      "previsto": {
+        "21b": 1,
+        "21e": 1
+      },
+      "exato": true,
+      "revisar": true,
+      "motivos": [
+        "app/templates/cidadao/pep.html: incerto (21b 44%)",
+        "core/static/css/portal.css: incerto (21e 48%)"
+      ],
+      "conf_min": 0.44,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "2487f5b12a",
+      "gabarito": {
+        "58": 1,
+        "21a": 1,
+        "21d": 1,
+        "61": 2,
+        "60": 1,
+        "22a": 1,
+        "62b": 1,
+        "15": 1
+      },
+      "previsto": {
+        "22a": 1,
+        "21a": 1,
+        "21e": 1,
+        "57": 1,
+        "58": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/clients/ia_client.py: incerto (22a 24%)",
+        "ulysses/core/templates/emendas/emendas_edit.html: incerto (57 56%)",
+        "ulysses/core/urls.py: incerto (58 31%)"
+      ],
+      "conf_min": 0.24,
+      "erro_hpa": 3.0
+    },
+    {
+      "commit": "2c0c2c1ed0",
+      "gabarito": {
+        "58": 1
+      },
+      "previsto": {
+        "22a": 1,
+        "21e": 1,
+        "30": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "api/services/agent_rabbit.py: incerto (22a 41%)",
+        "api/urls.py: incerto (21e 23%)"
+      ],
+      "conf_min": 0.23,
+      "erro_hpa": 12.0
+    },
+    {
+      "commit": "3acbd76af0",
+      "gabarito": {
+        "21a": 2,
+        "21d": 1
+      },
+      "previsto": {
+        "21a": 1,
+        "21e": 1,
+        "21d": 1,
+        "62b": 1,
+        "22b": 1,
+        "22a": 1,
+        "57": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/admin.py: incerto (nenhum 49%)",
+        "ulysses/core/forms.py: incerto (21a 44%)",
+        "ulysses/core/migrations/0018_remove_campoextraido_caex_confianca_and_more.py: tipo de alteração com pouca base aprovada",
+        "ulysses/core/models/formularios.py: tipo de alteração com pouca base aprovada",
+        "ulysses/core/models/upload.py: incerto (21e 41%)"
+      ],
+      "conf_min": 0.28,
+      "erro_hpa": 6.0
+    },
+    {
+      "commit": "4760d88cb5",
+      "gabarito": {
+        "58": 1,
+        "21a": 1,
+        "22a": 1,
+        "62b": 1
+      },
+      "previsto": {
+        "30": 1,
+        "58": 1,
+        "62a": 1,
+        "22a": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/services/sei_soap.py: incerto (58 54%)",
+        "ulysses/core/urls.py: incerto (58 41%)"
+      ],
+      "conf_min": 0.41,
+      "erro_hpa": 3.0
+    },
+    {
+      "commit": "5953596daf",
+      "gabarito": {
+        "21c": 1,
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.83,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "7004bda348",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.85,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "810581d2d9",
+      "gabarito": {
+        "62b": 1,
+        "61": 1
+      },
+      "previsto": {
+        "21a": 1,
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "core/static/js/admin.js: incerto (21a 52%)"
+      ],
+      "conf_min": 0.52,
+      "erro_hpa": 2.0
+    },
+    {
+      "commit": "96e32573bd",
+      "gabarito": {
+        "21c": 1,
+        "21d": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.87,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "b11fddb79c",
+      "gabarito": {
+        "21a": 1,
+        "21b": 1
+      },
+      "previsto": {
+        "21a": 1,
+        "21b": 1,
+        "22a": 1,
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templates/cnpj/list.html: incerto (21a 40%)",
+        "ulysses/core/templates/prestador/list.html: incerto (21a 60%)",
+        "ulysses/core/templates/prestador_cnpj/list.html: incerto (21b 35%)",
+        "ulysses/core/templates/processo_cnpj/list.html: incerto (21a 38%)",
+        "ulysses/core/views/cnpj.py: incerto (21a 34%)"
+      ],
+      "conf_min": 0.34,
+      "erro_hpa": 6.0
+    },
+    {
+      "commit": "be8cbb0e67",
+      "gabarito": {
+        "21d": 1,
+        "22b": 1,
+        "60": 1,
+        "59": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "22a": 1,
+        "22b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/clients/ia_client.py: incerto (21e 23%)",
+        "ulysses/core/dtos/__init__.py: incerto (21e 42%)",
+        "ulysses/core/dtos/validation/__init__.py: incerto (22a 18%)",
+        "ulysses/core/dtos/validation/schemas.py: incerto (22a 23%)",
+        "ulysses/core/tasks.py: incerto (21e 24%)"
+      ],
+      "conf_min": 0.18,
+      "erro_hpa": 4.0
+    },
+    {
+      "commit": "ca757139e1",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "22b": 1,
+        "22a": 1,
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/tests/test_auto_logout_next.py: incerto (22b 59%)",
+        "ulysses/core/tests/test_objeto_forma_kpi.py: incerto (21e 58%)",
+        "ulysses/core/tests/test_tipo_documento.py: incerto (22a 49%)",
+        "ulysses/core/views/prestador.py: incerto (21d 52%)",
+        "ulysses/core/views/prestador_cnpj.py: incerto (21e 51%)"
+      ],
+      "conf_min": 0.49,
+      "erro_hpa": 7.0
+    },
+    {
+      "commit": "e0372082e9",
+      "gabarito": {
+        "21a": 1,
+        "21d": 1
+      },
+      "previsto": {
+        "21c": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/utils/etapa4Mapping.ts: incerto (21e 25%)"
+      ],
+      "conf_min": 0.25,
+      "erro_hpa": 3.0
+    },
+    {
+      "commit": "e8fe5a1afb",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.6,
+      "erro_hpa": 2.0
+    },
+    {
+      "commit": "fb4b853135",
+      "gabarito": {
+        "62a": 1,
+        "22a": 1,
+        "57": 1,
+        "60": 1
+      },
+      "previsto": {
+        "21b": 1,
+        "22a": 1,
+        "57": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "app/templates/pages/gestor/rnds.html: incerto (21b 58%)",
+        "app/views.py: incerto (57 29%)"
+      ],
+      "conf_min": 0.29,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "058de3cfc7",
+      "gabarito": {
+        "22b": 1
+      },
+      "previsto": {
+        "22b": 1
+      },
+      "exato": true,
+      "revisar": true,
+      "motivos": [
+        "app/tests.py: incerto (22b 35%)"
+      ],
+      "conf_min": 0.35,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "15ff9c8572",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.79,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "23c6cb4292",
+      "gabarito": {
+        "22a": 1,
+        "22b": 2
+      },
+      "previsto": {
+        "21e": 1,
+        "22a": 1,
+        "22b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/test/contexts/Contexts.test.tsx: incerto (21e 48%)"
+      ],
+      "conf_min": 0.48,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "2b9dfc97fd",
+      "gabarito": {
+        "21b": 2,
+        "22b": 1,
+        "22a": 1
+      },
+      "previsto": {
+        "22a": 1,
+        "21b": 1,
+        "21g": 1,
+        "22b": 2
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        ".coveragerc: incerto (22a 46%)",
+        "api/tests_govbr.py: incerto (21g 58%)",
+        "core/settings_test.py: incerto (22b 43%)"
+      ],
+      "conf_min": 0.43,
+      "erro_hpa": 4.0
+    },
+    {
+      "commit": "39f1044ac3",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "21a": 1,
+        "22b": 1,
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/forms.py: incerto (21e 54%)",
+        "ulysses/core/models/formularios.py: incerto (21a 46%)",
+        "ulysses/core/tests/test_forms.py: incerto (22b 59%)",
+        "ulysses/core/tests/test_solicitacao_acesso.py: incerto (21e 49%)",
+        "ulysses/core/urls.py: incerto (21e 53%)"
+      ],
+      "conf_min": 0.46,
+      "erro_hpa": 7.0
+    },
+    {
+      "commit": "469e622b7f",
+      "gabarito": {
+        "62b": 2,
+        "21g": 1,
+        "21b": 1
+      },
+      "previsto": {
+        "62a": 1,
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "app/templates/cidadao/carteira_vacinal.html: incerto (62a 40%)"
+      ],
+      "conf_min": 0.4,
+      "erro_hpa": 8.0
+    },
+    {
+      "commit": "5936e50f3c",
+      "gabarito": {
+        "21e": 1,
+        "30": 1,
+        "57": 1
+      },
+      "previsto": {
+        "30": 1,
+        "21a": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "Dockerfile: incerto (30 56%)"
+      ],
+      "conf_min": 0.56,
+      "erro_hpa": 4.0
+    },
+    {
+      "commit": "6f76889b1e",
+      "gabarito": {
+        "21d": 1,
+        "62a": 1
+      },
+      "previsto": {
+        "21a": 1,
+        "21d": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/context_processors.py: incerto (21a 34%)",
+        "ulysses/core/templates/components/sidebar.html: incerto (21a 52%)",
+        "ulysses/core/urls.py: incerto (21d 26%)",
+        "ulysses/core/views/gestor.py: incerto (21e 46%)",
+        "ulysses/ulysses/middlewares.py: incerto (21e 40%)"
+      ],
+      "conf_min": 0.23,
+      "erro_hpa": 4.0
+    },
+    {
+      "commit": "80206e7610",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.88,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "946f994d11",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.89,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "afb8e1b5a5",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.69,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "bd4a963ba8",
+      "gabarito": {
+        "21a": 1,
+        "21e": 1,
+        "62b": 1,
+        "21b": 1
+      },
+      "previsto": {
+        "62b": 1,
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "app/mock_data.py: incerto (62b 38%)",
+        "app/views.py: incerto (21b 36%)"
+      ],
+      "conf_min": 0.36,
+      "erro_hpa": 6.0
+    },
+    {
+      "commit": "ca4303e0b8",
+      "gabarito": {
+        "21d": 1,
+        "22a": 1
+      },
+      "previsto": {
+        "22b": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "api/tests/test_admin_views_extended.py: incerto (22b 52%)",
+        "api/views.py: incerto (21e 25%)"
+      ],
+      "conf_min": 0.25,
+      "erro_hpa": 3.0
+    },
+    {
+      "commit": "df13d13ad8",
+      "gabarito": {
+        "60": 1,
+        "57": 2,
+        "21b": 2,
+        "58": 1,
+        "21e": 1,
+        "21f": 1,
+        "22a": 1,
+        "21d": 2,
+        "62a": 1
+      },
+      "previsto": {
+        "21a": 1,
+        "57b": 1,
+        "57": 1,
+        "21e": 1,
+        "62b": 1,
+        "57c": 1,
+        "21b": 1,
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/admin.py: incerto (21a 35%)",
+        "ulysses/core/context_processors.py: incerto (57b 39%)",
+        "ulysses/core/migrations/0022_atualizacao_atualizacaovisualizacao.py: incerto (21a 53%)",
+        "ulysses/core/models/__init__.py: incerto (nenhum 57%)",
+        "ulysses/core/models/atualizacoes.py: tipo de alteração com pouca base aprovada"
+      ],
+      "conf_min": 0.21,
+      "erro_hpa": 13.0
+    },
+    {
+      "commit": "e8d2c7943c",
+      "gabarito": {
+        "21d": 1,
+        "21a": 1,
+        "22a": 1
+      },
+      "previsto": {
+        "21a": 1,
+        "21e": 1,
+        "22a": 1,
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/models/formularios.py: incerto (21a 43%)",
+        "ulysses/core/signals.py: incerto (21e 34%)"
+      ],
+      "conf_min": 0.34,
+      "erro_hpa": 2.0
+    },
+    {
+      "commit": "fa9fea12c4",
+      "gabarito": {
+        "30": 1,
+        "21d": 3,
+        "61": 1
+      },
+      "previsto": {
+        "30": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/views/auth_govbr.py: incerto (21e 57%)",
+        "ulysses/ulysses/settings.py: incerto (21e 26%)"
+      ],
+      "conf_min": 0.26,
+      "erro_hpa": 4.0
+    },
+    {
+      "commit": "047e21181b",
+      "gabarito": {
+        "21e": 1,
+        "60": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "30": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "core/settings.py: incerto (30 36%)"
+      ],
+      "conf_min": 0.36,
+      "erro_hpa": 6.0
+    },
+    {
+      "commit": "158e812702",
+      "gabarito": {
+        "21d": 1,
+        "21e": 1,
+        "21c": 1,
+        "21a": 1
+      },
+      "previsto": {
+        "21a": 1,
+        "21e": 1,
+        "62b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/forms.py: incerto (21a 32%)",
+        "ulysses/core/templates/emendas/emendas_create.html: incerto (21e 44%)",
+        "ulysses/core/templates/emendas/emendas_edit.html: incerto (62b 47%)"
+      ],
+      "conf_min": 0.32,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "22e3f1524d",
+      "gabarito": {
+        "22a": 1,
+        "57b": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "62b": 1,
+        "62a": 1,
+        "22a": 1,
+        "60": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templates/base.html: incerto (62b 44%)",
+        "ulysses/core/templates/components/_modal_session_timeout.html: incerto (62a 42%)",
+        "ulysses/core/urls.py: incerto (60 26%)",
+        "ulysses/core/views/session.py: tipo de alteração com pouca base aprovada"
+      ],
+      "conf_min": 0.26,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "2b68a7fd9a",
+      "gabarito": {
+        "21g": 1,
+        "22b": 1
+      },
+      "previsto": {
+        "21b": 1,
+        "22b": 1,
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "app/tests.py: incerto (22b 36%)",
+        "app/views.py: incerto (21d 32%)"
+      ],
+      "conf_min": 0.32,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "38005260ca",
+      "gabarito": {
+        "21e": 2
+      },
+      "previsto": {
+        "21e": 1,
+        "22b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/tests/test_auth_govbr_views.py: incerto (21e 56%)",
+        "ulysses/core/tests/test_other_business_views.py: incerto (22b 46%)",
+        "ulysses/core/tests/test_tasks.py: incerto (21e 58%)"
+      ],
+      "conf_min": 0.46,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "43be8b76cd",
+      "gabarito": {
+        "22a": 1,
+        "21e": 1
+      },
+      "previsto": {
+        "22a": 1,
+        "21e": 1
+      },
+      "exato": true,
+      "revisar": true,
+      "motivos": [
+        "api/views.py: incerto (21e 40%)"
+      ],
+      "conf_min": 0.4,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "5776af9330",
+      "gabarito": {
+        "21d": 1,
+        "57": 1,
+        "22a": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "21a": 1,
+        "62b": 1,
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templates/emendas/emendas_create.html: incerto (21d 44%)",
+        "ulysses/core/tests/test_forms.py: incerto (22a 32%)"
+      ],
+      "conf_min": 0.32,
+      "erro_hpa": 7.0
+    },
+    {
+      "commit": "6defef541c",
+      "gabarito": {
+        "62a": 1,
+        "21a": 3,
+        "22a": 1,
+        "58": 2
+      },
+      "previsto": {
+        "58": 1,
+        "62b": 1,
+        "22a": 1,
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/models/formularios.py: incerto (nenhum 36%)",
+        "ulysses/core/urls.py: incerto (21a 60%)"
+      ],
+      "conf_min": 0.36,
+      "erro_hpa": 7.0
+    },
+    {
+      "commit": "7dc840233a",
+      "gabarito": {
+        "21e": 1,
+        "59a": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/hooks/useSafeBack.ts: tipo de alteração com pouca base aprovada"
+      ],
+      "conf_min": 0.33,
+      "erro_hpa": 4.0
+    },
+    {
+      "commit": "9345f7b24e",
+      "gabarito": {
+        "21f": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/next-env.d.ts: incerto (21e 56%)"
+      ],
+      "conf_min": 0.56,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "ae16746bb9",
+      "gabarito": {
+        "57": 1,
+        "22a": 1,
+        "6": 1
+      },
+      "previsto": {
+        "21a": 1,
+        "62b": 1,
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/migrations/0019_rascunhoemenda.py: tipo de alteração com pouca base aprovada",
+        "ulysses/core/static/js/emendas_autosave.js: incerto (62b 47%)",
+        "ulysses/core/templates/emendas/emendas_create.html: incerto (21a 60%)",
+        "ulysses/core/templates/emendas/emendas_edit.html: incerto (21a 53%)",
+        "ulysses/core/urls.py: tipo de alteração com pouca base aprovada"
+      ],
+      "conf_min": 0.46,
+      "erro_hpa": 5.0
+    },
+    {
+      "commit": "ba79642f8e",
+      "gabarito": {
+        "21a": 1
+      },
+      "previsto": {
+        "21b": 1,
+        "61": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templatetags/form_filters.py: incerto (61 40%)"
+      ],
+      "conf_min": 0.4,
+      "erro_hpa": 3.0
+    },
+    {
+      "commit": "c948d327c6",
+      "gabarito": {
+        "21d": 2,
+        "21e": 2,
+        "22b": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "22b": 1,
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/services/messaging.py: incerto (21e 59%)",
+        "ulysses/core/utils/permissions.py: incerto (21d 58%)",
+        "ulysses/core/views/common.py: incerto (21e 39%)"
+      ],
+      "conf_min": 0.39,
+      "erro_hpa": 4.0
+    },
+    {
+      "commit": "ddf548e58d",
+      "gabarito": {
+        "21g": 1,
+        "22b": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "21a": 1,
+        "62b": 1,
+        "22b": 1,
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/forms.py: incerto (21e 48%)",
+        "ulysses/core/models/formularios.py: incerto (21e 37%)",
+        "ulysses/core/tests/test_cnpj.py: incerto (21e 39%)",
+        "ulysses/core/tests/test_forms.py: incerto (22b 55%)",
+        "ulysses/core/views/preenchimento_formulario.py: incerto (21e 53%)"
+      ],
+      "conf_min": 0.37,
+      "erro_hpa": 7.0
+    },
+    {
+      "commit": "e6eae7f331",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": true,
+      "revisar": true,
+      "motivos": [
+        "frontend/src/painel/relatorio_executivo.js: incerto (21e 43%)"
+      ],
+      "conf_min": 0.43,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "fa76173448",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.69,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "02d167271b",
+      "gabarito": {
+        "62b": 1
+      },
+      "previsto": {
+        "62b": 1,
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.89,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "1575d7e0d9",
+      "gabarito": {
+        "58": 1,
+        "21a": 1
+      },
+      "previsto": {
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/services/agentAvApi.ts: incerto (22a 42%)",
+        "frontend/types/agentAv.ts: incerto (22a 38%)"
+      ],
+      "conf_min": 0.38,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "2177552273",
+      "gabarito": {
+        "68": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "docs/multiplos_credores_20260727_164701.txt: incerto (nenhum 41%)",
+        "nenhum arquivo faturável identificado"
+      ],
+      "conf_min": 0.41,
+      "erro_hpa": 0.25
+    },
+    {
+      "commit": "2b3e9244b2",
+      "gabarito": {
+        "22a": 1,
+        "21e": 1
+      },
+      "previsto": {
+        "21b": 1,
+        "21c": 1,
+        "62b": 1,
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/src/painel/aba.js: incerto (21c 25%)",
+        "frontend/src/painel/frescor.js: incerto (62b 22%)",
+        "frontend/src/painel/navbar.js: incerto (62b 55%)",
+        "frontend/src/shared/ui/navbar.js: incerto (62b 26%)",
+        "tests/test_api.py: incerto (22a 50%)"
+      ],
+      "conf_min": 0.22,
+      "erro_hpa": 3.0
+    },
+    {
+      "commit": "37bdcbe6d8",
+      "gabarito": {
+        "21d": 1,
+        "21a": 1,
+        "22b": 1,
+        "21b": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "21e": 1,
+        "22a": 1,
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templates/emendas/emendas_list.html: incerto (21d 54%)",
+        "ulysses/core/views/preenchimento_formulario.py: incerto (21e 37%)"
+      ],
+      "conf_min": 0.37,
+      "erro_hpa": 4.0
+    },
+    {
+      "commit": "3fe5c096f4",
+      "gabarito": {
+        "21a": 1,
+        "21d": 2,
+        "21b": 1,
+        "22b": 1,
+        "57": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "21b": 1,
+        "57": 1,
+        "22b": 1,
+        "22a": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/tests/test_delegacao.py: incerto (22b 32%)",
+        "ulysses/core/tests/test_usuarios.py: incerto (22a 53%)",
+        "ulysses/core/views/prestador.py: incerto (21e 55%)"
+      ],
+      "conf_min": 0.32,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "56b3c80fc3",
+      "gabarito": {
+        "6": 1,
+        "58b": 1,
+        "62b": 1,
+        "22a": 1,
+        "21d": 1
+      },
+      "previsto": {
+        "57": 1,
+        "21a": 1,
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/migrations/0019_rascunho_emenda.py: incerto (nenhum 49%)",
+        "ulysses/core/models/formularios.py: incerto (21a 26%)",
+        "ulysses/core/templates/emendas/emendas_create.html: incerto (57 48%)",
+        "ulysses/core/templates/emendas/emendas_edit.html: incerto (nenhum 48%)",
+        "ulysses/core/urls.py: incerto (57 58%)"
+      ],
+      "conf_min": 0.26,
+      "erro_hpa": 8.0
+    },
+    {
+      "commit": "679d0e8bb5",
+      "gabarito": {
+        "22b": 1,
+        "21d": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/tests/test_route_permissions.py: tipo de alteração com pouca base aprovada"
+      ],
+      "conf_min": 0.65,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "7c0cc06a9a",
+      "gabarito": {
+        "21a": 1,
+        "21d": 1,
+        "22b": 1,
+        "59": 1
+      },
+      "previsto": {
+        "21a": 1,
+        "22b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templates/formulario/update.html: incerto (21a 48%)",
+        "ulysses/core/templatetags/form_filters.py: incerto (nenhum 33%)"
+      ],
+      "conf_min": 0.33,
+      "erro_hpa": 2.0
+    },
+    {
+      "commit": "931bebc738",
+      "gabarito": {
+        "21g": 1,
+        "22b": 1,
+        "21e": 1
+      },
+      "previsto": {
+        "21f": 1,
+        "21e": 1,
+        "22b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/lib/seedTestData.tsx: incerto (21e 57%)"
+      ],
+      "conf_min": 0.57,
+      "erro_hpa": 3.0
+    },
+    {
+      "commit": "a70321e81a",
+      "gabarito": {
+        "30": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "30": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/storage/google.py: incerto (21e 55%)"
+      ],
+      "conf_min": 0.55,
+      "erro_hpa": 2.0
+    },
+    {
+      "commit": "ba51700d09",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": true,
+      "revisar": true,
+      "motivos": [
+        "core/static/css/portal.css: incerto (21b 48%)"
+      ],
+      "conf_min": 0.48,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "c91abfca2e",
+      "gabarito": {
+        "21b": 1,
+        "21d": 1,
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "21b": 1,
+        "22b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/forms.py: incerto (21e 37%)",
+        "ulysses/core/tests/test_forms.py: incerto (22b 42%)"
+      ],
+      "conf_min": 0.37,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "db76c7f49f",
+      "gabarito": {
+        "22a": 1,
+        "21d": 2
+      },
+      "previsto": {
+        "21e": 1,
+        "21a": 1,
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/services/document_processor.py: incerto (21e 38%)",
+        "ulysses/core/templates/emendas/emendas_view.html: incerto (21a 36%)",
+        "ulysses/core/views/preenchimento_formulario.py: incerto (21a 33%)"
+      ],
+      "conf_min": 0.33,
+      "erro_hpa": 2.0
+    },
+    {
+      "commit": "e6ea6b6d0f",
+      "gabarito": {
+        "21e": 1,
+        "21d": 2,
+        "61": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/tasks.py: tipo de alteração com pouca base aprovada"
+      ],
+      "conf_min": 0.41,
+      "erro_hpa": 4.0
+    },
+    {
+      "commit": "f8d16a3634",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1,
+        "62b": 1,
+        "21e": 1,
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "app/templates/gestor/inteligencia.html: incerto (21b 44%)",
+        "core/static/js/admin.js: incerto (21e 30%)",
+        "core/static/js/assistentes.js: incerto (21b 46%)",
+        "core/static/js/mock-data.js: incerto (21a 55%)",
+        "core/static/js/paleta.js: incerto (21b 38%)"
+      ],
+      "conf_min": 0.3,
+      "erro_hpa": 9.0
+    },
+    {
+      "commit": "02a2e5f658",
+      "gabarito": {
+        "22a": 1
+      },
+      "previsto": {
+        "22a": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.86,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "133802cb7d",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21a": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templates/emendas/emendas_edit.html: incerto (21a 47%)",
+        "ulysses/core/views/preenchimento_formulario.py: incerto (21e 46%)"
+      ],
+      "conf_min": 0.46,
+      "erro_hpa": 4.0
+    },
+    {
+      "commit": "1c70f8de7f",
+      "gabarito": {
+        "21e": 3,
+        "21d": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "22b": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.63,
+      "erro_hpa": 3.0
+    },
+    {
+      "commit": "2a49da01a5",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.74,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "3735e1f422",
+      "gabarito": {
+        "21b": 2,
+        "21a": 2
+      },
+      "previsto": {
+        "21b": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.88,
+      "erro_hpa": 7.0
+    },
+    {
+      "commit": "3d72effb94",
+      "gabarito": {
+        "21b": 1,
+        "21e": 1
+      },
+      "previsto": {
+        "21b": 1,
+        "21e": 1,
+        "62b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/src/painel/cartao.js: incerto (21e 23%)"
+      ],
+      "conf_min": 0.23,
+      "erro_hpa": 3.0
+    },
+    {
+      "commit": "550130d91a",
+      "gabarito": {
+        "21c": 1,
+        "21e": 1,
+        "21b": 1
+      },
+      "previsto": {
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/components/fhir/etapa3/Fase4ConteudoModelo.tsx: incerto (21a 52%)"
+      ],
+      "conf_min": 0.52,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "671e6827bb",
+      "gabarito": {
+        "21e": 1,
+        "60": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "api/serializers.py: incerto (21d 36%)",
+        "api/views.py: incerto (21e 45%)"
+      ],
+      "conf_min": 0.36,
+      "erro_hpa": 2.0
+    },
+    {
+      "commit": "7ab146fea0",
+      "gabarito": {
+        "21d": 1,
+        "21b": 1
+      },
+      "previsto": {
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/components/fhir/etapa4/Fase1SugerirRecursosFHIR.tsx: incerto (21a 42%)"
+      ],
+      "conf_min": 0.42,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "922d8fc89f",
+      "gabarito": {
+        "21e": 2,
+        "21b": 2
+      },
+      "previsto": {
+        "21f": 1,
+        "21e": 1,
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/components/fhir/etapa1/Etapa1EntendimentoCompleta.tsx: incerto (21f 39%)",
+        "frontend/components/fhir/etapa2/Fase4ClassificacaoViabilidade.tsx: incerto (21a 48%)"
+      ],
+      "conf_min": 0.39,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "a5b5178334",
+      "gabarito": {
+        "21a": 1,
+        "58": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "60": 1,
+        "62b": 1,
+        "62a": 1,
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/admin.py: incerto (nenhum 50%)",
+        "ulysses/core/forms.py: incerto (21e 49%)",
+        "ulysses/core/models/__init__.py: incerto (60 41%)",
+        "ulysses/core/templates/emendas/components/modal_enviar_documento_sei.html: incerto (62b 32%)",
+        "ulysses/core/templates/emendas/emendas_view.html: incerto (62a 23%)"
+      ],
+      "conf_min": 0.23,
+      "erro_hpa": 5.0
+    },
+    {
+      "commit": "b9f719a78a",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "nenhum arquivo faturável identificado"
+      ],
+      "conf_min": 0.79,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "c52349e146",
+      "gabarito": {
+        "21e": 1,
+        "22a": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "22a": 1
+      },
+      "exato": true,
+      "revisar": true,
+      "motivos": [
+        ".gitignore: incerto (21e 36%)",
+        "CLAUDE.md: incerto (nenhum 14%)",
+        "backend/comum/pdf.py: incerto (21e 23%)",
+        "frontend/src/painel/relatorio_executivo.js: incerto (21e 30%)",
+        "tests/test_pdf.py: incerto (22a 56%)"
+      ],
+      "conf_min": 0.14,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "d86c4286f1",
+      "gabarito": {
+        "22a": 1,
+        "22b": 1
+      },
+      "previsto": {
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.75,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "e4947c3f6f",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.75,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "f7e0ad3c05",
+      "gabarito": {
+        "21a": 1,
+        "21d": 1
+      },
+      "previsto": {
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/components/fhir/etapa4/Fase1SugerirRecursosFHIR.tsx: incerto (21a 51%)"
+      ],
+      "conf_min": 0.51,
+      "erro_hpa": 2.0
+    },
+    {
+      "commit": "026c07bbf8",
+      "gabarito": {
+        "22b": 2,
+        "21d": 1
+      },
+      "previsto": {
+        "22b": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/tests/test_temporary_files_views.py: incerto (21e 58%)"
+      ],
+      "conf_min": 0.58,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "1303840a51",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templates/base.html: incerto (nenhum 33%)",
+        "ulysses/core/templates/emendas/emendas_create.html: incerto (21e 49%)",
+        "ulysses/core/templates/emendas/emendas_edit.html: incerto (21b 52%)"
+      ],
+      "conf_min": 0.33,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "1b19104a30",
+      "gabarito": {
+        "21a": 2
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/components/fhir/etapa2/Fase3AnaliseDisponibilidade.tsx: incerto (21e 41%)",
+        "frontend/components/fhir/etapa2/WizardEtapa2.tsx: incerto (21e 45%)"
+      ],
+      "conf_min": 0.41,
+      "erro_hpa": 6.0
+    },
+    {
+      "commit": "29d2f8e574",
+      "gabarito": {
+        "22b": 1,
+        "62a": 1
+      },
+      "previsto": {
+        "62b": 1,
+        "22b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/tests/test_resilience.py: incerto (22b 42%)"
+      ],
+      "conf_min": 0.42,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "36bc61d391",
+      "gabarito": {
+        "62b": 1
+      },
+      "previsto": {
+        "21b": 1,
+        "62b": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.6,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "3cc1b10327",
+      "gabarito": {
+        "21d": 1,
+        "62b": 1,
+        "21b": 1,
+        "61": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "57": 1,
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/forms.py: incerto (21e 54%)",
+        "ulysses/core/views/prestador.py: incerto (21d 40%)",
+        "ulysses/core/views/prestador_cnpj.py: incerto (57 34%)"
+      ],
+      "conf_min": 0.34,
+      "erro_hpa": 2.0
+    },
+    {
+      "commit": "539758a9c1",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "21e": 1,
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templates/emendas/emendas_create.html: incerto (21e 42%)"
+      ],
+      "conf_min": 0.42,
+      "erro_hpa": 4.0
+    },
+    {
+      "commit": "647c1f5e34",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templates/emendas/emendas_edit.html: incerto (21d 45%)"
+      ],
+      "conf_min": 0.45,
+      "erro_hpa": 1.0
+    },
+    {
+      "commit": "79ffa8fbaa",
+      "gabarito": {
+        "22b": 1,
+        "21a": 1
+      },
+      "previsto": {
+        "59": 1,
+        "21a": 1,
+        "21e": 1,
+        "21b": 1,
+        "22b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templates/emendas/emendas_create.html: incerto (21e 34%)",
+        "ulysses/core/templates/emendas/emendas_view.html: incerto (21e 35%)",
+        "ulysses/core/templates/formulario/create.html: incerto (21e 49%)",
+        "ulysses/core/tests/test_forms.py: incerto (22b 56%)"
+      ],
+      "conf_min": 0.34,
+      "erro_hpa": 3.0
+    },
+    {
+      "commit": "8c41c7abf0",
+      "gabarito": {
+        "68": 1,
+        "21a": 1,
+        "21d": 1,
+        "22a": 1
+      },
+      "previsto": {
+        "57": 1,
+        "21a": 1,
+        "21d": 1,
+        "21b": 1,
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/forms.py: incerto (57 34%)",
+        "ulysses/core/models/auditoria.py: incerto (21a 31%)",
+        "ulysses/core/templates/cargo/create.html: incerto (57 38%)",
+        "ulysses/core/templates/cargo/update.html: incerto (57 30%)",
+        "ulysses/core/views/cargo.py: incerto (nenhum 41%)"
+      ],
+      "conf_min": 0.3,
+      "erro_hpa": 0.75
+    },
+    {
+      "commit": "a1465d759b",
+      "gabarito": {
+        "22b": 1
+      },
+      "previsto": {
+        "22b": 1
+      },
+      "exato": true,
+      "revisar": true,
+      "motivos": [
+        "frontend/test/nucleo/ModalDocumentoFinal.test.tsx: incerto (22b 50%)"
+      ],
+      "conf_min": 0.5,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "b8519adc41",
+      "gabarito": {
+        "21a": 1,
+        "21c": 1,
+        "21d": 1,
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/components/fhir/RabbitChatbot.tsx: incerto (21b 57%)",
+        "frontend/services/rabbit.service.ts: incerto (21e 45%)"
+      ],
+      "conf_min": 0.45,
+      "erro_hpa": 5.0
+    },
+    {
+      "commit": "c51637efbf",
+      "gabarito": {
+        "21e": 1,
+        "21a": 1,
+        "21g": 1,
+        "57": 1
+      },
+      "previsto": {
+        "21b": 1,
+        "21e": 1,
+        "62a": 1,
+        "22b": 1,
+        "22a": 1,
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "ulysses/core/templates/components/footer.html: incerto (21b 54%)",
+        "ulysses/core/templates/home_processo.html: incerto (21e 50%)",
+        "ulysses/core/templates/sem_vinculo.html: incerto (21e 27%)",
+        "ulysses/core/templates/solicitacao_acesso/solicitar_acesso.html: incerto (62a 48%)",
+        "ulysses/core/tests/test_delegacao.py: incerto (22b 53%)"
+      ],
+      "conf_min": 0.27,
+      "erro_hpa": 2.0
+    },
+    {
+      "commit": "d6dd8d6602",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.85,
+      "erro_hpa": 0.0
+    },
+    {
+      "commit": "e33f47ef73",
+      "gabarito": {
+        "62a": 2,
+        "21g": 1,
+        "21f": 6,
+        "21a": 1,
+        "60": 2
+      },
+      "previsto": {
+        "21e": 1,
+        "21a": 1,
+        "22b": 1,
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "frontend/services/rabbit.service.ts: incerto (21a 40%)",
+        "frontend/test/etapa1/Etapa1EntendimentoCompleta.test.tsx: incerto (22b 53%)"
+      ],
+      "conf_min": 0.4,
+      "erro_hpa": 7.0
+    },
+    {
+      "commit": "f319b4c89d",
+      "gabarito": {
+        "62b": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "conf_min": 0.8,
+      "erro_hpa": 1.0
+    }
+  ]
+}

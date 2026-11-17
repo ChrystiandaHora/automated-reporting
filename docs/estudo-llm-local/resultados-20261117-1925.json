@@ -1,0 +1,550 @@
+[
+  {
+    "modelo": "qwen2.5-coder:14b",
+    "modo": "compacto",
+    "commit": "88f88fafd5",
+    "segundos": 88.4,
+    "tokens_prompt": 13918,
+    "tokens_saida": 1347,
+    "tok_s": 22.2,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "hpa_local": 53,
+    "hpa_gemini": 12,
+    "n_atv_local": 9,
+    "n_atv_gemini": 4,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 18,
+    "codigos_local": [
+      "[21a]",
+      "[21a]",
+      "[21a]",
+      "[21a]",
+      "[21a]",
+      "[22a]",
+      "[22a]",
+      "[2]",
+      "[57]"
+    ],
+    "codigos_gemini": [
+      "21a",
+      "21a",
+      "21d",
+      "21e"
+    ],
+    "vram_mb": 10058
+  },
+  {
+    "modelo": "qwen2.5-coder:14b",
+    "modo": "compacto",
+    "commit": "134ac086e0",
+    "segundos": 14.3,
+    "tokens_prompt": 9599,
+    "tokens_saida": 202,
+    "tok_s": 24.7,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "hpa_local": 1,
+    "hpa_gemini": 2,
+    "n_atv_local": 1,
+    "n_atv_gemini": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "[7] documentação customizada de solução"
+    ],
+    "codigos_gemini": [
+      "56c"
+    ],
+    "vram_mb": 10058
+  },
+  {
+    "modelo": "qwen2.5-coder:14b",
+    "modo": "compacto",
+    "commit": "04083049f5",
+    "segundos": 22.6,
+    "tokens_prompt": 13788,
+    "tokens_saida": 218,
+    "tok_s": 22.8,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "hpa_local": 5,
+    "hpa_gemini": 3,
+    "n_atv_local": 1,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "a"
+    ],
+    "codigos_gemini": [
+      "21b",
+      "21e"
+    ],
+    "vram_mb": 10058
+  },
+  {
+    "modelo": "qwen2.5-coder:14b",
+    "modo": "compacto",
+    "commit": "a96b230134",
+    "segundos": 33.3,
+    "tokens_prompt": 12144,
+    "tokens_saida": 547,
+    "tok_s": 23.6,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "hpa_local": 16,
+    "hpa_gemini": 3,
+    "n_atv_local": 4,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 4,
+    "codigos_local": [
+      "21a",
+      "23b",
+      "56c",
+      "57"
+    ],
+    "codigos_gemini": [
+      "21d",
+      "22b"
+    ],
+    "vram_mb": 10058
+  },
+  {
+    "modelo": "qwen2.5-coder:14b",
+    "modo": "compacto",
+    "commit": "86d89f15c1",
+    "segundos": 31.6,
+    "tokens_prompt": 12841,
+    "tokens_saida": 465,
+    "tok_s": 23.4,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.5,
+    "hpa_local": 14,
+    "hpa_gemini": 16,
+    "n_atv_local": 3,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 6,
+    "codigos_local": [
+      "25a",
+      "56c",
+      "57"
+    ],
+    "codigos_gemini": [
+      "56a",
+      "56c"
+    ],
+    "vram_mb": 10058
+  },
+  {
+    "modelo": "qwen2.5-coder:14b",
+    "modo": "compacto",
+    "commit": "d3c7c07e50",
+    "segundos": 17.3,
+    "tokens_prompt": 10606,
+    "tokens_saida": 212,
+    "tok_s": 24.2,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "hpa_local": 8,
+    "hpa_gemini": 2,
+    "n_atv_local": 1,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "57"
+    ],
+    "codigos_gemini": [
+      "21b",
+      "21b"
+    ],
+    "vram_mb": 10058
+  },
+  {
+    "modelo": "qwen2.5-coder:14b",
+    "modo": "compacto",
+    "commit": "ad66fa24bd",
+    "segundos": 29.6,
+    "tokens_prompt": 14416,
+    "tokens_saida": 352,
+    "tok_s": 22.7,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "hpa_local": 36,
+    "hpa_gemini": 7,
+    "n_atv_local": 1,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 4,
+    "codigos_local": [
+      "[5] definição de arquitetura da solução"
+    ],
+    "codigos_gemini": [
+      "59",
+      "62b"
+    ],
+    "vram_mb": 10058
+  },
+  {
+    "modelo": "qwen2.5-coder:14b",
+    "modo": "compacto",
+    "commit": "f42a92d580",
+    "segundos": 32.0,
+    "tokens_prompt": 15573,
+    "tokens_saida": 242,
+    "tok_s": 22.2,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "hpa_local": 40,
+    "hpa_gemini": 4,
+    "n_atv_local": 1,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 4,
+    "codigos_local": [
+      "1"
+    ],
+    "codigos_gemini": [
+      "21b",
+      "62b"
+    ],
+    "vram_mb": 10058
+  },
+  {
+    "modelo": "qwen2.5-coder:14b",
+    "modo": "compacto",
+    "commit": "e509fee2bb",
+    "segundos": 15.7,
+    "tokens_prompt": 10085,
+    "tokens_saida": 178,
+    "tok_s": 24.4,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "hpa_local": 4,
+    "hpa_gemini": 1,
+    "n_atv_local": 1,
+    "n_atv_gemini": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "21a"
+    ],
+    "codigos_gemini": [
+      "21b"
+    ],
+    "vram_mb": 10058
+  },
+  {
+    "modelo": "qwen2.5-coder:14b",
+    "modo": "compacto",
+    "commit": "3ee6e0cb3e",
+    "segundos": 38.5,
+    "tokens_prompt": 11463,
+    "tokens_saida": 722,
+    "tok_s": 23.9,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "hpa_local": 14,
+    "hpa_gemini": 2,
+    "n_atv_local": 3,
+    "n_atv_gemini": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "[21] manutenções em sistemas existentes (corretivas, evolutivas, adaptativas ou perfectivas)",
+      "[21] manutenções em sistemas existentes (corretivas, evolutivas, adaptativas ou perfectivas)",
+      "[55] planejamento de sprint (para iniciativas ágeis)"
+    ],
+    "codigos_gemini": [
+      "56c"
+    ],
+    "vram_mb": 10058
+  },
+  {
+    "modelo": "qwen2.5-coder:7b",
+    "modo": "compacto",
+    "commit": "88f88fafd5",
+    "segundos": 22.5,
+    "tokens_prompt": 13918,
+    "tokens_saida": 523,
+    "tok_s": 40.7,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "hpa_local": 50,
+    "hpa_gemini": 12,
+    "n_atv_local": 3,
+    "n_atv_gemini": 4,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 8,
+    "codigos_local": [
+      "n/a",
+      "n/a",
+      "n/a"
+    ],
+    "codigos_gemini": [
+      "21a",
+      "21a",
+      "21d",
+      "21e"
+    ],
+    "vram_mb": 4956
+  },
+  {
+    "modelo": "qwen2.5-coder:7b",
+    "modo": "compacto",
+    "commit": "134ac086e0",
+    "segundos": 5.7,
+    "tokens_prompt": 9599,
+    "tokens_saida": 157,
+    "tok_s": 46.5,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "hpa_local": 1,
+    "hpa_gemini": 2,
+    "n_atv_local": 1,
+    "n_atv_gemini": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "7"
+    ],
+    "codigos_gemini": [
+      "56c"
+    ],
+    "vram_mb": 4956
+  },
+  {
+    "modelo": "qwen2.5-coder:7b",
+    "modo": "compacto",
+    "commit": "04083049f5",
+    "segundos": 25.4,
+    "tokens_prompt": 13788,
+    "tokens_saida": 916,
+    "tok_s": 45.4,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "hpa_local": 22,
+    "hpa_gemini": 3,
+    "n_atv_local": 5,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 5,
+    "codigos_local": [
+      "56a",
+      "62a",
+      "62a",
+      "62a",
+      "62a"
+    ],
+    "codigos_gemini": [
+      "21b",
+      "21e"
+    ],
+    "vram_mb": 4956
+  },
+  {
+    "modelo": "qwen2.5-coder:7b",
+    "modo": "compacto",
+    "commit": "a96b230134",
+    "segundos": 14.5,
+    "tokens_prompt": 12144,
+    "tokens_saida": 486,
+    "tok_s": 46.1,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "hpa_local": 24,
+    "hpa_gemini": 3,
+    "n_atv_local": 3,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "14",
+      "14",
+      "24b"
+    ],
+    "codigos_gemini": [
+      "21d",
+      "22b"
+    ],
+    "vram_mb": 4956
+  },
+  {
+    "modelo": "qwen2.5-coder:7b",
+    "modo": "compacto",
+    "commit": "86d89f15c1",
+    "segundos": 32.3,
+    "tokens_prompt": 12841,
+    "tokens_saida": 1262,
+    "tok_s": 46.0,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "hpa_local": 88,
+    "hpa_gemini": 16,
+    "n_atv_local": 7,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 15,
+    "codigos_local": [
+      "n/a",
+      "n/a",
+      "n/a",
+      "n/a",
+      "n/a",
+      "n/a",
+      "n/a"
+    ],
+    "codigos_gemini": [
+      "56a",
+      "56c"
+    ],
+    "vram_mb": 4956
+  },
+  {
+    "modelo": "qwen2.5-coder:7b",
+    "modo": "compacto",
+    "commit": "d3c7c07e50",
+    "segundos": 7.9,
+    "tokens_prompt": 10606,
+    "tokens_saida": 209,
+    "tok_s": 46.3,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.5,
+    "hpa_local": 1,
+    "hpa_gemini": 2,
+    "n_atv_local": 1,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "21b"
+    ],
+    "codigos_gemini": [
+      "21b",
+      "21b"
+    ],
+    "vram_mb": 4956
+  },
+  {
+    "modelo": "qwen2.5-coder:7b",
+    "modo": "compacto",
+    "commit": "ad66fa24bd",
+    "segundos": 15.6,
+    "tokens_prompt": 14416,
+    "tokens_saida": 445,
+    "tok_s": 44.6,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "hpa_local": 44,
+    "hpa_gemini": 7,
+    "n_atv_local": 2,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 5,
+    "codigos_local": [
+      "16",
+      "c"
+    ],
+    "codigos_gemini": [
+      "59",
+      "62b"
+    ],
+    "vram_mb": 4956
+  },
+  {
+    "modelo": "qwen2.5-coder:7b",
+    "modo": "compacto",
+    "commit": "f42a92d580",
+    "segundos": 14.7,
+    "tokens_prompt": 15573,
+    "tokens_saida": 296,
+    "tok_s": 43.5,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "hpa_local": 2,
+    "hpa_gemini": 4,
+    "n_atv_local": 1,
+    "n_atv_gemini": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 4,
+    "codigos_local": [
+      "f42a92d5806288aff9de7d2174a7c11be82a1015"
+    ],
+    "codigos_gemini": [
+      "21b",
+      "62b"
+    ],
+    "vram_mb": 4956
+  },
+  {
+    "modelo": "qwen2.5-coder:7b",
+    "modo": "compacto",
+    "commit": "e509fee2bb",
+    "segundos": 7.9,
+    "tokens_prompt": 10085,
+    "tokens_saida": 214,
+    "tok_s": 46.6,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "hpa_local": 4,
+    "hpa_gemini": 1,
+    "n_atv_local": 1,
+    "n_atv_gemini": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "21a"
+    ],
+    "codigos_gemini": [
+      "21b"
+    ],
+    "vram_mb": 4956
+  },
+  {
+    "modelo": "qwen2.5-coder:7b",
+    "modo": "compacto",
+    "commit": "3ee6e0cb3e",
+    "segundos": 7.3,
+    "tokens_prompt": 11463,
+    "tokens_saida": 182,
+    "tok_s": 45.6,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "hpa_local": 1,
+    "hpa_gemini": 2,
+    "n_atv_local": 1,
+    "n_atv_gemini": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "7"
+    ],
+    "codigos_gemini": [
+      "56c"
+    ],
+    "vram_mb": 4956
+  }
+]

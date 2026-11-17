@@ -1,0 +1,858 @@
+[
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "e0372082e9",
+    "segundos": 29.1,
+    "tokens_prompt": 14827,
+    "tokens_saida": 298,
+    "tok_s": 28.5,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 5.0,
+    "hpa_gabarito": 6.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "57a"
+    ],
+    "codigos_gabarito": [
+      "21a",
+      "21d"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "b8519adc41",
+    "segundos": 42.0,
+    "tokens_prompt": 14138,
+    "tokens_saida": 299,
+    "tok_s": 28.8,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 5.0,
+    "hpa_gabarito": 8.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 4,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "57a"
+    ],
+    "codigos_gabarito": [
+      "21a",
+      "21b",
+      "21c",
+      "21d"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "e19d582723",
+    "segundos": 34.3,
+    "tokens_prompt": 14509,
+    "tokens_saida": 387,
+    "tok_s": 29.1,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 1.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 4.0,
+    "hpa_gabarito": 1.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "21b",
+      "62b"
+    ],
+    "codigos_gabarito": [
+      "21b"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "ca4303e0b8",
+    "segundos": 23.1,
+    "tokens_prompt": 11569,
+    "tokens_saida": 380,
+    "tok_s": 28.7,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.5,
+    "acerto_servico": 0.5,
+    "hpa_local": 5.0,
+    "hpa_gabarito": 6.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "22a",
+      "61a"
+    ],
+    "codigos_gabarito": [
+      "21d",
+      "22a"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "313d437489",
+    "segundos": 16.7,
+    "tokens_prompt": 11429,
+    "tokens_saida": 199,
+    "tok_s": 27.9,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 4.0,
+    "hpa_gabarito": 2.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "61c"
+    ],
+    "codigos_gabarito": [
+      "21e"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "79da976e1d",
+    "segundos": 18.4,
+    "tokens_prompt": 11199,
+    "tokens_saida": 259,
+    "tok_s": 28.4,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 1.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 2.0,
+    "hpa_gabarito": 2.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "21d"
+    ],
+    "codigos_gabarito": [
+      "21d"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "946f994d11",
+    "segundos": 29.6,
+    "tokens_prompt": 10249,
+    "tokens_saida": 231,
+    "tok_s": 27.8,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 1.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 1.0,
+    "hpa_gabarito": 1.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "21b"
+    ],
+    "codigos_gabarito": [
+      "21b"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "02a2e5f658",
+    "segundos": 19.2,
+    "tokens_prompt": 11423,
+    "tokens_saida": 222,
+    "tok_s": 27.8,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 1.0,
+    "hpa_gabarito": 4.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "22b"
+    ],
+    "codigos_gabarito": [
+      "22a"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "026c07bbf8",
+    "segundos": 22.9,
+    "tokens_prompt": 12783,
+    "tokens_saida": 354,
+    "tok_s": 28.5,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.67,
+    "acerto_servico": 0.67,
+    "hpa_local": 3.0,
+    "hpa_gabarito": 4.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gabarito": 3,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "21d",
+      "22b"
+    ],
+    "codigos_gabarito": [
+      "21d",
+      "22b",
+      "22b"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "7dc840233a",
+    "segundos": 31.6,
+    "tokens_prompt": 14132,
+    "tokens_saida": 540,
+    "tok_s": 27.0,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.5,
+    "hpa_local": 3.0,
+    "hpa_gabarito": 6.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 9,
+    "codigos_local": [
+      "21b",
+      "61b"
+    ],
+    "codigos_gabarito": [
+      "21e",
+      "59a"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "3b8117e797",
+    "segundos": 28.3,
+    "tokens_prompt": 12761,
+    "tokens_saida": 508,
+    "tok_s": 28.9,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 11.0,
+    "hpa_gabarito": 13.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 3,
+    "n_atv_gabarito": 4,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 6,
+    "codigos_local": [
+      "57a",
+      "58a",
+      "64"
+    ],
+    "codigos_gabarito": [
+      "21a",
+      "21e",
+      "21f",
+      "30"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "50150271f5",
+    "segundos": 21.5,
+    "tokens_prompt": 14153,
+    "tokens_saida": 278,
+    "tok_s": 28.1,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 6.0,
+    "hpa_gabarito": 6.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 3,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "57b"
+    ],
+    "codigos_gabarito": [
+      "21d",
+      "22a",
+      "68"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "6218e03149",
+    "segundos": 18.0,
+    "tokens_prompt": 10399,
+    "tokens_saida": 223,
+    "tok_s": 23.5,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 1.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 2.0,
+    "hpa_gabarito": 2.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "21e"
+    ],
+    "codigos_gabarito": [
+      "21e"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "810581d2d9",
+    "segundos": 31.5,
+    "tokens_prompt": 16959,
+    "tokens_saida": 350,
+    "tok_s": 27.7,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.5,
+    "hpa_local": 3.0,
+    "hpa_gabarito": 5.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "21b",
+      "62a"
+    ],
+    "codigos_gabarito": [
+      "61",
+      "62b"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "b19f48f3ce",
+    "segundos": 29.6,
+    "tokens_prompt": 15968,
+    "tokens_saida": 468,
+    "tok_s": 28.6,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.67,
+    "acerto_servico": 0.67,
+    "hpa_local": 10.0,
+    "hpa_gabarito": 12.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gabarito": 3,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 4,
+    "codigos_local": [
+      "16",
+      "22a"
+    ],
+    "codigos_gabarito": [
+      "16",
+      "22a",
+      "60"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "be8cbb0e67",
+    "segundos": 21.9,
+    "tokens_prompt": 13476,
+    "tokens_saida": 291,
+    "tok_s": 28.1,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 5.0,
+    "hpa_gabarito": 10.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 4,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 6,
+    "codigos_local": [
+      "58b"
+    ],
+    "codigos_gabarito": [
+      "21d",
+      "22b",
+      "59",
+      "60"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "7004bda348",
+    "segundos": 17.4,
+    "tokens_prompt": 10500,
+    "tokens_saida": 250,
+    "tok_s": 28.8,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 1.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 1.0,
+    "hpa_gabarito": 1.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "21b"
+    ],
+    "codigos_gabarito": [
+      "21b"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "d6dd8d6602",
+    "segundos": 18.5,
+    "tokens_prompt": 10228,
+    "tokens_saida": 248,
+    "tok_s": 23.5,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 1.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 1.0,
+    "hpa_gabarito": 1.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "21b"
+    ],
+    "codigos_gabarito": [
+      "21b"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "52543eef6a",
+    "segundos": 22.3,
+    "tokens_prompt": 12212,
+    "tokens_saida": 238,
+    "tok_s": 27.5,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.5,
+    "acerto_servico": 0.5,
+    "hpa_local": 1.0,
+    "hpa_gabarito": 2.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "21b"
+    ],
+    "codigos_gabarito": [
+      "21b",
+      "21b"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "23c6cb4292",
+    "segundos": 28.9,
+    "tokens_prompt": 13033,
+    "tokens_saida": 528,
+    "tok_s": 28.9,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.67,
+    "acerto_servico": 0.67,
+    "hpa_local": 9.0,
+    "hpa_gabarito": 6.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 3,
+    "n_atv_gabarito": 3,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "21a",
+      "22a",
+      "22b"
+    ],
+    "codigos_gabarito": [
+      "22a",
+      "22b",
+      "22b"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "15ff9c8572",
+    "segundos": 33.5,
+    "tokens_prompt": 11125,
+    "tokens_saida": 461,
+    "tok_s": 24.3,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 5.0,
+    "hpa_gabarito": 2.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "21a",
+      "21b"
+    ],
+    "codigos_gabarito": [
+      "21e"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "ff9c207cd2",
+    "segundos": 23.8,
+    "tokens_prompt": 11319,
+    "tokens_saida": 394,
+    "tok_s": 28.9,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.5,
+    "acerto_servico": 1.0,
+    "hpa_local": 6.0,
+    "hpa_gabarito": 3.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "21a",
+      "21e"
+    ],
+    "codigos_gabarito": [
+      "21b",
+      "21e"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "29c6fe619c",
+    "segundos": 34.1,
+    "tokens_prompt": 14461,
+    "tokens_saida": 641,
+    "tok_s": 28.6,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.5,
+    "acerto_servico": 0.5,
+    "hpa_local": 6.0,
+    "hpa_gabarito": 3.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 3,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 5,
+    "arquivos_citados": 9,
+    "codigos_local": [
+      "21e",
+      "56c",
+      "61b"
+    ],
+    "codigos_gabarito": [
+      "21c",
+      "21e"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "a1465d759b",
+    "segundos": 16.2,
+    "tokens_prompt": 10522,
+    "tokens_saida": 203,
+    "tok_s": 26.8,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 1.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 1.0,
+    "hpa_gabarito": 1.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "22b"
+    ],
+    "codigos_gabarito": [
+      "22b"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "2b68a7fd9a",
+    "segundos": 18.9,
+    "tokens_prompt": 12621,
+    "tokens_saida": 236,
+    "tok_s": 28.1,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 2.0,
+    "hpa_gabarito": 5.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "46"
+    ],
+    "codigos_gabarito": [
+      "21g",
+      "22b"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "047e21181b",
+    "segundos": 23.9,
+    "tokens_prompt": 10671,
+    "tokens_saida": 443,
+    "tok_s": 29.0,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.5,
+    "acerto_servico": 0.5,
+    "hpa_local": 6.0,
+    "hpa_gabarito": 4.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "21a",
+      "21e"
+    ],
+    "codigos_gabarito": [
+      "21e",
+      "60"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "995aa04aeb",
+    "segundos": 24.3,
+    "tokens_prompt": 10852,
+    "tokens_saida": 233,
+    "tok_s": 28.4,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 1.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 6.0,
+    "hpa_gabarito": 6.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "30"
+    ],
+    "codigos_gabarito": [
+      "30"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "38005260ca",
+    "segundos": 32.5,
+    "tokens_prompt": 13992,
+    "tokens_saida": 532,
+    "tok_s": 25.5,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 5.0,
+    "hpa_gabarito": 4.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 10,
+    "codigos_local": [
+      "22b",
+      "59a"
+    ],
+    "codigos_gabarito": [
+      "21e",
+      "21e"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "3496e3f073",
+    "segundos": 20.6,
+    "tokens_prompt": 13315,
+    "tokens_saida": 215,
+    "tok_s": 27.8,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.5,
+    "acerto_servico": 0.5,
+    "hpa_local": 2.0,
+    "hpa_gabarito": 3.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "21e"
+    ],
+    "codigos_gabarito": [
+      "21e",
+      "22b"
+    ],
+    "vram_mb": 7570
+  },
+  {
+    "modelo": "gemma3:12b",
+    "modo": "compacto",
+    "commit": "b7cbc8b6d6",
+    "segundos": 23.5,
+    "tokens_prompt": 12526,
+    "tokens_saida": 375,
+    "tok_s": 28.8,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.5,
+    "acerto_servico": 0.5,
+    "hpa_local": 1.25,
+    "hpa_gabarito": 3.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "22b",
+      "68"
+    ],
+    "codigos_gabarito": [
+      "21e",
+      "22b"
+    ],
+    "vram_mb": 7570
+  }
+]

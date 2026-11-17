@@ -1,0 +1,863 @@
+[
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "e0372082e9",
+    "segundos": 40.8,
+    "tokens_prompt": 13775,
+    "tokens_saida": 274,
+    "tok_s": 23.1,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 6.0,
+    "hpa_gabarito": 6.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "57b"
+    ],
+    "codigos_gabarito": [
+      "21a",
+      "21d"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "b8519adc41",
+    "segundos": 82.0,
+    "tokens_prompt": 13064,
+    "tokens_saida": 1664,
+    "tok_s": 23.2,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 6.0,
+    "hpa_gabarito": 8.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 4,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "57b"
+    ],
+    "codigos_gabarito": [
+      "21a",
+      "21b",
+      "21c",
+      "21d"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "e19d582723",
+    "segundos": 29.0,
+    "tokens_prompt": 13967,
+    "tokens_saida": 357,
+    "tok_s": 23.0,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 3.0,
+    "hpa_gabarito": 1.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "62b"
+    ],
+    "codigos_gabarito": [
+      "21b"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "ca4303e0b8",
+    "segundos": 27.3,
+    "tokens_prompt": 10218,
+    "tokens_saida": 476,
+    "tok_s": 24.3,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 1.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 6.0,
+    "hpa_gabarito": 6.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "21d",
+      "22a"
+    ],
+    "codigos_gabarito": [
+      "21d",
+      "22a"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "313d437489",
+    "segundos": 22.1,
+    "tokens_prompt": 10865,
+    "tokens_saida": 324,
+    "tok_s": 24.0,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 1.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 2.0,
+    "hpa_gabarito": 2.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "21e"
+    ],
+    "codigos_gabarito": [
+      "21e"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "79da976e1d",
+    "segundos": 19.8,
+    "tokens_prompt": 10313,
+    "tokens_saida": 246,
+    "tok_s": 24.2,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 2.0,
+    "hpa_gabarito": 2.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "21e"
+    ],
+    "codigos_gabarito": [
+      "21d"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "946f994d11",
+    "segundos": 19.7,
+    "tokens_prompt": 9898,
+    "tokens_saida": 235,
+    "tok_s": 24.5,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 1.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 1.0,
+    "hpa_gabarito": 1.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "21b"
+    ],
+    "codigos_gabarito": [
+      "21b"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "02a2e5f658",
+    "segundos": 17.3,
+    "tokens_prompt": 10548,
+    "tokens_saida": 223,
+    "tok_s": 24.3,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 1.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 4.0,
+    "hpa_gabarito": 4.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "22a"
+    ],
+    "codigos_gabarito": [
+      "22a"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "026c07bbf8",
+    "segundos": 34.3,
+    "tokens_prompt": 11563,
+    "tokens_saida": 589,
+    "tok_s": 23.8,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.33,
+    "acerto_servico": 0.67,
+    "hpa_local": 2.0,
+    "hpa_gabarito": 4.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gabarito": 3,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "21b",
+      "22b"
+    ],
+    "codigos_gabarito": [
+      "21d",
+      "22b",
+      "22b"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "7dc840233a",
+    "segundos": 52.8,
+    "tokens_prompt": 13164,
+    "tokens_saida": 805,
+    "tok_s": 23.1,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.5,
+    "acerto_servico": 1.0,
+    "hpa_local": 13.0,
+    "hpa_gabarito": 6.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 3,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 9,
+    "codigos_local": [
+      "21b",
+      "21e",
+      "59b"
+    ],
+    "codigos_gabarito": [
+      "21e",
+      "59a"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "3b8117e797",
+    "segundos": 50.1,
+    "tokens_prompt": 11697,
+    "tokens_saida": 955,
+    "tok_s": 23.7,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.25,
+    "acerto_servico": 0.5,
+    "hpa_local": 11.0,
+    "hpa_gabarito": 13.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 3,
+    "n_atv_gabarito": 4,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 4,
+    "codigos_local": [
+      "21a",
+      "21d",
+      "58b"
+    ],
+    "codigos_gabarito": [
+      "21a",
+      "21e",
+      "21f",
+      "30"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "50150271f5",
+    "segundos": 37.5,
+    "tokens_prompt": 12404,
+    "tokens_saida": 611,
+    "tok_s": 23.3,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.0,
+    "hpa_local": 10.5,
+    "hpa_gabarito": 6.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 3,
+    "n_atv_gabarito": 3,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "23a",
+      "61b",
+      "65"
+    ],
+    "codigos_gabarito": [
+      "21d",
+      "22a",
+      "68"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "6218e03149",
+    "segundos": 17.6,
+    "tokens_prompt": 9829,
+    "tokens_saida": 286,
+    "tok_s": 24.2,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 1.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 2.0,
+    "hpa_gabarito": 2.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "21e"
+    ],
+    "codigos_gabarito": [
+      "21e"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "810581d2d9",
+    "segundos": 48.4,
+    "tokens_prompt": 16102,
+    "tokens_saida": 546,
+    "tok_s": 21.9,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.5,
+    "acerto_servico": 0.5,
+    "hpa_local": 9.0,
+    "hpa_gabarito": 5.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "57b",
+      "62b"
+    ],
+    "codigos_gabarito": [
+      "61",
+      "62b"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "b19f48f3ce",
+    "segundos": 48.3,
+    "tokens_prompt": 14178,
+    "tokens_saida": 776,
+    "tok_s": 22.6,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.67,
+    "acerto_servico": 0.67,
+    "hpa_local": 12.0,
+    "hpa_gabarito": 12.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 3,
+    "n_atv_gabarito": 3,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 4,
+    "codigos_local": [
+      "16",
+      "22a",
+      "61b"
+    ],
+    "codigos_gabarito": [
+      "16",
+      "22a",
+      "60"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "be8cbb0e67",
+    "segundos": 53.4,
+    "tokens_prompt": 12205,
+    "tokens_saida": 882,
+    "tok_s": 23.3,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.25,
+    "acerto_servico": 0.5,
+    "hpa_local": 18.0,
+    "hpa_gabarito": 10.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 4,
+    "n_atv_gabarito": 4,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 5,
+    "codigos_local": [
+      "22b",
+      "58b",
+      "59b",
+      "61b"
+    ],
+    "codigos_gabarito": [
+      "21d",
+      "22b",
+      "59",
+      "60"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "7004bda348",
+    "segundos": 15.0,
+    "tokens_prompt": 9899,
+    "tokens_saida": 235,
+    "tok_s": 24.3,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 1.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 1.0,
+    "hpa_gabarito": 1.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "21b"
+    ],
+    "codigos_gabarito": [
+      "21b"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "d6dd8d6602",
+    "segundos": 12.0,
+    "tokens_prompt": 9724,
+    "tokens_saida": 233,
+    "tok_s": 24.0,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 1.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 1.0,
+    "hpa_gabarito": 1.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "21b"
+    ],
+    "codigos_gabarito": [
+      "21b"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "52543eef6a",
+    "segundos": 21.7,
+    "tokens_prompt": 11342,
+    "tokens_saida": 293,
+    "tok_s": 23.5,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.5,
+    "acerto_servico": 0.5,
+    "hpa_local": 1.0,
+    "hpa_gabarito": 2.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "21b"
+    ],
+    "codigos_gabarito": [
+      "21b",
+      "21b"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "23c6cb4292",
+    "segundos": 31.5,
+    "tokens_prompt": 12141,
+    "tokens_saida": 485,
+    "tok_s": 23.4,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.67,
+    "acerto_servico": 0.67,
+    "hpa_local": 5.0,
+    "hpa_gabarito": 6.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gabarito": 3,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "22a",
+      "22b"
+    ],
+    "codigos_gabarito": [
+      "22a",
+      "22b",
+      "22b"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "15ff9c8572",
+    "segundos": 16.5,
+    "tokens_prompt": 10218,
+    "tokens_saida": 208,
+    "tok_s": 24.3,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 1.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 2.0,
+    "hpa_gabarito": 2.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 2,
+    "codigos_local": [
+      "21e"
+    ],
+    "codigos_gabarito": [
+      "21e"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "ff9c207cd2",
+    "segundos": 20.6,
+    "tokens_prompt": 10473,
+    "tokens_saida": 308,
+    "tok_s": 24.4,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.5,
+    "hpa_local": 2.0,
+    "hpa_gabarito": 3.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "21d"
+    ],
+    "codigos_gabarito": [
+      "21b",
+      "21e"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "29c6fe619c",
+    "segundos": 35.9,
+    "tokens_prompt": 13572,
+    "tokens_saida": 538,
+    "tok_s": 23.1,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.0,
+    "acerto_servico": 0.5,
+    "hpa_local": 8.0,
+    "hpa_gabarito": 3.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "21d",
+      "57b"
+    ],
+    "codigos_gabarito": [
+      "21c",
+      "21e"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "a1465d759b",
+    "segundos": 16.7,
+    "tokens_prompt": 9852,
+    "tokens_saida": 257,
+    "tok_s": 24.8,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 1.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 1.0,
+    "hpa_gabarito": 1.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "22b"
+    ],
+    "codigos_gabarito": [
+      "22b"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "2b68a7fd9a",
+    "segundos": 30.1,
+    "tokens_prompt": 11919,
+    "tokens_saida": 491,
+    "tok_s": 23.8,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.5,
+    "acerto_servico": 0.5,
+    "hpa_local": 5.0,
+    "hpa_gabarito": 5.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "21b",
+      "21g"
+    ],
+    "codigos_gabarito": [
+      "21g",
+      "22b"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "047e21181b",
+    "segundos": 32.6,
+    "tokens_prompt": 9788,
+    "tokens_saida": 631,
+    "tok_s": 24.6,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.5,
+    "acerto_servico": 1.0,
+    "hpa_local": 11.0,
+    "hpa_gabarito": 4.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 3,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "21e",
+      "30",
+      "60b"
+    ],
+    "codigos_gabarito": [
+      "21e",
+      "60"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "995aa04aeb",
+    "segundos": 18.4,
+    "tokens_prompt": 9762,
+    "tokens_saida": 287,
+    "tok_s": 24.9,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 1.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 6.0,
+    "hpa_gabarito": 6.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 1,
+    "n_atv_gabarito": 1,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 1,
+    "codigos_local": [
+      "30"
+    ],
+    "codigos_gabarito": [
+      "30"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "38005260ca",
+    "segundos": 52.0,
+    "tokens_prompt": 12434,
+    "tokens_saida": 1019,
+    "tok_s": 24.0,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 0.5,
+    "acerto_servico": 1.0,
+    "hpa_local": 3.0,
+    "hpa_gabarito": 4.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 11,
+    "codigos_local": [
+      "21b",
+      "21e"
+    ],
+    "codigos_gabarito": [
+      "21e",
+      "21e"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "3496e3f073",
+    "segundos": 30.5,
+    "tokens_prompt": 11935,
+    "tokens_saida": 490,
+    "tok_s": 24.3,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 1.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 3.0,
+    "hpa_gabarito": 3.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "21e",
+      "22b"
+    ],
+    "codigos_gabarito": [
+      "21e",
+      "22b"
+    ],
+    "vram_mb": 10288
+  },
+  {
+    "modelo": "qwen3:14b",
+    "modo": "compacto",
+    "commit": "b7cbc8b6d6",
+    "segundos": 28.6,
+    "tokens_prompt": 11330,
+    "tokens_saida": 475,
+    "tok_s": 24.3,
+    "truncado": false,
+    "json_valido": true,
+    "acerto_codigos": 1.0,
+    "acerto_servico": 1.0,
+    "hpa_local": 3.0,
+    "hpa_gabarito": 3.0,
+    "codigos_sem_hpa": 0,
+    "n_atv_local": 2,
+    "n_atv_gabarito": 2,
+    "arquivos_inventados": 0,
+    "arquivos_citados": 3,
+    "codigos_local": [
+      "21e",
+      "22b"
+    ],
+    "codigos_gabarito": [
+      "21e",
+      "22b"
+    ],
+    "vram_mb": 10288
+  }
+]

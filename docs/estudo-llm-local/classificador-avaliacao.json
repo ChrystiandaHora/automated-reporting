@@ -1,0 +1,2866 @@
+{
+  "resumo": {
+    "commits": 160,
+    "todos": {
+      "exato_%": 10.6,
+      "acerto_codigos_%": 34.6,
+      "erro_hpa_medio": 3.7
+    },
+    "respondidos_sozinho": {
+      "cobertura_%": 26.2,
+      "exato_%": 21.4,
+      "erro_hpa_medio": 4.17
+    },
+    "sinalizados_para_revisao": 118,
+    "params": {
+      "MIN_EXEMPLOS": 4,
+      "LIMIAR_SIM": 0.5,
+      "ZONA_DUVIDA": 0.25,
+      "SIM_MINIMA": 0.1,
+      "FOLDS": 10,
+      "PESO_MENSAGEM": 0.5
+    }
+  },
+  "commits": [
+    {
+      "commit": "158e812702",
+      "gabarito": {
+        "21d": 1,
+        "21e": 1,
+        "21c": 1,
+        "21a": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (27%), 22a (30%), 57 (31%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 9.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "23c6cb4292",
+      "gabarito": {
+        "22a": 1,
+        "22b": 2
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22b (40%), 22a (50%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 6.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "36bc61d391",
+      "gabarito": {
+        "62b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "5b09c705ce",
+      "gabarito": {
+        "21f": 1,
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "21f": 1
+      },
+      "exato": true,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21f (66%)"
+      ],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "76571958f4",
+      "gabarito": {
+        "21e": 2,
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 2
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.3333333333333333,
+      "tem_raro": false
+    },
+    {
+      "commit": "79575047a9",
+      "gabarito": {
+        "21d": 1,
+        "21a": 1,
+        "22a": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (33%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 10.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "79da976e1d",
+      "gabarito": {
+        "21d": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (74%)"
+      ],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "7c0cc06a9a",
+      "gabarito": {
+        "21a": 1,
+        "21d": 1,
+        "22b": 1,
+        "59": 1
+      },
+      "previsto": {
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.25,
+      "tem_raro": true
+    },
+    {
+      "commit": "8a62e44894",
+      "gabarito": {
+        "21e": 2,
+        "21d": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.6666666666666666,
+      "tem_raro": false
+    },
+    {
+      "commit": "9ac9dbcafa",
+      "gabarito": {
+        "21e": 4
+      },
+      "previsto": {
+        "21d": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (65%)"
+      ],
+      "erro_hpa": 4.0,
+      "acerto_codigos": 0.25,
+      "tem_raro": false
+    },
+    {
+      "commit": "afb8e1b5a5",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21b (48%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 1.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "be8cbb0e67",
+      "gabarito": {
+        "21d": 1,
+        "22b": 1,
+        "60": 1,
+        "59": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22a (39%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": true
+    },
+    {
+      "commit": "ca757139e1",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "d220813752",
+      "gabarito": {
+        "21b": 1,
+        "61": 1,
+        "22a": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 1.0,
+      "acerto_codigos": 0.3333333333333333,
+      "tem_raro": false
+    },
+    {
+      "commit": "f02e50f4b0",
+      "gabarito": {
+        "62b": 2,
+        "62a": 1,
+        "21b": 1
+      },
+      "previsto": {
+        "62b": 2,
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 62b (65%)"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.75,
+      "tem_raro": false
+    },
+    {
+      "commit": "fceb2e3290",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "133802cb7d",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (35%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "297a46a509",
+      "gabarito": {
+        "21f": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "21f": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21f (57%)"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "2b3e9244b2",
+      "gabarito": {
+        "22a": 1,
+        "21e": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 6.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "313d437489",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (42%), 21e (49%), 21a (27%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "3acbd76af0",
+      "gabarito": {
+        "21a": 2,
+        "21d": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "22a": 1,
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21a (64%)"
+      ],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 0.6666666666666666,
+      "tem_raro": false
+    },
+    {
+      "commit": "3d72effb94",
+      "gabarito": {
+        "21b": 1,
+        "21e": 1
+      },
+      "previsto": {
+        "62b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 62b (68%), 21b (41%)"
+      ],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "539758a9c1",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (59%), 21b (51%)"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "5953596daf",
+      "gabarito": {
+        "21c": 1,
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 1.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": false
+    },
+    {
+      "commit": "647c1f5e34",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": true,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21b (56%)"
+      ],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "79ffa8fbaa",
+      "gabarito": {
+        "22b": 1,
+        "21a": 1
+      },
+      "previsto": {
+        "22b": 1,
+        "21d": 1,
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (68%)"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "80206e7610",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "995aa04aeb",
+      "gabarito": {
+        "30": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 30 (36%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 6.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "b9f719a78a",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21b (26%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 1.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "d6dd8d6602",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "fa9fea12c4",
+      "gabarito": {
+        "30": 1,
+        "21d": 3,
+        "61": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 30 (26%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 12.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "ff9c207cd2",
+      "gabarito": {
+        "21e": 1,
+        "21b": 1
+      },
+      "previsto": {
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (48%), 21a (55%)"
+      ],
+      "erro_hpa": 1.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "0687df5fdd",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "2177552273",
+      "gabarito": {
+        "68": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22a (44%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 0.25,
+      "acerto_codigos": 0.0,
+      "tem_raro": true
+    },
+    {
+      "commit": "266129ca5f",
+      "gabarito": {
+        "21a": 1,
+        "21e": 1,
+        "21d": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 8.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "3003501807",
+      "gabarito": {
+        "21b": 1,
+        "21e": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (27%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "3735e1f422",
+      "gabarito": {
+        "21b": 2,
+        "21a": 2
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (49%)"
+      ],
+      "erro_hpa": 9.0,
+      "acerto_codigos": 0.25,
+      "tem_raro": false
+    },
+    {
+      "commit": "3b8117e797",
+      "gabarito": {
+        "21e": 1,
+        "21a": 1,
+        "21f": 1,
+        "30": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (62%)"
+      ],
+      "erro_hpa": 11.0,
+      "acerto_codigos": 0.25,
+      "tem_raro": false
+    },
+    {
+      "commit": "3c153b9873",
+      "gabarito": {
+        "57c": 1,
+        "22a": 1
+      },
+      "previsto": {
+        "22a": 1,
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (25%), 21b (27%)"
+      ],
+      "erro_hpa": 4.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": true
+    },
+    {
+      "commit": "3fe5c096f4",
+      "gabarito": {
+        "21a": 1,
+        "21d": 2,
+        "21b": 1,
+        "22b": 1,
+        "57": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 7.0,
+      "acerto_codigos": 0.3333333333333333,
+      "tem_raro": false
+    },
+    {
+      "commit": "8c41c7abf0",
+      "gabarito": {
+        "68": 1,
+        "21a": 1,
+        "21d": 1,
+        "22a": 1
+      },
+      "previsto": {
+        "21a": 2
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21a (67%)"
+      ],
+      "erro_hpa": 2.25,
+      "acerto_codigos": 0.25,
+      "tem_raro": true
+    },
+    {
+      "commit": "96e32573bd",
+      "gabarito": {
+        "21c": 1,
+        "21d": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 60 (35%)"
+      ],
+      "erro_hpa": 1.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "bd4a963ba8",
+      "gabarito": {
+        "21a": 1,
+        "21e": 1,
+        "62b": 1,
+        "21b": 1
+      },
+      "previsto": {
+        "62b": 2,
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": false
+    },
+    {
+      "commit": "c51637efbf",
+      "gabarito": {
+        "21e": 1,
+        "21a": 1,
+        "21g": 1,
+        "57": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (30%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 10.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "df13d13ad8",
+      "gabarito": {
+        "60": 1,
+        "57": 2,
+        "21b": 2,
+        "58": 1,
+        "21e": 1,
+        "21f": 1,
+        "22a": 1,
+        "21d": 2,
+        "62a": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "21a": 2
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22a (29%)"
+      ],
+      "erro_hpa": 5.0,
+      "acerto_codigos": 0.08333333333333333,
+      "tem_raro": false
+    },
+    {
+      "commit": "e8d2c7943c",
+      "gabarito": {
+        "21d": 1,
+        "21a": 1,
+        "22a": 1
+      },
+      "previsto": {
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22b (50%), 22a (48%)"
+      ],
+      "erro_hpa": 8.0,
+      "acerto_codigos": 0.3333333333333333,
+      "tem_raro": false
+    },
+    {
+      "commit": "e8fe5a1afb",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "f319b4c89d",
+      "gabarito": {
+        "62b": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21b (69%)"
+      ],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "0eac66b300",
+      "gabarito": {
+        "22a": 11
+      },
+      "previsto": {
+        "22a": 2
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 36.0,
+      "acerto_codigos": 0.18181818181818182,
+      "tem_raro": false
+    },
+    {
+      "commit": "18dacb183a",
+      "gabarito": {
+        "21b": 1,
+        "62b": 3
+      },
+      "previsto": {
+        "62b": 1,
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 62b (55%), 21b (69%)"
+      ],
+      "erro_hpa": 6.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": false
+    },
+    {
+      "commit": "29c6fe619c",
+      "gabarito": {
+        "21c": 1,
+        "21e": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (44%), 21e (36%), 21a (43%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "56b3c80fc3",
+      "gabarito": {
+        "6": 1,
+        "58b": 1,
+        "62b": 1,
+        "22a": 1,
+        "21d": 1
+      },
+      "previsto": {
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (25%), 57 (47%)"
+      ],
+      "erro_hpa": 12.0,
+      "acerto_codigos": 0.2,
+      "tem_raro": true
+    },
+    {
+      "commit": "5776af9330",
+      "gabarito": {
+        "21d": 1,
+        "57": 1,
+        "22a": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (54%), 21a (60%)"
+      ],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 0.3333333333333333,
+      "tem_raro": false
+    },
+    {
+      "commit": "6f76889b1e",
+      "gabarito": {
+        "21d": 1,
+        "62a": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (49%), 21e (50%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 4.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "810581d2d9",
+      "gabarito": {
+        "62b": 1,
+        "61": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 62b (32%), 21e (29%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "946f994d11",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": true,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21b (72%), 21a (26%)"
+      ],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "a5b5178334",
+      "gabarito": {
+        "21a": 1,
+        "58": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (32%), 21a (42%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 4.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "ba79642f8e",
+      "gabarito": {
+        "21a": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (72%)"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "c91abfca2e",
+      "gabarito": {
+        "21b": 1,
+        "21d": 1,
+        "21e": 1
+      },
+      "previsto": {
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (54%), 21e (42%)"
+      ],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.3333333333333333,
+      "tem_raro": false
+    },
+    {
+      "commit": "d86c4286f1",
+      "gabarito": {
+        "22a": 1,
+        "22b": 1
+      },
+      "previsto": {
+        "22a": 2
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": false
+    },
+    {
+      "commit": "ddf548e58d",
+      "gabarito": {
+        "21g": 1,
+        "22b": 1
+      },
+      "previsto": {
+        "21a": 2
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "e4947c3f6f",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "edfa68d6bf",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": true,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (35%), 21b (50%)"
+      ],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "f1bcda5dff",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": true,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (68%)"
+      ],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "047e21181b",
+      "gabarito": {
+        "21e": 1,
+        "60": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": false
+    },
+    {
+      "commit": "15ff9c8572",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22b (26%), 21d (54%)"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "1638e75607",
+      "gabarito": {
+        "21b": 1,
+        "21e": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": false
+    },
+    {
+      "commit": "1b19104a30",
+      "gabarito": {
+        "21a": 2
+      },
+      "previsto": {
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (32%), 21a (60%)"
+      ],
+      "erro_hpa": 4.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": false
+    },
+    {
+      "commit": "3496e3f073",
+      "gabarito": {
+        "22b": 1,
+        "21e": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22a (65%), 21e (45%)"
+      ],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "38005260ca",
+      "gabarito": {
+        "21e": 2
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22b (33%), 21e (62%)"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": false
+    },
+    {
+      "commit": "3bb8283598",
+      "gabarito": {
+        "21e": 2,
+        "21d": 1
+      },
+      "previsto": {
+        "21d": 2,
+        "21e": 2
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "43be8b76cd",
+      "gabarito": {
+        "22a": 1,
+        "21e": 1
+      },
+      "previsto": {
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22b (41%), 58 (34%), 21f (35%)"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": false
+    },
+    {
+      "commit": "469e622b7f",
+      "gabarito": {
+        "62b": 2,
+        "21g": 1,
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 62b (31%)"
+      ],
+      "erro_hpa": 10.0,
+      "acerto_codigos": 0.25,
+      "tem_raro": false
+    },
+    {
+      "commit": "52543eef6a",
+      "gabarito": {
+        "21b": 2
+      },
+      "previsto": {
+        "21b": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21b (53%)"
+      ],
+      "erro_hpa": 1.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": false
+    },
+    {
+      "commit": "707b6be15e",
+      "gabarito": {
+        "30": 1,
+        "21d": 1
+      },
+      "previsto": {
+        "30": 1,
+        "61": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 61 (59%)"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": false
+    },
+    {
+      "commit": "825ac8dcab",
+      "gabarito": {
+        "22a": 1
+      },
+      "previsto": {
+        "22a": 1
+      },
+      "exato": true,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22b (44%), 57 (28%)"
+      ],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "b639c1ff7a",
+      "gabarito": {
+        "62a": 3,
+        "60": 1
+      },
+      "previsto": {
+        "21b": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (67%)"
+      ],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "b6d0cce158",
+      "gabarito": {
+        "21b": 1,
+        "22a": 1,
+        "21a": 2,
+        "21d": 2,
+        "57": 1
+      },
+      "previsto": {
+        "21b": 1,
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (44%)"
+      ],
+      "erro_hpa": 12.0,
+      "acerto_codigos": 0.2857142857142857,
+      "tem_raro": false
+    },
+    {
+      "commit": "e1af701e08",
+      "gabarito": {
+        "32": 1
+      },
+      "previsto": {
+        "30": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 5.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": true
+    },
+    {
+      "commit": "fd186abf0c",
+      "gabarito": {
+        "22a": 1,
+        "21d": 2
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22a (34%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 8.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "02d167271b",
+      "gabarito": {
+        "62b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (44%), 21b (62%), 62b (36%)"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "0f03922b83",
+      "gabarito": {
+        "30": 1,
+        "68": 1,
+        "61": 1
+      },
+      "previsto": {
+        "30": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (43%), 30 (73%)"
+      ],
+      "erro_hpa": 0.25,
+      "acerto_codigos": 0.3333333333333333,
+      "tem_raro": true
+    },
+    {
+      "commit": "1575d7e0d9",
+      "gabarito": {
+        "58": 1,
+        "21a": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22a (34%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 4.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "1940a77d91",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 1.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "3b81323d94",
+      "gabarito": {
+        "22a": 8
+      },
+      "previsto": {
+        "22b": 1,
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 27.0,
+      "acerto_codigos": 0.125,
+      "tem_raro": false
+    },
+    {
+      "commit": "3cc1b10327",
+      "gabarito": {
+        "21d": 1,
+        "62b": 1,
+        "21b": 1,
+        "61": 1
+      },
+      "previsto": {
+        "21d": 2,
+        "21b": 1,
+        "21a": 1,
+        "57": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": false
+    },
+    {
+      "commit": "50150271f5",
+      "gabarito": {
+        "22a": 1,
+        "21d": 1,
+        "68": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22b (31%), 21a (49%)"
+      ],
+      "erro_hpa": 0.25,
+      "acerto_codigos": 0.6666666666666666,
+      "tem_raro": true
+    },
+    {
+      "commit": "6defef541c",
+      "gabarito": {
+        "62a": 1,
+        "21a": 3,
+        "22a": 1,
+        "58": 2
+      },
+      "previsto": {
+        "22a": 1,
+        "21a": 1,
+        "58": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22a (60%)"
+      ],
+      "erro_hpa": 10.0,
+      "acerto_codigos": 0.42857142857142855,
+      "tem_raro": false
+    },
+    {
+      "commit": "7ab146fea0",
+      "gabarito": {
+        "21d": 1,
+        "21b": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (58%), 21a (29%)"
+      ],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": false
+    },
+    {
+      "commit": "b7cbc8b6d6",
+      "gabarito": {
+        "22b": 1,
+        "21e": 1
+      },
+      "previsto": {
+        "22b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22b (61%)"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": false
+    },
+    {
+      "commit": "c09948f72a",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "c948d327c6",
+      "gabarito": {
+        "21d": 2,
+        "21e": 2,
+        "22b": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "21e": 2
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (74%)"
+      ],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.6,
+      "tem_raro": false
+    },
+    {
+      "commit": "ca4303e0b8",
+      "gabarito": {
+        "21d": 1,
+        "22a": 1
+      },
+      "previsto": {
+        "22b": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22a (34%), 21e (74%)"
+      ],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "cdc2a76dcf",
+      "gabarito": {
+        "21e": 1,
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": false
+    },
+    {
+      "commit": "d502f47ce4",
+      "gabarito": {
+        "22a": 1,
+        "57": 1
+      },
+      "previsto": {
+        "62a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22a (46%), 60 (25%), 62a (61%)"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "e6eae7f331",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22a (31%), 21b (68%)"
+      ],
+      "erro_hpa": 1.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "1c70f8de7f",
+      "gabarito": {
+        "21e": 3,
+        "21d": 1
+      },
+      "previsto": {
+        "21d": 2,
+        "21e": 2
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 0.75,
+      "tem_raro": false
+    },
+    {
+      "commit": "28dec78274",
+      "gabarito": {
+        "21e": 1,
+        "59a": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21f (40%)"
+      ],
+      "erro_hpa": 4.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": true
+    },
+    {
+      "commit": "29d2f8e574",
+      "gabarito": {
+        "22b": 1,
+        "62a": 1
+      },
+      "previsto": {
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21a (58%)"
+      ],
+      "erro_hpa": 1.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "2b68a7fd9a",
+      "gabarito": {
+        "21g": 1,
+        "22b": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "4d7af89768",
+      "gabarito": {
+        "21a": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21b (58%)"
+      ],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "922d8fc89f",
+      "gabarito": {
+        "21e": 2,
+        "21b": 2
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 6.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "97ed768029",
+      "gabarito": {
+        "21d": 1
+      },
+      "previsto": {
+        "58": 1,
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22a (32%), 62b (31%), 58 (52%), 21a (52%)"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "992cdbcb9b",
+      "gabarito": {
+        "21g": 1,
+        "58b": 1,
+        "21a": 1,
+        "21d": 1,
+        "21f": 1
+      },
+      "previsto": {
+        "21e": 2
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (73%)"
+      ],
+      "erro_hpa": 12.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": true
+    },
+    {
+      "commit": "a1465d759b",
+      "gabarito": {
+        "22b": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (55%)"
+      ],
+      "erro_hpa": 1.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "a70321e81a",
+      "gabarito": {
+        "30": 1
+      },
+      "previsto": {
+        "30": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "b19f48f3ce",
+      "gabarito": {
+        "22a": 1,
+        "60": 1,
+        "16": 1
+      },
+      "previsto": {
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (41%)"
+      ],
+      "erro_hpa": 6.0,
+      "acerto_codigos": 0.3333333333333333,
+      "tem_raro": true
+    },
+    {
+      "commit": "bee07cb35e",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": true,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 62a (31%)"
+      ],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "c52349e146",
+      "gabarito": {
+        "21e": 1,
+        "22a": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 6.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "db76c7f49f",
+      "gabarito": {
+        "22a": 1,
+        "21d": 2
+      },
+      "previsto": {
+        "21d": 1,
+        "21a": 2
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.3333333333333333,
+      "tem_raro": false
+    },
+    {
+      "commit": "e33f47ef73",
+      "gabarito": {
+        "62a": 2,
+        "21g": 1,
+        "21f": 6,
+        "21a": 1,
+        "60": 2
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21b (28%)"
+      ],
+      "erro_hpa": 16.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "fe2da9da11",
+      "gabarito": {
+        "21b": 1,
+        "62b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": false
+    },
+    {
+      "commit": "0d21926f81",
+      "gabarito": {
+        "21e": 1,
+        "21b": 2
+      },
+      "previsto": {
+        "62b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21b (29%)"
+      ],
+      "erro_hpa": 1.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "1303840a51",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21b (52%), 21a (49%)"
+      ],
+      "erro_hpa": 1.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "17a1cb83d4",
+      "gabarito": {
+        "62b": 2
+      },
+      "previsto": {
+        "62b": 1,
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": false
+    },
+    {
+      "commit": "2a49da01a5",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 1.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "2c0c2c1ed0",
+      "gabarito": {
+        "58": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (30%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "550130d91a",
+      "gabarito": {
+        "21c": 1,
+        "21e": 1,
+        "21b": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "5936e50f3c",
+      "gabarito": {
+        "21e": 1,
+        "30": 1,
+        "57": 1
+      },
+      "previsto": {
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21f (30%)"
+      ],
+      "erro_hpa": 4.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "671e6827bb",
+      "gabarito": {
+        "21e": 1,
+        "60": 1
+      },
+      "previsto": {
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (53%), 21e (35%)"
+      ],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "9345f7b24e",
+      "gabarito": {
+        "21f": 1
+      },
+      "previsto": {
+        "22b": 1,
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22b (50%), 21g (38%)"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "b11fddb79c",
+      "gabarito": {
+        "21a": 1,
+        "21b": 1
+      },
+      "previsto": {
+        "21d": 1,
+        "21b": 1,
+        "21a": 2
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (57%), 22a (37%), 57 (26%)"
+      ],
+      "erro_hpa": 6.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "c2e5871a90",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": true,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (30%), 21b (71%)"
+      ],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "c3a5853a49",
+      "gabarito": {
+        "62b": 1,
+        "21d": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21a (38%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 5.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "e1ea7a6d33",
+      "gabarito": {
+        "21d": 1,
+        "21e": 1,
+        "21a": 1,
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1,
+        "62a": 2
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 60 (26%), 21b (56%), 62a (68%)"
+      ],
+      "erro_hpa": 4.0,
+      "acerto_codigos": 0.25,
+      "tem_raro": false
+    },
+    {
+      "commit": "eb7a47964b",
+      "gabarito": {
+        "22b": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 1.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "fa76173448",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (45%), 21a (62%)"
+      ],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "fb4b853135",
+      "gabarito": {
+        "62a": 1,
+        "22a": 1,
+        "57": 1,
+        "60": 1
+      },
+      "previsto": {
+        "22a": 1,
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22a (59%), 21b (64%)"
+      ],
+      "erro_hpa": 1.0,
+      "acerto_codigos": 0.25,
+      "tem_raro": false
+    },
+    {
+      "commit": "02a2e5f658",
+      "gabarito": {
+        "22a": 1
+      },
+      "previsto": {
+        "22b": 1,
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22b (60%)"
+      ],
+      "erro_hpa": 1.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "058de3cfc7",
+      "gabarito": {
+        "22b": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22b (35%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 1.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "0cea3ea18c",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "60": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 60 (69%)"
+      ],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "1ae08f1957",
+      "gabarito": {
+        "21a": 4,
+        "62b": 1
+      },
+      "previsto": {
+        "21a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21a (70%)"
+      ],
+      "erro_hpa": 15.0,
+      "acerto_codigos": 0.2,
+      "tem_raro": false
+    },
+    {
+      "commit": "2b9dfc97fd",
+      "gabarito": {
+        "21b": 2,
+        "22b": 1,
+        "22a": 1
+      },
+      "previsto": {
+        "22a": 2
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22b (28%)"
+      ],
+      "erro_hpa": 1.0,
+      "acerto_codigos": 0.25,
+      "tem_raro": false
+    },
+    {
+      "commit": "33fe690c08",
+      "gabarito": {
+        "22a": 1,
+        "22b": 1
+      },
+      "previsto": {
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 22b (43%), 22a (56%)"
+      ],
+      "erro_hpa": 1.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": false
+    },
+    {
+      "commit": "39f1044ac3",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {
+        "21d": 2,
+        "21e": 2
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 6.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "4760d88cb5",
+      "gabarito": {
+        "58": 1,
+        "21a": 1,
+        "22a": 1,
+        "62b": 1
+      },
+      "previsto": {
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 7.0,
+      "acerto_codigos": 0.25,
+      "tem_raro": false
+    },
+    {
+      "commit": "4a6ae4d73f",
+      "gabarito": {
+        "21b": 3,
+        "62a": 1,
+        "21c": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "21b": 2
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (61%), 21b (68%)"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.4,
+      "tem_raro": false
+    },
+    {
+      "commit": "6218e03149",
+      "gabarito": {
+        "21e": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (26%), 21e (41%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "7004bda348",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "7dc840233a",
+      "gabarito": {
+        "21e": 1,
+        "59a": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (71%)"
+      ],
+      "erro_hpa": 4.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": true
+    },
+    {
+      "commit": "897232e976",
+      "gabarito": {
+        "21a": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21b (52%)"
+      ],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "ba51700d09",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "21b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (71%), 21b (58%), 22a (27%)"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "e19d582723",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "62b": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 62b (63%)"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "f8d16a3634",
+      "gabarito": {
+        "21b": 1
+      },
+      "previsto": {
+        "21b": 1
+      },
+      "exato": true,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 1.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "026c07bbf8",
+      "gabarito": {
+        "22b": 2,
+        "21d": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (71%), 22b (49%)"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "22e3f1524d",
+      "gabarito": {
+        "22a": 1,
+        "57b": 1
+      },
+      "previsto": {
+        "22a": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (42%)"
+      ],
+      "erro_hpa": 6.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": true
+    },
+    {
+      "commit": "2487f5b12a",
+      "gabarito": {
+        "58": 1,
+        "21a": 1,
+        "21d": 1,
+        "61": 2,
+        "60": 1,
+        "22a": 1,
+        "62b": 1,
+        "15": 1
+      },
+      "previsto": {
+        "22a": 2,
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21a (46%), 21d (55%)"
+      ],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.2222222222222222,
+      "tem_raro": true
+    },
+    {
+      "commit": "37bdcbe6d8",
+      "gabarito": {
+        "21d": 1,
+        "21a": 1,
+        "22b": 1,
+        "21b": 1
+      },
+      "previsto": {
+        "21e": 2,
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21d (52%)"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.25,
+      "tem_raro": false
+    },
+    {
+      "commit": "5e3b059a25",
+      "gabarito": {
+        "21e": 2
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (57%)"
+      ],
+      "erro_hpa": 2.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": false
+    },
+    {
+      "commit": "60b5e4302f",
+      "gabarito": {
+        "21f": 1,
+        "30": 1,
+        "58": 1,
+        "59a": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 9.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": true
+    },
+    {
+      "commit": "679d0e8bb5",
+      "gabarito": {
+        "22b": 1,
+        "21d": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (40%), 21a (28%), 21d (34%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "8b75a9f929",
+      "gabarito": {
+        "21g": 1,
+        "22a": 8,
+        "21f": 1
+      },
+      "previsto": {
+        "22a": 2
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 29.0,
+      "acerto_codigos": 0.2,
+      "tem_raro": false
+    },
+    {
+      "commit": "931bebc738",
+      "gabarito": {
+        "21g": 1,
+        "22b": 1,
+        "21e": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "21f": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (63%), 21f (65%)"
+      ],
+      "erro_hpa": 4.0,
+      "acerto_codigos": 0.3333333333333333,
+      "tem_raro": false
+    },
+    {
+      "commit": "ae16746bb9",
+      "gabarito": {
+        "57": 1,
+        "22a": 1,
+        "6": 1
+      },
+      "previsto": {
+        "22a": 1,
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 0.0,
+      "acerto_codigos": 0.3333333333333333,
+      "tem_raro": true
+    },
+    {
+      "commit": "b8519adc41",
+      "gabarito": {
+        "21a": 1,
+        "21c": 1,
+        "21d": 1,
+        "21b": 1
+      },
+      "previsto": {},
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21a (40%)",
+        "nenhum código conhecido se aplica"
+      ],
+      "erro_hpa": 8.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "ce5c8f735c",
+      "gabarito": {
+        "21e": 1,
+        "21a": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (67%), 21b (47%)"
+      ],
+      "erro_hpa": 4.0,
+      "acerto_codigos": 0.5,
+      "tem_raro": false
+    },
+    {
+      "commit": "e0372082e9",
+      "gabarito": {
+        "21a": 1,
+        "21d": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "21c": 1
+      },
+      "exato": false,
+      "revisar": false,
+      "motivos": [],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    },
+    {
+      "commit": "e03e167a98",
+      "gabarito": {
+        "21e": 4,
+        "21d": 4,
+        "61": 1
+      },
+      "previsto": {
+        "21e": 2,
+        "21d": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (74%)"
+      ],
+      "erro_hpa": 10.0,
+      "acerto_codigos": 0.3333333333333333,
+      "tem_raro": false
+    },
+    {
+      "commit": "e6ea6b6d0f",
+      "gabarito": {
+        "21e": 1,
+        "21d": 2,
+        "61": 1
+      },
+      "previsto": {
+        "21e": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (66%)"
+      ],
+      "erro_hpa": 4.0,
+      "acerto_codigos": 0.25,
+      "tem_raro": false
+    },
+    {
+      "commit": "f7e0ad3c05",
+      "gabarito": {
+        "21a": 1,
+        "21d": 1
+      },
+      "previsto": {
+        "21e": 1,
+        "21c": 1
+      },
+      "exato": false,
+      "revisar": true,
+      "motivos": [
+        "dúvida em 21e (73%), 21b (42%)"
+      ],
+      "erro_hpa": 3.0,
+      "acerto_codigos": 0.0,
+      "tem_raro": false
+    }
+  ]
+}
