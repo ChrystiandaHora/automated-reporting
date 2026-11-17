@@ -1,0 +1,37 @@
+# Ollama com GPU AMD (ROCm). Precisa do Docker Engine NATIVO (contexto "default"):
+# o Docker Desktop roda numa VM e não enxerga /dev/kfd.
+#   docker --context default compose -f llm-local/compose.ollama.yml up -d
+# Limites: no máximo 80% da máquina (16 threads -> 12.8 CPUs, ~15 GB RAM -> 12 GB,
+# 16 GB VRAM -> ~3.2 GB reservados via OLLAMA_GPU_OVERHEAD).
+name: nexus-ollama
+
+services:
+  ollama:
+    image: ollama/ollama:rocm
+    restart: unless-stopped
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - "44"   # video
+      - "992"  # render (dono de /dev/kfd e /dev/dri/renderD128 no host)
+    environment:
+      OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      OLLAMA_KEEP_ALIVE: "10m"
+      OLLAMA_GPU_OVERHEAD: "3400000000"   # ~20% da VRAM fica livre
+      OLLAMA_FLASH_ATTENTION: "1"
+      OLLAMA_KV_CACHE_TYPE: "q8_0"        # metade da VRAM no cache de contexto
+      # Se o ROCm não reconhecer a RX 9060 XT (gfx1200), descomente:
+      # HSA_OVERRIDE_GFX_VERSION: "12.0.0"
+      # ou troque para o backend Vulkan:
+      # OLLAMA_VULKAN: "1"
+    cpus: 12.8
+    mem_limit: 12g
+    ports:
+      - "127.0.0.1:11434:11434"   # só localhost; o Docker Desktop alcança via host.docker.internal
+    volumes:
+      - ollama_models:/root/.ollama
+
+volumes:
+  ollama_models:

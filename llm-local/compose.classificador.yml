@@ -1,0 +1,29 @@
+# Classificador de commits (só CPU — roda em qualquer máquina, sem GPU).
+#   docker --context default compose -f llm-local/compose.classificador.yml run --rm --build classificador /app/classificador/por_arquivo.py avaliar
+#   docker --context default compose -f llm-local/compose.classificador.yml run --rm --build classificador /app/classificador/por_arquivo.py treinar
+name: nexus-classificador
+
+services:
+  classificador:
+    build:
+      context: .
+      dockerfile: classificador/Dockerfile
+    network_mode: none          # não precisa de rede: nada sai da máquina
+    environment:
+      DB_PATH: /data/nexus.db
+      DOCS_DIR: /docs-base
+      OUT_DIR: /out
+      MIN_EXEMPLOS: ${MIN_EXEMPLOS:-5}
+      LIMIAR_SIM: ${LIMIAR_SIM:-0.5}
+      ZONA_DUVIDA: ${ZONA_DUVIDA:-0.25}
+      SIM_MINIMA: ${SIM_MINIMA:-0.10}
+      FOLDS: ${FOLDS:-10}
+      PESO_MENSAGEM: ${PESO_MENSAGEM:-0.3}
+      CONFIANCA: ${CONFIANCA:-0.6}
+      C_REG: ${C_REG:-4.0}
+    cpus: 2
+    mem_limit: 2g
+    volumes:
+      - ./dados:/data:ro
+      - ../backend/Docs:/docs-base:ro
+      - ../docs/estudo-llm-local:/out

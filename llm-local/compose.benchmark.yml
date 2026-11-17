@@ -1,0 +1,46 @@
+# Benchmark: roda no Docker NATIVO, junto do Ollama — o Docker Desktop pode ficar fechado
+# (a VM dele consome ~4 GB de RAM e contribuiu para o travamento por falta de memória).
+#
+# 1) Cópia do banco (só quando quiser atualizar; precisa do Docker Desktop aberto):
+#      docker run --rm -v automated-reporting_munka_data:/data -v "$PWD/llm-local/dados:/out" \
+#        --user 1000:1000 python:3.12-slim python -c "import sqlite3; \
+#        s=sqlite3.connect('file:/data/nexus.db?mode=ro',uri=True); d=sqlite3.connect('/out/nexus.db'); \
+#        s.backup(d); d.execute('PRAGMA journal_mode=DELETE'); d.close()"
+# 2) Rodar:
+#      docker --context default compose -f llm-local/compose.benchmark.yml run --rm --build benchmark
+name: nexus-llm-benchmark
+
+services:
+  benchmark:
+    build: .
+    networks: [ollama]   # mesma rede do container do Ollama
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      DB_PATH: /data/nexus.db
+      DOCS_DIR: /docs-base
+      OUT_DIR: /out
+      MODELOS: ${MODELOS:-qwen2.5-coder:14b,qwen2.5-coder:7b}
+      MODOS: ${MODOS:-compacto}
+      N_COMMITS: ${N_COMMITS:-10}
+      NUM_CTX: ${NUM_CTX:-20480}
+      NUM_PREDICT: ${NUM_PREDICT:-4096}
+      N_EXEMPLOS: ${N_EXEMPLOS:-3}
+      EXEMPLO_DIFF_CHARS: ${EXEMPLO_DIFF_CHARS:-1500}
+      TOP_K_SERVICOS: ${TOP_K_SERVICOS:-5}
+      MAX_ATIVIDADES: ${MAX_ATIVIDADES:-10}
+      GABARITO: ${GABARITO:-historico}
+      CORTE: ${CORTE:-2026-11}
+      SEMENTE: ${SEMENTE:-7}
+      INCLUIR_GRANDES: ${INCLUIR_GRANDES:-0}
+    cpus: 1
+    mem_limit: 1g
+    volumes:
+      # Cópia do banco (llm-local/dados/nexus.db), aberta em mode=ro: o banco real nunca é tocado.
+      - ./dados:/data:ro
+      - ../backend/Docs:/docs-base:ro
+      - ../docs/estudo-llm-local:/out
+
+networks:
+  ollama:
+    external: true
+    name: nexus-ollama_default
