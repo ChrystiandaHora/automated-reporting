@@ -202,10 +202,12 @@
       <div class="flex w-full flex-wrap items-end gap-3 border-t border-border pt-3.5" role="group" aria-label="Filtros por coluna">
         <label :class="[classesFiltroItem, 'min-w-40']">
           <span :class="classesFiltroLabel">Regra</span>
-          <BaseSelect v-model="filtroRegra" aria-label="Filtrar por regra">
-            <option value="">Todas</option>
-            <option v-for="r in opcoesRegra" :key="r" :value="r">{{ r }}</option>
-          </BaseSelect>
+          <MultiSelectFiltro
+            v-model="filtroRegra"
+            :opcoes="opcoesRegra.map(r => ({ valor: r, rotulo: r }))"
+            placeholder="Todas"
+            aria-label="Filtrar por regra"
+          />
         </label>
 
         <label :class="[classesFiltroItem, 'min-w-55 flex-1']">
@@ -220,10 +222,12 @@
 
         <label :class="[classesFiltroItem, 'min-w-40']">
           <span :class="classesFiltroLabel">Status no portal</span>
-          <BaseSelect v-model="filtroStatusPortal" aria-label="Filtrar por status no portal">
-            <option value="">Todos</option>
-            <option v-for="s in opcoesStatusPortal" :key="s.valor" :value="s.valor">{{ s.rotulo }} ({{ s.total }})</option>
-          </BaseSelect>
+          <MultiSelectFiltro
+            v-model="filtroStatusPortal"
+            :opcoes="opcoesStatusPortal.map(s => ({ valor: s.valor, rotulo: `${s.rotulo} (${s.total})` }))"
+            placeholder="Todos"
+            aria-label="Filtrar por status no portal"
+          />
         </label>
 
         <label :class="[classesFiltroItem, 'min-w-40']">
@@ -243,6 +247,20 @@
           <i class="fa-solid fa-filter-circle-xmark" aria-hidden="true"></i>
           <span>Limpar filtros</span>
         </BaseButton>
+      </div>
+
+      <div v-if="chipsAtivos.length" class="flex w-full flex-wrap items-center gap-2" aria-label="Filtros ativos">
+        <button
+          v-for="c in chipsAtivos"
+          :key="c.chave"
+          type="button"
+          class="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-primary bg-primary-glow px-2.5 py-0.5 text-xs font-bold text-primary hover:opacity-80"
+          :aria-label="`Remover filtro ${c.rotulo}`"
+          @click="c.remover()"
+        >
+          <span>{{ c.rotulo }}</span>
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
       </div>
     </FiltersBar>
 
@@ -751,7 +769,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, reactive, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { api, type TarefaMesItem, type TarefasMesResponse, type Config } from '../api'
 import { useToastStore } from '../stores/toast'
 import { useFilaStore } from '../stores/fila'
@@ -762,6 +781,7 @@ import BaseBadge from '../components/ui/BaseBadge.vue'
 import BaseButton from '../components/ui/BaseButton.vue'
 import BaseInput from '../components/ui/BaseInput.vue'
 import BaseSelect from '../components/ui/BaseSelect.vue'
+import MultiSelectFiltro from '../components/ui/MultiSelectFiltro.vue'
 import FiltersBar from '../components/ui/FiltersBar.vue'
 import PageTitle from '../components/ui/PageTitle.vue'
 import SearchBox from '../components/ui/SearchBox.vue'
@@ -852,17 +872,67 @@ const dados = ref<TarefasMesResponse>({
 // Filtros locais
 const filtroTexto = ref<string>('')
 const filtroStatus = ref<'todos' | 'abertas' | 'concluidas'>('todos')
-const filtroRegra = ref<string>('')
+const filtroRegra = ref<string[]>([])
 const filtroAtividade = ref<string>('')
-const filtroStatusPortal = ref<string>('')
+const filtroStatusPortal = ref<string[]>([])
+
+// Filtros persistidos na query da URL (?q=&cond=&regra=21a,22b&portal=homologacao&atividade=)
+const route = useRoute()
+const router = useRouter()
+const listaDaQuery = (v: unknown): string[] =>
+  (typeof v === 'string' ? v : '').split(',').map(x => x.trim()).filter(Boolean)
+
+function lerFiltrosDaUrl() {
+  const q = route.query
+  filtroTexto.value = typeof q.q === 'string' ? q.q : ''
+  filtroAtividade.value = typeof q.atividade === 'string' ? q.atividade : ''
+  filtroRegra.value = listaDaQuery(q.regra)
+  filtroStatusPortal.value = listaDaQuery(q.portal)
+  filtroStatus.value = q.cond === 'abertas' || q.cond === 'concluidas' ? q.cond : 'todos'
+}
+lerFiltrosDaUrl()
+
+function gravarFiltrosNaUrl() {
+  const novos: Record<string, string> = {}
+  if (filtroTexto.value.trim()) novos.q = filtroTexto.value.trim()
+  if (filtroAtividade.value.trim()) novos.atividade = filtroAtividade.value.trim()
+  if (filtroRegra.value.length) novos.regra = filtroRegra.value.join(',')
+  if (filtroStatusPortal.value.length) novos.portal = filtroStatusPortal.value.join(',')
+  if (filtroStatus.value !== 'todos') novos.cond = filtroStatus.value
+  const base = { ...route.query }
+  for (const k of ['q', 'atividade', 'regra', 'portal', 'cond']) delete base[k]
+  router.replace({ query: { ...base, ...novos } })
+}
+watch([filtroTexto, filtroAtividade, filtroRegra, filtroStatusPortal, filtroStatus], gravarFiltrosNaUrl, { deep: true })
 
 const filtrosAtivos = computed(() =>
   !!filtroTexto.value ||
   filtroStatus.value !== 'todos' ||
-  !!filtroRegra.value ||
+  filtroRegra.value.length > 0 ||
   !!filtroAtividade.value.trim() ||
-  !!filtroStatusPortal.value
+  filtroStatusPortal.value.length > 0
 )
+
+const chipsAtivos = computed(() => {
+  const chips: { chave: string; rotulo: string; remover: () => void }[] = []
+  if (filtroTexto.value.trim()) {
+    chips.push({ chave: 'q', rotulo: `Busca: ${filtroTexto.value.trim()}`, remover: () => { filtroTexto.value = '' } })
+  }
+  for (const r of filtroRegra.value) {
+    chips.push({ chave: `r-${r}`, rotulo: `Regra: ${r}`, remover: () => { filtroRegra.value = filtroRegra.value.filter(x => x !== r) } })
+  }
+  if (filtroAtividade.value.trim()) {
+    chips.push({ chave: 'a', rotulo: `Atividade: ${filtroAtividade.value.trim()}`, remover: () => { filtroAtividade.value = '' } })
+  }
+  for (const p of filtroStatusPortal.value) {
+    const rotulo = opcoesStatusPortal.value.find(o => o.valor === p)?.rotulo ?? p
+    chips.push({ chave: `p-${p}`, rotulo: `Portal: ${rotulo}`, remover: () => { filtroStatusPortal.value = filtroStatusPortal.value.filter(x => x !== p) } })
+  }
+  if (filtroStatus.value !== 'todos') {
+    chips.push({ chave: 'c', rotulo: `Condição: ${filtroStatus.value === 'abertas' ? 'Em aberto' : 'Concluídas'}`, remover: () => { filtroStatus.value = 'todos' } })
+  }
+  return chips
+})
 
 // Seleção de itens
 const selecionadosIds = ref<number[]>([])
@@ -952,8 +1022,8 @@ const tarefasFiltradasPorTexto = computed(() => {
   const q = filtroTexto.value.trim().toLowerCase()
   const atividade = filtroAtividade.value.trim().toLowerCase()
   return dados.value.tarefas.filter(t => {
-    if (filtroRegra.value && t.codigo !== filtroRegra.value) return false
-    if (filtroStatusPortal.value && chaveStatusPortal(t) !== filtroStatusPortal.value) return false
+    if (filtroRegra.value.length && !filtroRegra.value.includes(t.codigo)) return false
+    if (filtroStatusPortal.value.length && !filtroStatusPortal.value.includes(chaveStatusPortal(t))) return false
     if (atividade && !(t.titulo || '').toLowerCase().includes(atividade)) return false
     if (!q) return true
     return (
@@ -1022,9 +1092,9 @@ function limparSelecao() {
 function resetarFiltros() {
   filtroTexto.value = ''
   filtroStatus.value = 'todos'
-  filtroRegra.value = ''
+  filtroRegra.value = []
   filtroAtividade.value = ''
-  filtroStatusPortal.value = ''
+  filtroStatusPortal.value = []
 }
 
 function mudarMes(delta: number) {
